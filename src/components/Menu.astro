@@ -8,7 +8,7 @@ import { tc } from '../i18n/common';
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
 const t = tc(lang);
-const cats = categories();
+const cats = await categories();
 ---
 <div class="menu on-ink" id="site-menu" hidden data-menu role="dialog" aria-modal="true" aria-label={t.nav.menu}>
   <div class="menu__top">

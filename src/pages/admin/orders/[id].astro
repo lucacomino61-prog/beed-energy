@@ -40,13 +40,13 @@ if (Astro.request.method === 'POST') {
         statusNote = fstr(f, 'note', 500);
         if (!(ORDER_STATUSES as readonly string[]).includes(s)) errors.status = t.err.required;
         else {
-          const r = setOrderStatus(id, s, user.email, statusNote || undefined);
+          const r = await setOrderStatus(id, s, user.email, statusNote || undefined);
           if (r === 'same') errors.status = t.order.sameStatus;
           else if (r === 'cancelled') errors.status = t.order.cancelledLocked; // stock is back on sale: no reopening
           else if (r === 'missing') return Astro.rewrite('/404');
         }
         if (!errors.status) {
-          audit(user.id, 'order.status', 'order', id, s);
+          await audit(user.id, 'order.status', 'order', id, s);
           return Astro.redirect(`/admin/orders/${id}?ok=status`, 303);
         }
       } else if (op === 'paid') {
@@ -54,15 +54,15 @@ if (Astro.request.method === 'POST') {
         ref = fstr(f, 'ref', 120);
         if (!ref) errors.ref = t.order.refRequired;
         else {
-          markPaid(id, ref, user.email);
-          audit(user.id, 'order.paid', 'order', id, ref);
+          await markPaid(id, ref, user.email);
+          await audit(user.id, 'order.paid', 'order', id, ref);
           return Astro.redirect(`/admin/orders/${id}?ok=paid`, 303);
         }
       } else if (op === 'note') {
         noteBody = fstr(f, 'body', 4000);
         if (!noteBody) errors.body = t.order.noteRequired;
         else {
-          addOrderNote(user, id, noteBody);
+          await addOrderNote(user, id, noteBody);
           return Astro.redirect(`/admin/orders/${id}?ok=note#notes`, 303);
         }
       }
@@ -76,7 +76,7 @@ if (Astro.request.method === 'POST') {
 
 let o: any;
 try {
-  o = orderDetail(user, id);
+  o = await orderDetail(user, id);
 } catch (e) {
   if (e instanceof Forbidden) return forbiddenPage(Astro);
   throw e;
@@ -91,7 +91,7 @@ for (const it of o.items) {
 }
 const mineTotal = o.items.reduce((s: number, it: any) => s + it.line_total_all, 0);
 // Each parcel's delivery fee as charged at checkout (order_parcels), not recomputed from today's settings.
-const feeOf = parcelFees(o.id, o.delivery_all);
+const feeOf = await parcelFees(o.id, o.delivery_all);
 const cancelled = o.status === 'cancelled';
 const city = lang === 'sq' ? o.city_sq : o.city_en;
 const customerLink = href(o.lang === 'en' ? 'en' : 'sq', 'order', { code: o.code }, { k: o.token });

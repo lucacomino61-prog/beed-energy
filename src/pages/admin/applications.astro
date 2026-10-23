@@ -22,9 +22,9 @@ if (Astro.request.method === 'POST') {
     const op = fstr(f, 'op', 10);
     try {
       if (op === 'approve') {
-        const sid = approveApplication(user, id);
+        const sid = await approveApplication(user, id);
         if (sid) return Astro.redirect(`/admin/sellers/${sid}?ok=approved`, 303);
-      } else if (op === 'reject' && rejectApplication(user, id)) {
+      } else if (op === 'reject' && await rejectApplication(user, id)) {
         return Astro.redirect('/admin/applications?ok=rejected', 303);
       }
       formError = t.err.generic;
@@ -35,7 +35,7 @@ if (Astro.request.method === 'POST') {
     }
   }
 }
-const rows = applications();
+const rows = await applications();
 const fresh = rows.filter((a: any) => a.status === 'new').length;
 ---
 <Admin lang={lang} t={t} user={user} url={url} title={t.apps.title} section="applications" flash={flash} sheet={[[t.sheet.records, rows.length], [t.astatus.new, fresh]]}>

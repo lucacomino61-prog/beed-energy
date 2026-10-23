@@ -10,7 +10,7 @@ const c = adminCtx(Astro);
 if ('redirect' in c) return Astro.redirect(c.redirect, 303);
 const { lang, t, user, url, flash } = c;
 const admin = isAdmin(user);
-const d = dashboard(user);
+const d = await dashboard(user);
 
 // 30 calendar days ending today (UTC, like SQLite's date()).
 const byDay = new Map(d.byDay.map((r) => [r.day, r]));

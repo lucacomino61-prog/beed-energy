@@ -98,25 +98,25 @@ export const pageParam = (url: URL) => Math.max(1, Math.floor(Number(url.searchP
 
 // ---------- navigation counts ----------
 
-export function navCounts(u: User) {
+export async function navCounts(u: User) {
   const sellerOrders = isAdmin(u) ? '' : 'AND EXISTS (SELECT 1 FROM order_items oi WHERE oi.order_id = o.id AND oi.seller_id = ?)';
   const sp = isAdmin(u) ? [] : [u.seller_id!];
   return {
-    orders: get<{ n: number }>(`SELECT COUNT(*) AS n FROM orders o WHERE o.status = 'new' ${sellerOrders}`, ...sp)!.n,
-    quotes: get<{ n: number }>("SELECT COUNT(*) AS n FROM quote_requests WHERE status = 'open'")!.n,
-    applications: isAdmin(u) ? get<{ n: number }>("SELECT COUNT(*) AS n FROM seller_applications WHERE status = 'new'")!.n : 0,
-    messages: isAdmin(u) ? get<{ n: number }>('SELECT COUNT(*) AS n FROM contact_messages WHERE handled = 0')!.n : 0,
+    orders: (await get<{ n: number }>(`SELECT COUNT(*) AS n FROM orders o WHERE o.status = 'new' ${sellerOrders}`, ...sp))!.n,
+    quotes: (await get<{ n: number }>("SELECT COUNT(*) AS n FROM quote_requests WHERE status = 'open'"))!.n,
+    applications: isAdmin(u) ? (await get<{ n: number }>("SELECT COUNT(*) AS n FROM seller_applications WHERE status = 'new'"))!.n : 0,
+    messages: isAdmin(u) ? (await get<{ n: number }>('SELECT COUNT(*) AS n FROM contact_messages WHERE handled = 0'))!.n : 0,
   };
 }
 
-export function sellerName(u: User): string | null {
+export async function sellerName(u: User): Promise<string | null> {
   if (!u.seller_id) return null;
-  return get<{ name: string }>('SELECT name FROM sellers WHERE id = ?', u.seller_id)?.name ?? null;
+  return (await get<{ name: string }>('SELECT name FROM sellers WHERE id = ?', u.seller_id))?.name ?? null;
 }
 
 // ---------- orders ----------
 
-export function ordersList(u: User, f: { status: string; q: string; page: number }) {
+export async function ordersList(u: User, f: { status: string; q: string; page: number }) {
   const where: string[] = [];
   const params: (string | number)[] = [];
   const sellerScope = !isAdmin(u);
@@ -139,8 +139,8 @@ export function ordersList(u: User, f: { status: string; q: string; page: number
   const w = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const scopeLines = sellerScope ? 'AND oi.seller_id = ?' : '';
   const lineParams = sellerScope ? [u.seller_id!, u.seller_id!] : [];
-  const total = get<{ n: number }>(`SELECT COUNT(*) AS n FROM orders o ${w}`, ...params)!.n;
-  const rows = all<any>(
+  const total = (await get<{ n: number }>(`SELECT COUNT(*) AS n FROM orders o ${w}`, ...params))!.n;
+  const rows = await all<any>(
     `SELECT o.id, o.code, o.status, o.payment_method, o.payment_status, o.name, o.phone, o.total_all, o.created_at,
             c.name_sq AS city_sq, c.name_en AS city_en,
             (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id ${scopeLines}) AS lines,
@@ -152,41 +152,41 @@ export function ordersList(u: User, f: { status: string; q: string; page: number
     PAGE_SIZE,
     (f.page - 1) * PAGE_SIZE,
   );
-  const byStatus = all<{ status: string; n: number }>(
+  const byStatus = await all<{ status: string; n: number }>(
     `SELECT o.status, COUNT(*) AS n FROM orders o ${base.length ? `WHERE ${base.join(' AND ')}` : ''} GROUP BY o.status`,
     ...baseParams,
   );
   return { rows, total, byStatus: Object.fromEntries(byStatus.map((r) => [r.status, r.n])) as Record<string, number> };
 }
 
-export function orderDetail(u: User, id: number) {
-  const o = get<any>(
+export async function orderDetail(u: User, id: number) {
+  const o = await get<any>(
     `SELECT o.*, c.name_sq AS city_sq, c.name_en AS city_en, c.zone AS city_zone FROM orders o LEFT JOIN cities c ON c.id = o.city_id WHERE o.id = ?`,
     id,
   );
   if (!o) return null;
-  const items = all<any>(
+  const items = await all<any>(
     `SELECT oi.*, p.slug AS product_slug FROM order_items oi LEFT JOIN products p ON p.id = oi.product_id
       WHERE oi.order_id = ? ${isAdmin(u) ? '' : 'AND oi.seller_id = ?'} ORDER BY oi.seller_id, oi.id`,
     ...(isAdmin(u) ? [id] : [id, u.seller_id!]),
   );
   if (!isAdmin(u) && !items.length) throw new Forbidden('order');
-  const events = all<any>('SELECT * FROM order_events WHERE order_id = ? ORDER BY created_at, id', id);
-  return { ...o, items, events, internal: threadMessages(u, 'order', id) };
+  const events = await all<any>('SELECT * FROM order_events WHERE order_id = ? ORDER BY created_at, id', id);
+  return { ...o, items, events, internal: await threadMessages(u, 'order', id) };
 }
 
-export function addOrderNote(u: User, orderId: number, body: string) {
+export async function addOrderNote(u: User, orderId: number, body: string) {
   if (!isAdmin(u)) {
-    const mine = get('SELECT 1 AS x FROM order_items WHERE order_id = ? AND seller_id = ?', orderId, u.seller_id!);
+    const mine = await get('SELECT 1 AS x FROM order_items WHERE order_id = ? AND seller_id = ?', orderId, u.seller_id!);
     if (!mine) throw new Forbidden('order');
   }
-  postMessage(u, 'order', orderId, body, null);
+  await postMessage(u, 'order', orderId, body, null);
 }
 
 // ---------- messages (order notes and quote threads) ----------
 
-export function threadMessages(u: User, type: 'rfq' | 'order', id: number) {
-  return all<any>(
+export async function threadMessages(u: User, type: 'rfq' | 'order', id: number) {
+  return await all<any>(
     `SELECT m.*, s.name AS seller_name FROM messages m LEFT JOIN sellers s ON s.id = m.seller_id
       WHERE m.thread_type = ? AND m.thread_id = ? ${isAdmin(u) ? '' : "AND (m.author_role IN ('buyer', 'admin') OR m.seller_id = ?)"}
       ORDER BY m.created_at, m.id`,
@@ -196,7 +196,7 @@ export function threadMessages(u: User, type: 'rfq' | 'order', id: number) {
 
 // ---------- products ----------
 
-export function productsList(f: { cat: number | null; status: string; q: string; page: number }, sellerId: number | null) {
+export async function productsList(f: { cat: number | null; status: string; q: string; page: number }, sellerId: number | null) {
   const where: string[] = [];
   const params: (string | number)[] = [];
   if (f.cat) {
@@ -212,8 +212,8 @@ export function productsList(f: { cat: number | null; status: string; q: string;
     params.push(`%${f.q}%`);
   }
   const w = where.length ? `WHERE ${where.join(' AND ')}` : '';
-  const total = get<{ n: number }>(`SELECT COUNT(*) AS n FROM products p ${w}`, ...params)!.n;
-  const rows = all<any>(
+  const total = (await get<{ n: number }>(`SELECT COUNT(*) AS n FROM products p ${w}`, ...params))!.n;
+  const rows = await all<any>(
     `SELECT p.id, p.slug, p.brand, p.model, p.name_sq, p.name_en, p.status, p.featured, p.updated_at, p.width_mm, p.height_mm, p.depth_mm,
             c.name_sq AS cat_sq, c.name_en AS cat_en, c.slug_en AS cat_slug,
             (SELECT COUNT(*) FROM offers o WHERE o.product_id = p.id AND o.active = 1) AS offers,
@@ -229,16 +229,16 @@ export function productsList(f: { cat: number | null; status: string; q: string;
   return { rows, total };
 }
 
-export function allCategories() {
-  return all<any>(
+export async function allCategories() {
+  return await all<any>(
     `SELECT c.*, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS products,
             (SELECT COUNT(*) FROM spec_attributes a WHERE a.category_id = c.id) AS attrs
        FROM categories c ORDER BY c.sort, c.id`,
   );
 }
 
-export function productSpecValues(productId: number): Record<string, string> {
-  const rows = all<{ key: string; type: string; value_num: number | null; value_text: string | null }>(
+export async function productSpecValues(productId: number): Promise<Record<string, string>> {
+  const rows = await all<{ key: string; type: string; value_num: number | null; value_text: string | null }>(
     `SELECT a.key, a.type, ps.value_num, ps.value_text FROM product_specs ps JOIN spec_attributes a ON a.id = ps.attribute_id WHERE ps.product_id = ?`,
     productId,
   );
@@ -247,8 +247,8 @@ export function productSpecValues(productId: number): Record<string, string> {
   return out;
 }
 
-export function offersForProductAdmin(productId: number) {
-  return all<any>(
+export async function offersForProductAdmin(productId: number) {
+  return await all<any>(
     `SELECT o.*, s.name AS seller_name, s.is_demo AS seller_demo FROM offers o JOIN sellers s ON s.id = o.seller_id WHERE o.product_id = ? ORDER BY o.price_all`,
     productId,
   );
@@ -256,8 +256,8 @@ export function offersForProductAdmin(productId: number) {
 
 // ---------- categories and templates ----------
 
-export function attrValueCounts(categoryId: number): Record<number, number> {
-  const rows = all<{ id: number; n: number }>(
+export async function attrValueCounts(categoryId: number): Promise<Record<number, number>> {
+  const rows = await all<{ id: number; n: number }>(
     `SELECT a.id, COUNT(ps.product_id) AS n FROM spec_attributes a LEFT JOIN product_specs ps ON ps.attribute_id = a.id WHERE a.category_id = ? GROUP BY a.id`,
     categoryId,
   );
@@ -269,12 +269,12 @@ export type CatInput = {
   unit_basis: string | null; unit_label_sq: string | null; unit_label_en: string | null; sort: number; active: boolean;
 };
 
-export function readCategory(f: FormData, id: number | null, t: AdminWords): { v: CatInput; errors: Errors } {
+export async function readCategory(f: FormData, id: number | null, t: AdminWords): Promise<{ v: CatInput; errors: Errors }> {
   const errors: Errors = {};
   const sort = fnum(f, 'sort');
   const v: CatInput = {
-    slug_sq: slugify(fstr(f, 'slug_sq', 80)),
-    slug_en: slugify(fstr(f, 'slug_en', 80)),
+    slug_sq: await slugify(fstr(f, 'slug_sq', 80)),
+    slug_en: await slugify(fstr(f, 'slug_en', 80)),
     name_sq: fstr(f, 'name_sq', 120),
     name_en: fstr(f, 'name_en', 120),
     group_key: fstr(f, 'group_key', 20),
@@ -289,10 +289,10 @@ export function readCategory(f: FormData, id: number | null, t: AdminWords): { v
   for (const k of ['slug_sq', 'slug_en', 'name_sq', 'name_en'] as const) if (!v[k]) errors[k] = t.err.required;
   if (sort !== null && Number.isNaN(sort)) errors.sort = t.err.whole;
   if (!['energy', 'efficiency', 'build'].includes(v.group_key)) errors.group_key = t.err.required;
-  if (v.slug_sq && get('SELECT id FROM categories WHERE slug_sq = ? AND id != ?', v.slug_sq, id ?? 0)) errors.slug_sq = t.cat.slugTaken;
-  if (v.slug_en && get('SELECT id FROM categories WHERE slug_en = ? AND id != ?', v.slug_en, id ?? 0)) errors.slug_en = t.cat.slugTaken;
+  if (v.slug_sq && await get('SELECT id FROM categories WHERE slug_sq = ? AND id != ?', v.slug_sq, id ?? 0)) errors.slug_sq = t.cat.slugTaken;
+  if (v.slug_en && await get('SELECT id FROM categories WHERE slug_en = ? AND id != ?', v.slug_en, id ?? 0)) errors.slug_en = t.cat.slugTaken;
   if (v.unit_basis) {
-    const ok = id ? get("SELECT id FROM spec_attributes WHERE category_id = ? AND key = ? AND type = 'number'", id, v.unit_basis) : null;
+    const ok = id ? await get("SELECT id FROM spec_attributes WHERE category_id = ? AND key = ? AND type = 'number'", id, v.unit_basis) : null;
     if (!ok) errors.unit_basis = t.cat.unitBasisErr;
   }
   return { v, errors };
@@ -395,17 +395,16 @@ export function parseRows(rows: TplRow[], t: AdminWords): { attrs: AttrInput[]; 
 }
 
 /** Existing attributes the posted table no longer has, with how many product values each would take with it. */
-export function removedAttrs(categoryId: number, keptIds: (number | null | undefined)[]) {
-  const counts = attrValueCounts(categoryId);
-  return all<{ id: number; key: string; label_sq: string; label_en: string }>('SELECT id, key, label_sq, label_en FROM spec_attributes WHERE category_id = ?', categoryId)
-    .filter((a) => !keptIds.includes(a.id))
-    .map((a) => ({ ...a, values: counts[a.id] ?? 0 }));
+export async function removedAttrs(categoryId: number, keptIds: (number | null | undefined)[]) {
+  const counts = await attrValueCounts(categoryId);
+  const rows = await all<{ id: number; key: string; label_sq: string; label_en: string }>('SELECT id, key, label_sq, label_en FROM spec_attributes WHERE category_id = ?', categoryId);
+  return rows.filter((a) => !keptIds.includes(a.id)).map((a) => ({ ...a, values: counts[a.id] ?? 0 }));
 }
 
 // ---------- sellers ----------
 
-export function sellersList() {
-  return all<any>(
+export async function sellersList() {
+  return await all<any>(
     `SELECT s.*, c.name_sq AS city_sq, c.name_en AS city_en,
             (SELECT COUNT(*) FROM offers o WHERE o.seller_id = s.id AND o.active = 1) AS offers
        FROM sellers s LEFT JOIN cities c ON c.id = s.city_id ORDER BY s.status = 'active' DESC, s.name`,
@@ -414,12 +413,12 @@ export function sellersList() {
 
 export const cities = () => all<{ id: number; name_sq: string; name_en: string; zone: number }>('SELECT id, name_sq, name_en, zone FROM cities ORDER BY sort, name_sq');
 
-export function readSeller(f: FormData, id: number | null, t: AdminWords) {
+export async function readSeller(f: FormData, id: number | null, t: AdminWords) {
   const errors: Errors = {};
   const commission = fnum(f, 'commission_pct');
   const zones = ['1', '2', '3'].filter((z) => f.getAll('zones').map(String).includes(z));
   const v = {
-    slug: slugify(fstr(f, 'slug', 80) || fstr(f, 'name', 120)),
+    slug: await slugify(fstr(f, 'slug', 80) || fstr(f, 'name', 120)),
     name: fstr(f, 'name', 120),
     legal_name: fstr(f, 'legal_name', 160),
     nipt: fstr(f, 'nipt', 12).toUpperCase(),
@@ -441,7 +440,7 @@ export function readSeller(f: FormData, id: number | null, t: AdminWords) {
   else if (hasAngle(v.name)) errors.name = t.err.angle; // the name reaches public pages and their JSON-LD
   if (hasAngle(v.legal_name)) errors.legal_name = t.err.angle;
   if (!v.slug) errors.slug = t.err.required;
-  else if (get('SELECT id FROM sellers WHERE slug = ? AND id != ?', v.slug, id ?? 0)) errors.slug = t.sellers.slugTaken;
+  else if (await get('SELECT id FROM sellers WHERE slug = ? AND id != ?', v.slug, id ?? 0)) errors.slug = t.sellers.slugTaken;
   if (!['supplier', 'installer', 'manufacturer', 'contractor'].includes(v.kind)) errors.kind = t.err.required;
   if (!['start', 'pro', 'partner'].includes(v.plan)) errors.plan = t.err.required;
   if (!['pending', 'active', 'suspended'].includes(v.status)) errors.status = t.err.required;
@@ -450,13 +449,13 @@ export function readSeller(f: FormData, id: number | null, t: AdminWords) {
   if (v.nipt && !/^[A-Z]\d{8}[A-Z]$/.test(v.nipt)) errors.nipt = t.err.nipt;
   if (v.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.email)) errors.email = t.err.email;
   if (v.website && !/^https?:\/\//.test(v.website)) errors.website = t.err.url;
-  if (v.city_id && !get('SELECT id FROM cities WHERE id = ?', v.city_id)) v.city_id = null;
+  if (v.city_id && !await get('SELECT id FROM cities WHERE id = ?', v.city_id)) v.city_id = null;
   return { v, errors };
 }
 
 // ---------- offers ----------
 
-export function offersList(u: User, f: { q: string; seller: number | null; cat: number | null; page: number }) {
+export async function offersList(u: User, f: { q: string; seller: number | null; cat: number | null; page: number }) {
   const where: string[] = [];
   const params: (string | number)[] = [];
   if (!isAdmin(u)) {
@@ -476,8 +475,8 @@ export function offersList(u: User, f: { q: string; seller: number | null; cat: 
   }
   const w = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const from = 'FROM offers o JOIN products p ON p.id = o.product_id JOIN sellers s ON s.id = o.seller_id';
-  const total = get<{ n: number }>(`SELECT COUNT(*) AS n ${from} ${w}`, ...params)!.n;
-  const rows = all<any>(
+  const total = (await get<{ n: number }>(`SELECT COUNT(*) AS n ${from} ${w}`, ...params))!.n;
+  const rows = await all<any>(
     `SELECT o.id, o.price_all, o.stock_qty, o.updated_at, o.active, o.promoted, o.is_demo, o.compare_at_all,
             p.id AS product_id, p.slug, p.brand, p.model, s.id AS seller_id, s.name AS seller_name
        ${from} ${w} ORDER BY p.brand, p.model, o.price_all LIMIT ? OFFSET ?`,
@@ -488,20 +487,20 @@ export function offersList(u: User, f: { q: string; seller: number | null; cat: 
   return { rows, total };
 }
 
-export function offerForEdit(u: User, id: number) {
-  const o = get<any>(
+export async function offerForEdit(u: User, id: number) {
+  const o = await get<any>(
     `SELECT o.*, p.slug, p.brand, p.model, s.name AS seller_name FROM offers o JOIN products p ON p.id = o.product_id JOIN sellers s ON s.id = o.seller_id WHERE o.id = ?`,
     id,
   );
   if (!o) return null;
   if (!isAdmin(u) && o.seller_id !== u.seller_id) throw new Forbidden('offer');
-  const tiers = all<{ min_qty: number; price_all: number }>('SELECT min_qty, price_all FROM offer_tiers WHERE offer_id = ? ORDER BY min_qty', id);
-  const history = all<{ price_all: number; recorded_at: string }>('SELECT price_all, recorded_at FROM price_history WHERE offer_id = ? ORDER BY recorded_at DESC, id DESC LIMIT 60', id);
+  const tiers = await all<{ min_qty: number; price_all: number }>('SELECT min_qty, price_all FROM offer_tiers WHERE offer_id = ? ORDER BY min_qty', id);
+  const history = await all<{ price_all: number; recorded_at: string }>('SELECT price_all, recorded_at FROM price_history WHERE offer_id = ? ORDER BY recorded_at DESC, id DESC LIMIT 60', id);
   return { ...o, tiers, history };
 }
 
-export function productOptions() {
-  return all<{ id: number; brand: string; model: string; status: string; cat_sq: string; cat_en: string; category_id: number }>(
+export async function productOptions() {
+  return await all<{ id: number; brand: string; model: string; status: string; cat_sq: string; cat_en: string; category_id: number }>(
     `SELECT p.id, p.brand, p.model, p.status, p.category_id, c.name_sq AS cat_sq, c.name_en AS cat_en FROM products p JOIN categories c ON c.id = p.category_id
       WHERE p.status != 'archived' ORDER BY c.sort, p.brand, p.model`,
   );
@@ -509,8 +508,8 @@ export function productOptions() {
 
 // ---------- quotes ----------
 
-export function quotesList(status: string) {
-  return all<any>(
+export async function quotesList(status: string) {
+  return await all<any>(
     `SELECT q.id, q.code, q.status, q.project_type, q.name, q.created_at, q.budget_all, c.name_sq AS city_sq, c.name_en AS city_en,
             (SELECT COUNT(*) FROM messages m WHERE m.thread_type = 'rfq' AND m.thread_id = q.id AND m.author_role != 'buyer') AS replies
        FROM quote_requests q LEFT JOIN cities c ON c.id = q.city_id ${status ? 'WHERE q.status = ?' : ''}
@@ -519,8 +518,8 @@ export function quotesList(status: string) {
   );
 }
 
-export function quoteDetail(id: number) {
-  const q = get<any>('SELECT q.*, c.name_sq AS city_sq, c.name_en AS city_en FROM quote_requests q LEFT JOIN cities c ON c.id = q.city_id WHERE q.id = ?', id);
+export async function quoteDetail(id: number) {
+  const q = await get<any>('SELECT q.*, c.name_sq AS city_sq, c.name_en AS city_en FROM quote_requests q LEFT JOIN cities c ON c.id = q.city_id WHERE q.id = ?', id);
   if (!q) return null;
   let items: { productId: number; qty: number }[] = [];
   try {
@@ -529,15 +528,15 @@ export function quoteDetail(id: number) {
     items = [];
   }
   const ids = items.map((i) => Number(i.productId)).filter((n) => Number.isInteger(n) && n > 0);
-  const prods = ids.length ? all<any>(`SELECT id, slug, brand, model FROM products WHERE id IN (${ids.map(() => '?').join(',')})`, ...ids) : [];
+  const prods = ids.length ? await all<any>(`SELECT id, slug, brand, model FROM products WHERE id IN (${ids.map(() => '?').join(',')})`, ...ids) : [];
   return { ...q, items: items.map((i) => ({ ...i, product: prods.find((p) => p.id === Number(i.productId)) ?? null })) };
 }
 
-export function setQuoteStatus(u: User, id: number, status: string) {
+export async function setQuoteStatus(u: User, id: number, status: string) {
   requireAdmin(u);
   if (!['open', 'answered', 'won', 'closed'].includes(status)) return false;
-  run('UPDATE quote_requests SET status = ? WHERE id = ?', status, id);
-  audit(u.id, 'quote.status', 'rfq', id, status);
+  await run('UPDATE quote_requests SET status = ? WHERE id = ?', status, id);
+  await audit(u.id, 'quote.status', 'rfq', id, status);
   return true;
 }
 
@@ -545,28 +544,28 @@ export function setQuoteStatus(u: User, id: number, status: string) {
 
 export const applications = () => all<any>("SELECT * FROM seller_applications ORDER BY status = 'new' DESC, created_at DESC, id DESC LIMIT 300");
 
-export function rejectApplication(u: User, id: number) {
+export async function rejectApplication(u: User, id: number) {
   requireAdmin(u);
-  const r = run("UPDATE seller_applications SET status = 'rejected' WHERE id = ? AND status = 'new'", id);
-  if (r.changes) audit(u.id, 'application.reject', 'application', id);
+  const r = await run("UPDATE seller_applications SET status = 'rejected' WHERE id = ? AND status = 'new'", id);
+  if (r.changes) await audit(u.id, 'application.reject', 'application', id);
   return r.changes === 1;
 }
 
-export const contactMessages = (state: string) =>
-  all<any>(`SELECT * FROM contact_messages ${state === 'open' ? 'WHERE handled = 0' : state === 'handled' ? 'WHERE handled = 1' : ''} ORDER BY handled, created_at DESC, id DESC LIMIT 300`);
+export const contactMessages = async (state: string) =>
+  await all<any>(`SELECT * FROM contact_messages ${state === 'open' ? 'WHERE handled = 0' : state === 'handled' ? 'WHERE handled = 1' : ''} ORDER BY handled, created_at DESC, id DESC LIMIT 300`);
 
-export function setHandled(u: User, id: number, handled: boolean) {
+export async function setHandled(u: User, id: number, handled: boolean) {
   requireAdmin(u);
-  run('UPDATE contact_messages SET handled = ? WHERE id = ?', handled ? 1 : 0, id);
-  audit(u.id, handled ? 'contact.handled' : 'contact.reopen', 'contact', id);
+  await run('UPDATE contact_messages SET handled = ? WHERE id = ?', handled ? 1 : 0, id);
+  await audit(u.id, handled ? 'contact.handled' : 'contact.reopen', 'contact', id);
 }
 
 // ---------- settings ----------
 
-export function saveSettingAs(u: User, key: string, value: unknown) {
+export async function saveSettingAs(u: User, key: string, value: unknown) {
   requireAdmin(u);
-  saveSetting(key, value);
-  audit(u.id, 'setting.save', 'setting', undefined, key);
+  await saveSetting(key, value);
+  await audit(u.id, 'setting.save', 'setting', undefined, key);
 }
 
 /** Renders the 403 page in place. A fresh GET request, because a POST whose body was read cannot be rewritten. */

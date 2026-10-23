@@ -1,6 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
-import node from '@astrojs/node';
+import cloudflare from '@astrojs/cloudflare';
 
 // PUBLIC_ORIGIN (e.g. https://beed.al) is the address buyers use when the server sits behind a proxy:
 // canonical URLs, payment return/webhook URLs and Secure cookies follow it. Unset in local dev.
@@ -9,7 +9,12 @@ const site = /^https?:\/\/[^/]+\/?$/.test(process.env.PUBLIC_ORIGIN ?? '') ? pro
 export default defineConfig({
   site,
   output: 'server',
-  adapter: node({ mode: 'standalone' }),
+  // Adapter v14 wires the bindings itself through @cloudflare/vite-plugin, which reads
+  // wrangler.jsonc: `astro dev` gets the same DB binding as the Worker, backed by the local D1 file
+  // under .wrangler/state.
+  // imageService 'passthrough': the site draws its own SVG and serves its own files, so nothing goes
+  // through astro:assets and the Cloudflare Images binding would be provisioned for nothing.
+  adapter: cloudflare({ imageService: 'passthrough' }),
   server: { port: 3810, host: '127.0.0.1' },
   trailingSlash: 'ignore',
   build: { inlineStylesheets: 'auto' },

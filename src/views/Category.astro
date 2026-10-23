@@ -29,8 +29,8 @@ const isList = params.get('pamja') === 'liste' || params.get('view') === 'list';
 const pageNo = Math.max(1, Math.floor(Number(params.get(PAGE.sq) ?? params.get(PAGE.en) ?? 1)) || 1);
 for (const k of ['pamja', 'view', 'faqe', 'page']) params.delete(k);
 
-const attrs = attributes(cat.id);
-const cards = productsInCategory(cat.id);
+const attrs = await attributes(cat.id);
+const cards = await productsInCategory(cat.id);
 const f = readFilters(params, attrs);
 const { items, facets } = applyFilters(cards, f, attrs);
 const prices = cards.map((p) => p.min_price).filter((x): x is number => x !== null);
@@ -44,7 +44,7 @@ const compared = new Set(readCompare(Astro.cookies));
 const unitLabel = lang === 'sq' ? cat.unit_label_sq : cat.unit_label_en;
 const name = lang === 'sq' ? cat.name_sq : cat.name_en;
 const intro = lang === 'sq' ? cat.intro_sq : cat.intro_en;
-const allCats = categories();
+const allCats = await categories();
 const index = allCats.findIndex((x) => x.id === cat.id) + 1;
 const groupName = tc(lang).groups[cat.group_key as 'energy'] ?? '';
 

@@ -25,7 +25,7 @@ if (Astro.request.method === 'POST') {
     const price = fnum(f, 'price');
     const stock = fnum(f, 'stock');
     try {
-      const ok = price !== null && stock !== null && !Number.isNaN(price) && !Number.isNaN(stock) && Number.isInteger(stock) && quickOffer(user, oid, Math.round(price), stock);
+      const ok = price !== null && stock !== null && !Number.isNaN(price) && !Number.isNaN(stock) && Number.isInteger(stock) && await quickOffer(user, oid, Math.round(price), stock);
       if (ok) {
         const back = fstr(f, 'back', 300);
         const target = back.startsWith('/admin/offers') ? back : '/admin/offers';
@@ -44,9 +44,9 @@ const q = (url.searchParams.get('q') ?? '').trim().slice(0, 60);
 const seller = admin ? Number(url.searchParams.get('seller')) || null : null;
 const cat = Number(url.searchParams.get('category')) || null;
 const page = pageParam(url);
-const { rows, total } = offersList(user, { q, seller, cat, page });
-const sellers = admin ? sellersList() : [];
-const cats = allCategories();
+const { rows, total } = await offersList(user, { q, seller, cat, page });
+const sellers = admin ? await sellersList() : [];
+const cats = await allCategories();
 const back = (() => {
   const u = new URL(url);
   u.searchParams.delete('ok');

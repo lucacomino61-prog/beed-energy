@@ -77,7 +77,7 @@ export function readCheckout(form: FormData): CheckoutValues {
   };
 }
 
-export function validateCheckout(v: CheckoutValues, lines: CartLineInput[], lang: Lang, source?: string | null): { input?: OrderInput; errors: CheckoutErrors } {
+export async function validateCheckout(v: CheckoutValues, lines: CartLineInput[], lang: Lang, source?: string | null): Promise<{ input?: OrderInput; errors: CheckoutErrors }> {
   const m = MSG[lang];
   const errors: CheckoutErrors = {};
   if (v.name.length < 3 || !/\s/.test(v.name)) errors.name = m.name;
@@ -89,11 +89,11 @@ export function validateCheckout(v: CheckoutValues, lines: CartLineInput[], lang
     if (!validNipt(v.nipt)) errors.nipt = m.nipt;
     if (!v.email) errors.email = m.emailNeeded;
   }
-  const city = get<{ id: number }>('SELECT id FROM cities WHERE slug = ?', v.city);
+  const city = await get<{ id: number }>('SELECT id FROM cities WHERE slug = ?', v.city);
   if (!city) errors.city = m.city;
   // The form hides these when they are off; a hand-made post must not get around that.
   if (v.payment === 'card' && paymentMode() === 'off') errors.payment = m.cardOff;
-  if (v.delivery === 'pickup' && !pickupAvailable()) errors.delivery = m.pickupOff;
+  if (v.delivery === 'pickup' && !(await pickupAvailable())) errors.delivery = m.pickupOff;
   if (v.delivery === 'courier' && v.address.length < 6) errors.address = m.address;
   if (!v.terms) errors.terms = m.terms;
   if (Object.keys(errors).length || !city || !phone) return { errors };

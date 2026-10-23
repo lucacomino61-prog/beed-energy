@@ -24,29 +24,29 @@ export function readAlertFlash(cookies: AstroCookies, productId: number): AlertF
   }
 }
 
-export function lowestPrice(productId: number): number | null {
+export async function lowestPrice(productId: number): Promise<number | null> {
   return (
-    get<{ p: number | null }>(
+    (await get<{ p: number | null }>(
       `SELECT MIN(o.price_all) AS p FROM offers o JOIN sellers s ON s.id = o.seller_id
         WHERE o.product_id = ? AND o.active = 1 AND s.status = 'active'`,
       productId,
-    )?.p ?? null
+    ))?.p ?? null
   );
 }
 
-export function validateAlert(email: string, targetRaw: string, productId: number): { errors: string[]; target: number | null } {
+export async function validateAlert(email: string, targetRaw: string, productId: number): Promise<{ errors: string[]; target: number | null }> {
   const errors: string[] = [];
   if (!EMAIL_RE.test(email) || email.length > 200) errors.push('email');
   const digits = targetRaw.replace(/[\s  .,]/g, '');
   const target = /^\d{1,9}$/.test(digits) ? Number(digits) : null;
-  const low = lowestPrice(productId);
+  const low = await lowestPrice(productId);
   if (target === null || target <= 0 || (low !== null && target >= low)) errors.push('target');
   return { errors, target };
 }
 
 /** One open alert per email and product: a second request moves the target. */
-export function saveAlert(productId: number, email: string, target: number, lang: string) {
-  const open = get<{ id: number }>('SELECT id FROM price_alerts WHERE product_id = ? AND email = ? AND notified_at IS NULL', productId, email);
-  if (open) run('UPDATE price_alerts SET target_all = ?, lang = ?, created_at = datetime(\'now\') WHERE id = ?', target, lang, open.id);
-  else run('INSERT INTO price_alerts (product_id, email, target_all, lang) VALUES (?, ?, ?, ?)', productId, email, target, lang);
+export async function saveAlert(productId: number, email: string, target: number, lang: string) {
+  const open = await get<{ id: number }>('SELECT id FROM price_alerts WHERE product_id = ? AND email = ? AND notified_at IS NULL', productId, email);
+  if (open) await run('UPDATE price_alerts SET target_all = ?, lang = ?, created_at = datetime(\'now\') WHERE id = ?', target, lang, open.id);
+  else await run('INSERT INTO price_alerts (product_id, email, target_all, lang) VALUES (?, ?, ?, ?)', productId, email, target, lang);
 }

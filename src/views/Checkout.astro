@@ -1,6 +1,6 @@
 ---
 // Checkout on one page, numbered like a drawing sheet: 01 buyer, 02 delivery, 03 payment, 04 confirmation.
-// The route runs checkoutPage() (lib/checkout-flow.ts) and passes its state here. Works without scripts;
+// The route runs await checkoutPage() (lib/checkout-flow.ts) and passes its state here. Works without scripts;
 // checkout.ts only re-prices the summary when the city or delivery method changes. No motion on this page.
 import Site from '../layouts/Site.astro';
 import '../styles/checkout.css';
@@ -19,14 +19,14 @@ const t = tco(lang);
 const v = state.values;
 const errors = state.errors;
 const q = state.quote;
-const allCities = cities();
+const allCities = await cities();
 const city = allCities.find((c) => c.slug === v.city) ?? null;
 const groups = groupBySeller(q);
-const sellers = sellerInfo(groups.map((g) => g.sellerId));
-const demo = demoOffers(q.lines.map((l) => l.offerId));
-const limit = codLimit();
+const sellers = await sellerInfo(groups.map((g) => g.sellerId));
+const demo = await demoOffers(q.lines.map((l) => l.offerId));
+const limit = await codLimit();
 const mode = paymentMode(); // 'off' in production without POK keys: no card option at all
-const pickupOn = pickupAvailable(); // settings → delivery → pickup from the seller
+const pickupOn = await pickupAvailable(); // settings → delivery → pickup from the seller
 const alternate = href(other(lang), 'checkout', {}, city ? { [cityParam(other(lang))]: city.slug } : undefined);
 // Lines carry the short tag form (12 400 L); parcel fees, totals and sentences the long one (12 400 lekë).
 const fee = (n: number) => (n === 0 ? t.sum.free : lekLong(n, lang));

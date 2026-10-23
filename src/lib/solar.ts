@@ -33,8 +33,8 @@ export const DEFAULT_ASSUMPTIONS: SolarAssumptions = {
   batteryKwhPerKwp: 1,
 };
 
-export function tariffs(): Tariffs {
-  return setting<Tariffs>('tariffs', { household: null, business: null, exportLekPerKwh: null, pricesExclVat: true, vatRate: 0.2, source: null });
+export async function tariffs(): Promise<Tariffs> {
+  return await setting<Tariffs>('tariffs', { household: null, business: null, exportLekPerKwh: null, pricesExclVat: true, vatRate: 0.2, source: null });
 }
 
 /** Energy part of a monthly bill in lekë (households with VAT, businesses without). */
@@ -64,8 +64,8 @@ export function kwhForBill(bill: number, t: Tariffs, kind: 'household' | 'busine
 export type Kit = { role: 'panel' | 'inverter' | 'battery' | 'mounting'; offerId: number; productSlug: string; name: string; qty: number; unitPrice: number; lineTotal: number };
 
 /** Cheapest in-stock offer in a category whose spec fits, from a seller who delivers to the buyer's zone. */
-function cheapest(categorySlugEn: string, fits: (specs: Record<string, number | string | null>) => boolean, qty: number, zone: number): Kit | null {
-  const rows = all<any>(
+async function cheapest(categorySlugEn: string, fits: (specs: Record<string, number | string | null>) => boolean, qty: number, zone: number): Promise<Kit | null> {
+  const rows = await all<any>(
     `SELECT o.id AS offer_id, o.price_all, o.stock_qty, p.id AS pid, p.slug, p.brand, p.model
        FROM offers o JOIN products p ON p.id = o.product_id JOIN categories c ON c.id = p.category_id JOIN sellers s ON s.id = o.seller_id
       WHERE c.slug_en = ? AND p.status = 'published' AND o.active = 1 AND s.status = 'active' AND o.stock_qty >= ?
@@ -77,13 +77,13 @@ function cheapest(categorySlugEn: string, fits: (specs: Record<string, number | 
   let best: Kit | null = null;
   for (const r of rows) {
     const specs = Object.fromEntries(
-      all<{ key: string; value_num: number | null; value_text: string | null }>(
+      (await all<{ key: string; value_num: number | null; value_text: string | null }>(
         'SELECT a.key, ps.value_num, ps.value_text FROM product_specs ps JOIN spec_attributes a ON a.id = ps.attribute_id WHERE ps.product_id = ?',
         r.pid,
-      ).map((s) => [s.key, s.value_num ?? s.value_text]),
+      )).map((s) => [s.key, s.value_num ?? s.value_text]),
     );
     if (!fits(specs)) continue;
-    const tiers = all<{ min_qty: number; price_all: number }>('SELECT min_qty, price_all FROM offer_tiers WHERE offer_id = ?', r.offer_id);
+    const tiers = await all<{ min_qty: number; price_all: number }>('SELECT min_qty, price_all FROM offer_tiers WHERE offer_id = ?', r.offer_id);
     const unit = unitPriceFor({ price_all: r.price_all, tiers } as Pick<Offer, 'price_all' | 'tiers'>, qty);
     if (!best || unit * qty < best.lineTotal) {
       best = { role: 'panel', offerId: r.offer_id, productSlug: r.slug, name: `${r.brand} ${r.model}`, qty, unitPrice: unit, lineTotal: unit * qty };
@@ -108,27 +108,27 @@ export type SolarResult = {
   assumptions: SolarAssumptions;
 };
 
-export function sizeSystem(input: {
+export async function sizeSystem(input: {
   citySlug: string;
   kwhMonth: number;
   kind: 'household' | 'business';
   battery: boolean;
   phases: 1 | 3;
   coverage?: number; // share of yearly use to cover, default 0.9
-}): SolarResult | null {
-  const c = get<any>('SELECT * FROM cities WHERE slug = ? AND pv_yield IS NOT NULL', input.citySlug);
+}): Promise<SolarResult | null> {
+  const c = await get<any>('SELECT * FROM cities WHERE slug = ? AND pv_yield IS NOT NULL', input.citySlug);
   if (!c) return null;
   const a = { ...DEFAULT_ASSUMPTIONS, ...setting<Partial<SolarAssumptions>>('solarAssumptions', {}) };
   const zone = Number(c.zone) || 1;
-  const t = tariffs();
+  const t = await tariffs();
   const yearly = input.kwhMonth * 12;
   const target = yearly * (input.coverage ?? 0.9);
   // Pick the module first (cheapest per Wp in stock near the planned size), then size the array from its real wattage.
   const estimate = Math.max(4, Math.ceil(((target / c.pv_yield) * 1000) / a.panelWp));
-  const probe = cheapest('solar-panels', (s) => typeof s.power_wp === 'number' && s.power_wp >= a.panelWp - 60 && s.power_wp <= a.panelWp + 160, estimate, zone);
-  const moduleWp = probe ? Number(get<{ v: number }>(
+  const probe = await cheapest('solar-panels', (s) => typeof s.power_wp === 'number' && s.power_wp >= a.panelWp - 60 && s.power_wp <= a.panelWp + 160, estimate, zone);
+  const moduleWp = probe ? Number((await get<{ v: number }>(
     `SELECT ps.value_num AS v FROM product_specs ps JOIN spec_attributes sa ON sa.id = ps.attribute_id JOIN products p ON p.id = ps.product_id
-      WHERE p.slug = ? AND sa.key = 'power_wp'`, probe.productSlug)?.v ?? a.panelWp) : a.panelWp;
+      WHERE p.slug = ? AND sa.key = 'power_wp'`, probe.productSlug))?.v ?? a.panelWp) : a.panelWp;
   const panels = Math.max(4, Math.ceil(((target / c.pv_yield) * 1000) / moduleWp));
   const kwp = (panels * moduleWp) / 1000;
   const annualKwh = kwp * c.pv_yield;
@@ -142,10 +142,10 @@ export function sizeSystem(input: {
   const annualSaving = before === null || after === null ? null : (before - after) * 12 + exported * (t.exportLekPerKwh ?? 0);
 
   const kit: Kit[] = [];
-  const panel = probe ? cheapest('solar-panels', (s) => s.power_wp === moduleWp, panels, zone) ?? probe : null;
+  const panel = probe ? ((await cheapest('solar-panels', (s) => s.power_wp === moduleWp, panels, zone)) ?? probe) : null;
   if (panel && panel.qty !== panels) Object.assign(panel, { qty: panels, lineTotal: panel.unitPrice * panels });
   if (panel) kit.push({ ...panel, role: 'panel' });
-  const inv = cheapest(
+  const inv = await cheapest(
     'inverters',
     // AC power at least 70% of the array; oversizing is fine within reason (the smallest three-phase hybrids are 10 kW).
     (s) =>
@@ -161,7 +161,7 @@ export function sizeSystem(input: {
   if (inv) kit.push({ ...inv, role: 'inverter' });
   if (input.battery) {
     const want = kwp * a.batteryKwhPerKwp;
-    const bat = cheapest('batteries', (s) => typeof s.usable_capacity_kwh === 'number' && s.usable_capacity_kwh >= want * 0.6 && s.usable_capacity_kwh <= want * 1.8, 1, zone);
+    const bat = await cheapest('batteries', (s) => typeof s.usable_capacity_kwh === 'number' && s.usable_capacity_kwh >= want * 0.6 && s.usable_capacity_kwh <= want * 1.8, 1, zone);
     if (bat) kit.push({ ...bat, role: 'battery' });
   }
   const complete = !!panel && !!inv && (!input.battery || kit.some((k) => k.role === 'battery'));

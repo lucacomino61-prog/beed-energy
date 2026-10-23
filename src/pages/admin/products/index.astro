@@ -13,13 +13,13 @@ const c = adminCtx(Astro);
 if ('redirect' in c) return Astro.redirect(c.redirect, 303);
 const { lang, t, user, url, flash } = c;
 const admin = isAdmin(user);
-const cats = allCategories();
+const cats = await allCategories();
 const cat = Number(url.searchParams.get('category')) || null;
 const statusQ = url.searchParams.get('status') ?? '';
 const status = ['draft', 'published', 'archived'].includes(statusQ) ? statusQ : '';
 const q = (url.searchParams.get('q') ?? '').trim().slice(0, 60);
 const page = pageParam(url);
-const { rows, total } = productsList({ cat, status, q, page }, admin ? null : user.seller_id);
+const { rows, total } = await productsList({ cat, status, q, page }, admin ? null : user.seller_id);
 const totalAll = cats.reduce((s: number, x: any) => s + x.products, 0);
 ---
 <Admin lang={lang} t={t} user={user} url={url} title={t.products.title} section="products" flash={flash} sheet={[[t.sheet.records, totalAll]]}>

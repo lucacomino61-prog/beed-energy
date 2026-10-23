@@ -2,7 +2,7 @@
 import Product from '../../views/Product.astro';
 import { productBySlug } from '../../lib/catalog';
 import { readAlertFlash, type AlertFlash } from '../../lib/shop-alerts';
-const product = productBySlug(Astro.params.slug ?? '');
+const product = await productBySlug(Astro.params.slug ?? '');
 if (!product) return Astro.rewrite('/404');
 const flash: AlertFlash = readAlertFlash(Astro.cookies, product.id);
 ---

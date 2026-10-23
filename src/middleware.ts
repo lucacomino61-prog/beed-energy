@@ -15,13 +15,16 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   ctx.locals.lang = langFromPath(pathname);
   ctx.locals.user = null;
 
-  // Card orders nobody paid give their stock back; throttled to once every 5 minutes, not awaited.
-  maybeSweepUnpaidCardOrders();
+  // Card orders nobody paid give their stock back; throttled to once every 5 minutes. waitUntil keeps
+  // the sweep alive after the response goes out — a promise nobody holds is cancelled when the
+  // Worker's request ends, so on Cloudflare it has to be handed to the runtime explicitly.
+  const sweep = maybeSweepUnpaidCardOrders();
+  if (sweep) ctx.locals.cfContext?.waitUntil(sweep);
 
   const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/');
   const isAdminApi = pathname.startsWith('/api/admin/');
   if (isAdmin || isAdminApi) {
-    ctx.locals.user = readSession(ctx.cookies);
+    ctx.locals.user = await readSession(ctx.cookies);
     if (!ctx.locals.user && !PUBLIC_ADMIN.has(pathname)) {
       if (isAdminApi) return new Response(JSON.stringify({ error: 'auth' }), { status: 401, headers: { 'content-type': 'application/json' } });
       return ctx.redirect(`/admin/login?next=${encodeURIComponent(pathname + ctx.url.search)}`, 302);
@@ -30,7 +33,7 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
 
   // A city chosen on a product, basket or calculator page (?qyteti= / ?city=) becomes the default for the
   // basket and the checkout (src/lib/city-pref.ts).
-  if (ctx.request.method === 'GET' && CITY_PAGES.test(pathname)) rememberQueryCity(ctx.url, ctx.cookies);
+  if (ctx.request.method === 'GET' && CITY_PAGES.test(pathname)) await rememberQueryCity(ctx.url, ctx.cookies);
 
   const res = await next();
   const h = res.headers;

@@ -19,7 +19,7 @@ interface Props {
 }
 const { lang, title, desc, labels = {}, highlight = [], only = 'all', id = 'map', class: cls } = Astro.props;
 const t = tp(lang);
-const cities: City[] = allCities().filter((c) => c.lat !== null && c.lon !== null && (only === 'all' || labels[c.slug]));
+const cities: City[] = (await allCities()).filter((c) => c.lat !== null && c.lon !== null && (only === 'all' || labels[c.slug]));
 const SIDE = 190;
 const vb = `${-SIDE} 0 ${MAP_WIDTH + SIDE * 2} ${MAP_HEIGHT}`;
 const WEST_LIMIT = 19.75; // west of this, the label goes over the sea

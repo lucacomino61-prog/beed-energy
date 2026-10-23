@@ -39,21 +39,21 @@ if (Astro.request.method === 'POST') {
       Astro.response.status = 403;
       error = t.forbidden.body;
     } else if (op === 'dev') {
-      let row = get<{ id: number }>('SELECT id FROM users WHERE email = ?', 'dev@beed.local');
-      if (!row) row = { id: run("INSERT INTO users (email, name, role) VALUES ('dev@beed.local', 'Zhvilluesi lokal', 'admin')").id };
-      createSession(row.id, Astro.cookies, secure);
-      audit(row.id, 'auth.dev-login');
+      let row = await get<{ id: number }>('SELECT id FROM users WHERE email = ?', 'dev@beed.local');
+      if (!row) row = { id: (await run("INSERT INTO users (email, name, role) VALUES ('dev@beed.local', 'Zhvilluesi lokal', 'admin')")).id };
+      await createSession(row.id, Astro.cookies, secure);
+      await audit(row.id, 'auth.dev-login');
       return Astro.redirect(next, 303);
     } else {
-      const s = get<{ id: number; name: string }>('SELECT id, name FROM sellers ORDER BY id LIMIT 1');
+      const s = await get<{ id: number; name: string }>('SELECT id, name FROM sellers ORDER BY id LIMIT 1');
       if (!s) {
         error = t.login.noSeller;
       } else {
-        let row = get<{ id: number; seller_id: number | null }>('SELECT id, seller_id FROM users WHERE email = ?', 'seller-dev@beed.local');
-        if (!row) row = { id: run("INSERT INTO users (email, name, role, seller_id) VALUES ('seller-dev@beed.local', ?, 'seller', ?)", `${s.name} (zhvillues)`, s.id).id, seller_id: s.id };
-        else if (row.seller_id !== s.id) run("UPDATE users SET seller_id = ?, role = 'seller' WHERE id = ?", s.id, row.id);
-        createSession(row.id, Astro.cookies, secure);
-        audit(row.id, 'auth.dev-login', 'seller', s.id);
+        let row = await get<{ id: number; seller_id: number | null }>('SELECT id, seller_id FROM users WHERE email = ?', 'seller-dev@beed.local');
+        if (!row) row = { id: (await run("INSERT INTO users (email, name, role, seller_id) VALUES ('seller-dev@beed.local', ?, 'seller', ?)", `${s.name} (zhvillues)`, s.id)).id, seller_id: s.id };
+        else if (row.seller_id !== s.id) await run("UPDATE users SET seller_id = ?, role = 'seller' WHERE id = ?", s.id, row.id);
+        await createSession(row.id, Astro.cookies, secure);
+        await audit(row.id, 'auth.dev-login', 'seller', s.id);
         return Astro.redirect('/admin', 303);
       }
     }
@@ -70,10 +70,10 @@ if (Astro.request.method === 'POST') {
       Astro.response.status = 429;
       error = t.login.limited;
     } else {
-      const row = get<{ id: number; password_hash: string | null }>('SELECT id, password_hash FROM users WHERE lower(email) = ?', email);
+      const row = await get<{ id: number; password_hash: string | null }>('SELECT id, password_hash FROM users WHERE lower(email) = ?', email);
       if (row && password && verifyPassword(password, row.password_hash)) {
-        createSession(row.id, Astro.cookies, secure);
-        audit(row.id, 'auth.login');
+        await createSession(row.id, Astro.cookies, secure);
+        await audit(row.id, 'auth.login');
         return Astro.redirect(next, 303);
       }
       Astro.response.status = 401;

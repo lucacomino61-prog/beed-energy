@@ -18,25 +18,25 @@ const { lang } = Astro.props;
 const t = th(lang);
 const other = lang === 'sq' ? 'en' : 'sq';
 
-const cats = categories();
+const cats = await categories();
 const bySlug = new Map(cats.map((c) => [c.slug_en, c]));
-const counts = get<{ products: number; offers: number }>(
+const counts = (await get<{ products: number; offers: number }>(
   `SELECT (SELECT COUNT(*) FROM products WHERE status = 'published') AS products,
           (SELECT COUNT(*) FROM offers o JOIN sellers s ON s.id = o.seller_id WHERE o.active = 1 AND s.status = 'active') AS offers`,
-)!;
+))!;
 
 // Facts computed from datasheets in the catalogue (the best value per category, with its product).
-const best = (cat: string, key: string, dir: 'MIN' | 'MAX') =>
-  get<{ v: number; slug: string; brand: string; model: string }>(
+const best = async (cat: string, key: string, dir: 'MIN' | 'MAX') =>
+  await get<{ v: number; slug: string; brand: string; model: string }>(
     `SELECT ps.value_num AS v, p.slug, p.brand, p.model FROM product_specs ps
        JOIN spec_attributes a ON a.id = ps.attribute_id JOIN products p ON p.id = ps.product_id JOIN categories c ON c.id = p.category_id
       WHERE c.slug_en = ? AND a.key = ? AND ps.value_num > 0 AND p.status = 'published' ORDER BY ps.value_num ${dir === 'MIN' ? 'ASC' : 'DESC'} LIMIT 1`,
     cat,
     key,
   );
-const lambda = best('insulation', 'thermal_conductivity_w_mk', 'MIN');
-const uw = best('windows', 'uw_w_m2k', 'MIN') ?? best('windows', 'uf_w_m2k', 'MIN');
-const cop = best('heat-pumps', 'cop_a7w35', 'MAX');
+const lambda = await best('insulation', 'thermal_conductivity_w_mk', 'MIN');
+const uw = (await best('windows', 'uw_w_m2k', 'MIN')) ?? (await best('windows', 'uf_w_m2k', 'MIN'));
+const cop = await best('heat-pumps', 'cop_a7w35', 'MAX');
 
 type Link = { label: string; url: string };
 type Shown = { value: string; text: string; source?: Link; also?: Link; product?: { slug: string; name: string } };
@@ -61,9 +61,9 @@ function factFor(f: (typeof LAYERS)[number]['fact']): Shown {
 }
 
 const house = houseSvg({ title: t.drawingAlt });
-const cities = all<{ slug: string; name_sq: string; name_en: string; pv_yield: number }>('SELECT slug, name_sq, name_en, pv_yield FROM cities WHERE pv_yield IS NOT NULL ORDER BY pv_yield DESC');
+const cities = await all<{ slug: string; name_sq: string; name_en: string; pv_yield: number }>('SELECT slug, name_sq, name_en, pv_yield FROM cities WHERE pv_yield IS NOT NULL ORDER BY pv_yield DESC');
 const tirana = cities.find((c) => c.slug === 'tirane') ?? cities[0];
-const featured = featuredProducts(8);
+const featured = await featuredProducts(8);
 const catOf = new Map(cats.map((c) => [c.id, c]));
 const manifestoWords = t.manifesto.split(' ');
 

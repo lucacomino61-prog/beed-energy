@@ -1,4 +1,4 @@
-// Read helpers for the basket, checkout and order pages (T4). Pricing itself stays in cart.ts → quote();
+// Read helpers for the basket, checkout and order pages (T4). Pricing itself stays in cart.ts → await quote();
 // this file only adds what the pages show around it: cities, seller details per parcel, drawings,
 // the free-delivery threshold, bank details and the order's parcels.
 import { all, get, setting } from './db';
@@ -11,8 +11,8 @@ import { chosenCitySlug } from './city-pref';
 
 export type City = { id: number; slug: string; name_sq: string; name_en: string; zone: number };
 
-export function cities(): City[] {
-  return all<City>('SELECT id, slug, name_sq, name_en, zone FROM cities ORDER BY sort, name_sq');
+export async function cities(): Promise<City[]> {
+  return await all<City>('SELECT id, slug, name_sq, name_en, zone FROM cities ORDER BY sort, name_sq');
 }
 
 export const cityName = (c: Pick<City, 'name_sq' | 'name_en'>, lang: Lang) => (lang === 'sq' ? c.name_sq : c.name_en);
@@ -22,16 +22,16 @@ export const cityParam = (lang: Lang) => (lang === 'sq' ? 'qyteti' : 'city');
 
 /** The page's city: ?qyteti= / ?city= when given (an empty one means "no city"); otherwise, with cookies,
  *  the city remembered from a product, basket or calculator page (src/lib/city-pref.ts). */
-export function readCity(url: URL, all: City[], cookies?: AstroCookies): City | null {
-  const slug = cookies ? chosenCitySlug(url, cookies) : (url.searchParams.get('qyteti') ?? url.searchParams.get('city') ?? '');
+export async function readCity(url: URL, all: City[], cookies?: AstroCookies): Promise<City | null> {
+  const slug = cookies ? await chosenCitySlug(url, cookies) : (url.searchParams.get('qyteti') ?? url.searchParams.get('city') ?? '');
   return all.find((c) => c.slug === slug) ?? null;
 }
 
 export type SellerInfo = { id: number; slug: string; name: string; verified: boolean; isDemo: boolean; city_sq: string | null; city_en: string | null };
 
-export function sellerInfo(ids: number[]): Map<number, SellerInfo> {
+export async function sellerInfo(ids: number[]): Promise<Map<number, SellerInfo>> {
   if (!ids.length) return new Map();
-  const rows = all<any>(
+  const rows = await all<any>(
     `SELECT s.id, s.slug, s.name, s.verified, s.is_demo, c.name_sq AS city_sq, c.name_en AS city_en
        FROM sellers s LEFT JOIN cities c ON c.id = s.city_id WHERE s.id IN (${ids.map(() => '?').join(',')})`,
     ...ids,
@@ -39,10 +39,10 @@ export function sellerInfo(ids: number[]): Map<number, SellerInfo> {
   return new Map(rows.map((r) => [r.id, { id: r.id, slug: r.slug, name: r.name, verified: !!r.verified, isDemo: !!r.is_demo, city_sq: r.city_sq, city_en: r.city_en }]));
 }
 
-/** Lowest free-delivery threshold per seller among the offers in the basket (same rule as quote()). */
-export function freeOver(offerIds: number[]): Map<number, number> {
+/** Lowest free-delivery threshold per seller among the offers in the basket (same rule as await quote()). */
+export async function freeOver(offerIds: number[]): Promise<Map<number, number>> {
   if (!offerIds.length) return new Map();
-  const rows = all<{ seller_id: number; t: number }>(
+  const rows = await all<{ seller_id: number; t: number }>(
     `SELECT seller_id, MIN(free_delivery_over_all) AS t FROM offers
       WHERE id IN (${offerIds.map(() => '?').join(',')}) AND free_delivery_over_all IS NOT NULL GROUP BY seller_id`,
     ...offerIds,
@@ -51,21 +51,21 @@ export function freeOver(offerIds: number[]): Map<number, number> {
 }
 
 /** Whether any offer in the basket is a seeded sample (is_demo = 1). */
-export function demoOffers(offerIds: number[]): Set<number> {
+export async function demoOffers(offerIds: number[]): Promise<Set<number>> {
   if (!offerIds.length) return new Set();
   return new Set(
-    all<{ id: number }>(`SELECT id FROM offers WHERE is_demo = 1 AND id IN (${offerIds.map(() => '?').join(',')})`, ...offerIds).map((r) => r.id),
+    (await all<{ id: number }>(`SELECT id FROM offers WHERE is_demo = 1 AND id IN (${offerIds.map(() => '?').join(',')})`, ...offerIds)).map((r) => r.id),
   );
 }
 
 let catSlugs: Map<number, string> | null = null;
-function categorySlug(id: number): string {
-  if (!catSlugs) catSlugs = new Map(categories().map((c) => [c.id, c.slug_en]));
+async function categorySlug(id: number): Promise<string> {
+  if (!catSlugs) catSlugs = new Map((await categories()).map((c) => [c.id, c.slug_en]));
   return catSlugs.get(id) ?? '';
 }
 
-export function lineDrawing(l: Pick<QuotedLine, 'categoryId' | 'width_mm' | 'height_mm' | 'depth_mm' | 'brand' | 'model'>): string {
-  return drawProduct({ category: categorySlug(l.categoryId), w: l.width_mm, h: l.height_mm, d: l.depth_mm, dims: false, title: `${l.brand} ${l.model}` });
+export async function lineDrawing(l: Pick<QuotedLine, 'categoryId' | 'width_mm' | 'height_mm' | 'depth_mm' | 'brand' | 'model'>): Promise<string> {
+  return drawProduct({ category: await categorySlug(l.categoryId), w: l.width_mm, h: l.height_mm, d: l.depth_mm, dims: false, title: `${l.brand} ${l.model}` });
 }
 
 export const productName = (l: { brand: string; model: string; name_sq: string; name_en: string }, lang: Lang) =>
@@ -88,18 +88,18 @@ export function groupBySeller(q: Quote): LineGroup[] {
   return groups;
 }
 
-export function codLimit(): number {
-  return setting<{ codLimit?: number }>('delivery', {}).codLimit ?? 250000;
+export async function codLimit(): Promise<number> {
+  return (await setting<{ codLimit?: number }>('delivery', {})).codLimit ?? 250000;
 }
 
 /** Settings → delivery → "pickup from the seller" switch (on unless turned off). */
-export function pickupAvailable(): boolean {
-  return setting<{ pickupAvailable?: boolean }>('delivery', {}).pickupAvailable !== false;
+export async function pickupAvailable(): Promise<boolean> {
+  return (await setting<{ pickupAvailable?: boolean }>('delivery', {})).pickupAvailable !== false;
 }
 
 export type Bank = { beneficiary: string | null; bank: string | null; iban: string | null; swift: string | null };
-export function bankDetails(): Bank | null {
-  const b = setting<Partial<Bank> | null>('bank', null);
+export async function bankDetails(): Promise<Bank | null> {
+  const b = await setting<Partial<Bank> | null>('bank', null);
   if (!b || !b.iban) return null;
   return { beneficiary: b.beneficiary ?? null, bank: b.bank ?? null, iban: b.iban, swift: b.swift ?? null };
 }
@@ -111,10 +111,10 @@ export type ParcelFee = { fee: number | null; free: boolean };
  * before that table have no rows: with one parcel the order's delivery is that parcel's; with several
  * the split is unknown (null) rather than guessed.
  */
-export function parcelFees(orderId: number, deliveryAll: number): (sellerId: number | null) => ParcelFee {
-  const rows = all<{ seller_id: number; fee_all: number; free: number }>('SELECT seller_id, fee_all, free FROM order_parcels WHERE order_id = ?', orderId);
+export async function parcelFees(orderId: number, deliveryAll: number): Promise<(sellerId: number | null) => ParcelFee> {
+  const rows = await all<{ seller_id: number; fee_all: number; free: number }>('SELECT seller_id, fee_all, free FROM order_parcels WHERE order_id = ?', orderId);
   // Counted over the whole order, also when a seller looks at only its own lines.
-  const parcelCount = rows.length ? rows.length : (get<{ n: number }>('SELECT COUNT(DISTINCT COALESCE(seller_id, 0)) AS n FROM order_items WHERE order_id = ?', orderId)?.n ?? 0);
+  const parcelCount = rows.length ? rows.length : ((await get<{ n: number }>('SELECT COUNT(DISTINCT COALESCE(seller_id, 0)) AS n FROM order_items WHERE order_id = ?', orderId))?.n ?? 0);
   const bySeller = new Map(rows.map((r) => [r.seller_id, { fee: r.fee_all, free: !!r.free }]));
   return (sellerId) => {
     const hit = sellerId === null ? undefined : bySeller.get(sellerId);
@@ -125,8 +125,8 @@ export function parcelFees(orderId: number, deliveryAll: number): (sellerId: num
 }
 
 /** Order lines with the product slug for links, grouped by seller, with each parcel's delivery fee. */
-export function orderParcels(orderId: number) {
-  const items = all<any>(
+export async function orderParcels(orderId: number) {
+  const items = await all<any>(
     `SELECT i.*, p.slug, p.name_sq, p.name_en, p.category_id, p.width_mm, p.height_mm, p.depth_mm, p.brand, p.model
        FROM order_items i LEFT JOIN products p ON p.id = i.product_id WHERE i.order_id = ? ORDER BY i.id`,
     orderId,
@@ -138,15 +138,15 @@ export function orderParcels(orderId: number) {
     g.items.push(it);
     g.subtotal += it.line_total_all;
   }
-  const delivery = get<{ delivery_all: number }>('SELECT delivery_all FROM orders WHERE id = ?', orderId)?.delivery_all ?? 0;
-  const feeOf = parcelFees(orderId, delivery);
+  const delivery = (await get<{ delivery_all: number }>('SELECT delivery_all FROM orders WHERE id = ?', orderId))?.delivery_all ?? 0;
+  const feeOf = await parcelFees(orderId, delivery);
   for (const g of groups) Object.assign(g, feeOf(g.sellerId));
   return groups;
 }
 
-export function orderDrawing(it: any): string {
+export async function orderDrawing(it: any): Promise<string> {
   if (!it.category_id) return '';
-  return drawProduct({ category: categorySlug(it.category_id), w: it.width_mm, h: it.height_mm, d: it.depth_mm, dims: false, title: it.product_name });
+  return drawProduct({ category: await categorySlug(it.category_id), w: it.width_mm, h: it.height_mm, d: it.depth_mm, dims: false, title: it.product_name });
 }
 
 /**
@@ -172,8 +172,8 @@ export function parseSeenTotal(s: string): number | null {
   return /^\d{1,12}$/.test(s.trim()) ? Number(s.trim()) : null;
 }
 
-export function sellerCity(sellerId: number): { sq: string | null; en: string | null } {
-  const r = get<{ sq: string | null; en: string | null }>('SELECT c.name_sq AS sq, c.name_en AS en FROM sellers s LEFT JOIN cities c ON c.id = s.city_id WHERE s.id = ?', sellerId);
+export async function sellerCity(sellerId: number): Promise<{ sq: string | null; en: string | null }> {
+  const r = await get<{ sq: string | null; en: string | null }>('SELECT c.name_sq AS sq, c.name_en AS en FROM sellers s LEFT JOIN cities c ON c.id = s.city_id WHERE s.id = ?', sellerId);
   return r ?? { sq: null, en: null };
 }
 

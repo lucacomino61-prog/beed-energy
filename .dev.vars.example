@@ -1,0 +1,9 @@
+# Copy to .dev.vars for local development. Never commit .dev.vars.
+# DEV_LOGIN=1 shows the developer sign-in buttons on /admin/login (127.0.0.1, dev server only).
+DEV_LOGIN=1
+# PAY_TEST=1 turns on the labelled local test card gateway outside `astro dev`.
+# PAY_TEST=1
+# POK_ENV=staging
+# POK_KEY_ID=
+# POK_KEY_SECRET=
+# POK_MERCHANT_ID=

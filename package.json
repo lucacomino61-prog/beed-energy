@@ -9,13 +9,20 @@
   "scripts": {
     "dev": "astro dev --port 3810 --host 127.0.0.1",
     "build": "astro build",
-    "preview": "node ./dist/server/entry.mjs",
+    "preview": "wrangler dev",
     "db:reset": "node scripts/db-reset.mjs",
     "seed": "node scripts/seed.mjs",
     "admin:password": "node scripts/admin-password.mjs",
-    "check": "astro check"
+    "check": "astro check",
+    "d1:export": "node scripts/d1-export.mjs",
+    "d1:migrate": "wrangler d1 migrations apply beed-energy --local",
+    "d1:migrate:remote": "wrangler d1 migrations apply beed-energy --remote",
+    "d1:load": "wrangler d1 execute beed-energy --local --file=seed.sql",
+    "d1:load:remote": "wrangler d1 execute beed-energy --remote --file=seed.sql",
+    "deploy": "astro build && wrangler deploy"
   },
   "dependencies": {
+    "@astrojs/cloudflare": "^14.4.2",
     "@astrojs/node": "^11.1.9",
     "astro": "^7.4.2",
     "gsap": "^3.15.0",
@@ -23,7 +30,9 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
+    "@cloudflare/workers-types": "^5.20261023.1",
     "@types/node": "^24.19.2",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "wrangler": "^4.152.0"
   }
 }

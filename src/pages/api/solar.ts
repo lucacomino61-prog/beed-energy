@@ -4,7 +4,7 @@
 import type { APIRoute } from 'astro';
 import { readCalcInput, runCalc } from '../../lib/pages-solar';
 
-export const GET: APIRoute = ({ url }) => {
-  const out = runCalc(readCalcInput(url.searchParams));
+export const GET: APIRoute = async ({ url }) => {
+  const out = await runCalc(readCalcInput(url.searchParams));
   return Response.json(out, { headers: { 'cache-control': 'no-store' } });
 };

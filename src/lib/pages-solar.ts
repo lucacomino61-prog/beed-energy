@@ -1,4 +1,4 @@
-// Reads the calculator's query string, runs sizeSystem() and returns one plain object that the
+// Reads the calculator's query string, runs await sizeSystem() and returns one plain object that the
 // server view and /api/solar (and so the browser script) render from. State lives in the URL.
 import { billFor, kwhForBill, sizeSystem, tariffs, type Kit } from './solar';
 import { pvCities } from './pages-db';
@@ -65,8 +65,8 @@ export function calcQuery(i: CalcInput): Record<string, string> {
   };
 }
 
-export function runCalc(input: CalcInput): CalcOutput {
-  const t = tariffs();
+export async function runCalc(input: CalcInput): Promise<CalcOutput> {
+  const t = await tariffs();
   const h = t.household;
   const vat = t.pricesExclVat ? 1 + t.vatRate : 1;
   const tariff = h
@@ -85,7 +85,7 @@ export function runCalc(input: CalcInput): CalcOutput {
     kwp: 0, panels: 0, panelWp: 500, annualKwh: 0, monthlyKwh: [], selfUse: 0, annualSaving: null, crossesCliff: false,
     kit: [], kitTotal: null, paybackYears: null, lifetimeSaving: null, tariff,
   };
-  const city = pvCities().find((c) => c.slug === input.city);
+  const city = (await pvCities()).find((c) => c.slug === input.city);
   if (!city) base.errors.city = 'city';
   let kwhMonth: number | null = null;
   if (input.mode === 'kwh') {
@@ -107,7 +107,7 @@ export function runCalc(input: CalcInput): CalcOutput {
   }
   if (Object.keys(base.errors).length || !city || kwhMonth === null) return base;
 
-  const r = sizeSystem({ citySlug: city.slug, kwhMonth, kind: input.kind, battery: input.battery, phases: input.phases });
+  const r = await sizeSystem({ citySlug: city.slug, kwhMonth, kind: input.kind, battery: input.battery, phases: input.phases });
   if (!r) return { ...base, errors: { city: 'city' } };
   const used = Math.min(r.annualKwh * r.selfUse, kwhMonth * 12) / 12;
   const crossesCliff = input.kind === 'household' && !!h && kwhMonth > h.thresholdKwh && kwhMonth - used <= h.thresholdKwh && billFor(1, t, 'household') !== null;

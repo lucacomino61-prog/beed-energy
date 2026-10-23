@@ -34,8 +34,8 @@ function lekNumber(s: string): number | null | 'bad' {
   return Number(v);
 }
 
-function cityId(slug: string): number | null {
-  return get<{ id: number }>('SELECT id FROM cities WHERE slug = ?', slug)?.id ?? null;
+async function cityId(slug: string): Promise<number | null> {
+  return (await get<{ id: number }>('SELECT id FROM cities WHERE slug = ?', slug))?.id ?? null;
 }
 
 // ---------- request a quote ----------
@@ -62,7 +62,7 @@ export async function handleQuote(ctx: Ctx, lang: Lang): Promise<FormResult> {
 
   const errors: Record<string, string> = {};
   if (!(PROJECT_KEYS as string[]).includes(values.project)) errors.project = e.project;
-  const city = cityId(values.city);
+  const city = await cityId(values.city);
   if (!city) errors.city = e.city;
   if (values.name.length < 3 || !/\s/.test(values.name)) errors.name = e.name;
   const phone = normalisePhone(values.phone);
@@ -77,9 +77,9 @@ export async function handleQuote(ctx: Ctx, lang: Lang): Promise<FormResult> {
   if (budget === 'bad') errors.budget = e.budget;
   if (Object.keys(errors).length || !city || !phone) return { status: 422, values, errors };
 
-  const product = values.produkt ? productForQuote(values.produkt) : undefined;
+  const product = values.produkt ? await productForQuote(values.produkt) : undefined;
   const qty = Math.max(1, Math.min(99999, Number(values.qty) || 1));
-  const { code, token } = createQuote({
+  const { code, token } = await createQuote({
     project_type: values.project,
     city_id: city,
     name: values.name,
@@ -100,14 +100,14 @@ export async function handleQuote(ctx: Ctx, lang: Lang): Promise<FormResult> {
 export async function handleReply(ctx: Ctx, lang: Lang, code: string, token: string | null): Promise<FormResult> {
   const form = await ctx.request.formData();
   const values = { body: str(form, 'body', 4000) };
-  const q = quoteByCode(code, token);
+  const q = await quoteByCode(code, token);
   if (!q) return { status: 404, values, errors: {} };
   const back = href(lang, 'quoteThread', { code }, { k: token });
   if (isBot(form)) return { status: 303, redirect: back, values, errors: {} };
   if (q.status === 'closed') return { status: 409, values, errors: { body: tp(lang).thread.closed } };
   if (rateLimited(`reply:${addr(ctx)}`, 20)) return { status: 429, values, errors: {}, tooMany: true };
   if (values.body.length < 2) return { status: 422, values, errors: { body: tp(lang).form.err.body } };
-  const id = addBuyerMessage(q.id, values.body);
+  const id = await addBuyerMessage(q.id, values.body);
   return { status: 303, redirect: `${href(lang, 'quoteThread', { code }, { k: token, shkruar: 1 })}#m-${id}`, values, errors: {} };
 }
 
@@ -142,10 +142,10 @@ export async function handleApplication(ctx: Ctx, lang: Lang, planKeys: string[]
   const phone = normalisePhone(values.phone);
   if (!phone) errors.phone = e.phone;
   if (!EMAIL_RE.test(values.email)) errors.email = e.email;
-  if (values.city && !cityId(values.city)) errors.city = e.city;
+  if (values.city && !(await cityId(values.city))) errors.city = e.city;
   if (Object.keys(errors).length || !phone) return { status: 422, values, errors };
 
-  createApplication({
+  await createApplication({
     company: values.company,
     nipt: values.nipt || null,
     kind: values.kind,
@@ -185,7 +185,7 @@ export async function handleContact(ctx: Ctx, lang: Lang): Promise<FormResult> {
   if (values.body.length < 10) errors.body = e.body;
   if (Object.keys(errors).length) return { status: 422, values, errors };
 
-  createContactMessage({ name: values.name, email: values.email || null, phone, topic: values.topic, body: values.body, lang });
+  await createContactMessage({ name: values.name, email: values.email || null, phone, topic: values.topic, body: values.body, lang });
   return { status: 303, redirect: href(lang, 'contact', {}, { dergua: 1 }), values, errors: {} };
 }
 

@@ -11,8 +11,8 @@ if ('redirect' in c) return Astro.redirect(c.redirect, 303);
 const { lang, t, user, url, flash } = c;
 const sq = url.searchParams.get('status') ?? '';
 const status = ['open', 'answered', 'won', 'closed'].includes(sq) ? sq : '';
-const rows = quotesList(status);
-const allRows = status ? quotesList('') : rows;
+const rows = await quotesList(status);
+const allRows = status ? await quotesList('') : rows;
 const by: Record<string, number> = {};
 for (const r of allRows) by[r.status] = (by[r.status] ?? 0) + 1;
 ---

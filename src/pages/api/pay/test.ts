@@ -11,18 +11,18 @@ import { lek } from '../../../lib/money';
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const notFound = () => new Response('Not found', { status: 404, headers: { 'cache-control': 'no-store' } });
 
-function find(code: string, k: string) {
-  const o = get<any>('SELECT * FROM orders WHERE code = ?', code);
+async function find(code: string, k: string) {
+  const o = await get<any>('SELECT * FROM orders WHERE code = ?', code);
   return o && tokenMatches(o.token, k) && o.payment_method === 'card' ? o : null;
 }
 
 const back = (o: any, k: string, pagesa?: string) => href(o.lang, 'order', { code: o.code }, pagesa ? { k, pagesa } : { k });
 
-export const GET: APIRoute = ({ url, redirect }) => {
+export const GET: APIRoute = async ({ url, redirect }) => {
   if (paymentMode() !== 'test') return notFound();
   const code = url.searchParams.get('code') ?? '';
   const k = url.searchParams.get('k') ?? '';
-  const o = find(code, k);
+  const o = await find(code, k);
   if (!o) return notFound();
   if (o.status === 'cancelled' || o.payment_status === 'paid') return redirect(back(o, k), 303);
   const sq = o.lang === 'sq';
@@ -48,16 +48,16 @@ export const POST: APIRoute = async ({ request, redirect }) => {
   const f = await request.formData();
   const code = String(f.get('code') ?? '');
   const k = String(f.get('k') ?? '');
-  const o = find(code, k);
+  const o = await find(code, k);
   if (!o) return notFound();
   if (o.status === 'cancelled') return redirect(back(o, k), 303);
   // The attempt this page stands in for: the latest one the checkout or a retry recorded.
-  const attempt = latestOpenPayment(o.id);
+  const attempt = await latestOpenPayment(o.id);
   const pay = f.get('r') === 'pay';
-  if (pay && o.payment_status !== 'paid') markPaid(o.id, attempt?.provider_id ?? `test-${o.code}`, 'test-gateway');
+  if (pay && o.payment_status !== 'paid') await markPaid(o.id, attempt?.provider_id ?? `test-${o.code}`, 'test-gateway');
   else if (!pay && o.payment_status === 'pending') {
-    if (attempt) failPayment(o.id, attempt.provider_id);
-    run("UPDATE orders SET payment_status = 'failed', updated_at = datetime('now') WHERE id = ? AND payment_status = 'pending'", o.id);
+    if (attempt) await failPayment(o.id, attempt.provider_id);
+    await run("UPDATE orders SET payment_status = 'failed', updated_at = datetime('now') WHERE id = ? AND payment_status = 'pending'", o.id);
   }
   return redirect(back(o, k, pay ? 'ok' : 'deshtoi'), 303);
 };

@@ -10,7 +10,7 @@ const c = adminCtx(Astro);
 if ('redirect' in c) return Astro.redirect(c.redirect, 303);
 const { lang, t, user, url, flash } = c;
 if (!isAdmin(user)) return forbiddenPage(Astro);
-const cats = allCategories();
+const cats = await allCategories();
 const attrs = cats.reduce((s: number, x: any) => s + x.attrs, 0);
 ---
 <Admin lang={lang} t={t} user={user} url={url} title={t.cat.title} section="categories" flash={flash} sheet={[[t.sheet.records, cats.length], [t.cat.attrs, attrs]]}>

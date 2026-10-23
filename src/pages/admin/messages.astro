@@ -22,7 +22,7 @@ if (Astro.request.method === 'POST') {
   } else {
     const handled = fstr(f, 'op', 10) === 'handled';
     try {
-      setHandled(user, Number(f.get('id')), handled);
+      await setHandled(user, Number(f.get('id')), handled);
     } catch (e) {
       if (e instanceof Forbidden) return forbiddenPage(Astro);
       throw e;
@@ -30,8 +30,8 @@ if (Astro.request.method === 'POST') {
     return Astro.redirect(withQuery('/admin/messages', { state, ok: handled ? 'handled' : 'reopened' }), 303);
   }
 }
-const rows = contactMessages(state);
-const all = state ? contactMessages('') : rows;
+const rows = await contactMessages(state);
+const all = state ? await contactMessages('') : rows;
 const open = all.filter((m: any) => !m.handled).length;
 ---
 <Admin lang={lang} t={t} user={user} url={url} title={t.msgs.title} section="messages" flash={flash} sheet={[[t.sheet.records, all.length], [t.msgs.open, open]]}>

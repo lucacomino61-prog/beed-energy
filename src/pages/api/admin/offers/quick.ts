@@ -30,11 +30,11 @@ export const POST: APIRoute = async ({ request, locals, cookies }) => {
   const stock = toNum((b as any).stock);
   if (!Number.isInteger(id) || !Number.isFinite(price) || !Number.isInteger(stock)) return json({ error: 'invalid', message: t.offers.quickErr }, 422);
   try {
-    if (!quickOffer(user, id, Math.round(price), stock)) return json({ error: 'invalid', message: t.offers.quickErr }, 422);
+    if (!await quickOffer(user, id, Math.round(price), stock)) return json({ error: 'invalid', message: t.offers.quickErr }, 422);
   } catch (e) {
     if (e instanceof Forbidden) return json({ error: 'forbidden', message: t.forbidden.title }, 403);
     throw e;
   }
-  const row = get<{ price_all: number; stock_qty: number; updated_at: string }>('SELECT price_all, stock_qty, updated_at FROM offers WHERE id = ?', id)!;
+  const row = (await get<{ price_all: number; stock_qty: number; updated_at: string }>('SELECT price_all, stock_qty, updated_at FROM offers WHERE id = ?', id))!;
   return json({ ok: true, price: row.price_all, stock: row.stock_qty, price_label: lek(row.price_all, lang), updated_label: date(row.updated_at, lang, true) });
 };

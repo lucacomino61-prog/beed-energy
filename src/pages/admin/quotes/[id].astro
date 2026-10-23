@@ -17,7 +17,7 @@ const { lang, t, user, url, flash } = c;
 const admin = isAdmin(user);
 const id = idParam(Astro.params.id);
 if (!id || id < 0) return Astro.rewrite('/404');
-let q = quoteDetail(id);
+let q = await quoteDetail(id);
 if (!q) return Astro.rewrite('/404');
 
 let errors: Errs = {};
@@ -33,7 +33,7 @@ if (Astro.request.method === 'POST') {
     try {
       if (op === 'status') {
         if (!admin) throw new Forbidden('status');
-        if (setQuoteStatus(user, id, fstr(f, 'status', 10))) return Astro.redirect(`/admin/quotes/${id}?ok=status`, 303);
+        if (await setQuoteStatus(user, id, fstr(f, 'status', 10))) return Astro.redirect(`/admin/quotes/${id}?ok=status`, 303);
         errors.status = t.err.required;
       } else {
         body = fstr(f, 'body', 4000);
@@ -44,7 +44,7 @@ if (Astro.request.method === 'POST') {
         else if (!body) errors.body = t.quotes.bodyRequired;
         if (p !== null && (Number.isNaN(p) || p <= 0)) errors.price = t.err.positive;
         if (!Object.keys(errors).length) {
-          postMessage(user, 'rfq', id, body, p === null ? null : Math.round(p));
+          await postMessage(user, 'rfq', id, body, p === null ? null : Math.round(p));
           return Astro.redirect(`/admin/quotes/${id}?ok=sent#thread`, 303);
         }
       }
@@ -55,7 +55,7 @@ if (Astro.request.method === 'POST') {
     Astro.response.status = 422;
   }
 }
-const msgs = threadMessages(user, 'rfq', id);
+const msgs = await threadMessages(user, 'rfq', id);
 const city = lang === 'sq' ? q.city_sq : q.city_en;
 const buyerLink = href(q.lang === 'en' ? 'en' : 'sq', 'quoteThread', { code: q.code }, { k: q.token });
 ---

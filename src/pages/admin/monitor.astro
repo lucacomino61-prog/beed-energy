@@ -10,7 +10,7 @@ const c = adminCtx(Astro);
 if ('redirect' in c) return Astro.redirect(c.redirect, 303);
 const { lang, t, user, url, flash } = c;
 if (!isAdmin(user)) return forbiddenPage(Astro);
-const m = priceMonitor();
+const m = await priceMonitor();
 const maxPct = Math.max(1, ...m.spread.map((r: any) => r.spread_pct ?? 0));
 ---
 <Admin lang={lang} t={t} user={user} url={url} title={t.monitor.title} section="monitor" flash={flash}

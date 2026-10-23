@@ -5,7 +5,7 @@ import type { FormResult } from '../lib/pages-forms';
 import { plans } from '../lib/pages-db';
 let state: FormResult | null = null;
 if (Astro.request.method === 'POST') {
-  state = await handleApplication(Astro, 'sq', plans().map((p) => p.key));
+  state = await handleApplication(Astro, 'sq', (await plans()).map((p) => p.key));
   if (state.redirect) return Astro.redirect(state.redirect, 303);
   Astro.response.status = state.status;
 }

@@ -6,10 +6,10 @@ import { contactSettings } from '../lib/pages-db';
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
 const t = tc(lang);
-const cats = categories().slice(0, 8);
+const cats = (await categories()).slice(0, 8);
 const year = new Date().getFullYear();
 // Contact details only when settings.contact has them (no visible placeholders); NIPT and the operator line always.
-const contact = contactSettings();
+const contact = await contactSettings();
 const tel = contact.phone ? contact.phone.replace(/[^+\d]/g, '') : '';
 ---
 <footer class="site-footer" data-tone="ink">

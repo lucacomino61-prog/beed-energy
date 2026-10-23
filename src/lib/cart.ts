@@ -66,14 +66,14 @@ export function cleanLines(input: unknown): CartLineInput[] {
   return [...merged].map(([offerId, qty]) => ({ offerId, qty }));
 }
 
-export function quote(input: CartLineInput[], opts: { cityId?: number | null; pickup?: boolean } = {}): Quote {
-  const delivery = { ...DEFAULT_DELIVERY, ...setting<Partial<DeliverySettings>>('delivery', {}) };
+export async function quote(input: CartLineInput[], opts: { cityId?: number | null; pickup?: boolean } = {}): Promise<Quote> {
+  const delivery = { ...DEFAULT_DELIVERY, ...(await setting<Partial<DeliverySettings>>('delivery', {})) };
   // Pickup only counts while the shop offers it (settings → delivery); otherwise every parcel ships.
   const pickup = !!opts.pickup && delivery.pickupAvailable !== false;
-  const zone = opts.cityId ? (get<{ zone: number }>('SELECT zone FROM cities WHERE id = ?', opts.cityId)?.zone ?? 1) : 1;
+  const zone = opts.cityId ? ((await get<{ zone: number }>('SELECT zone FROM cities WHERE id = ?', opts.cityId))?.zone ?? 1) : 1;
   const ids = input.map((l) => l.offerId);
   const rows = ids.length
-    ? all<any>(
+    ? await all<any>(
         `SELECT o.id AS offerId, o.price_all, o.stock_qty, o.lead_days, o.min_qty, o.delivery_fee_all, o.free_delivery_over_all, o.active,
                 p.id AS productId, p.slug, p.name_sq, p.name_en, p.brand, p.model, p.category_id, p.status,
                 p.width_mm, p.height_mm, p.depth_mm,
@@ -84,7 +84,7 @@ export function quote(input: CartLineInput[], opts: { cityId?: number | null; pi
       )
     : [];
   const tiers = ids.length
-    ? all<{ offer_id: number; min_qty: number; price_all: number }>(
+    ? await all<{ offer_id: number; min_qty: number; price_all: number }>(
         `SELECT * FROM offer_tiers WHERE offer_id IN (${ids.map(() => '?').join(',')}) ORDER BY min_qty`,
         ...ids,
       )

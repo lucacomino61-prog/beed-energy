@@ -18,7 +18,7 @@ const statusQ = url.searchParams.get('status') ?? '';
 const status = (ORDER_STATUSES as readonly string[]).includes(statusQ) ? statusQ : '';
 const q = (url.searchParams.get('q') ?? '').trim().slice(0, 40);
 const page = pageParam(url);
-const { rows, total, byStatus } = ordersList(user, { status, q, page });
+const { rows, total, byStatus } = await ordersList(user, { status, q, page });
 const all = Object.values(byStatus).reduce((a, b) => a + b, 0);
 ---
 <Admin lang={lang} t={t} user={user} url={url} title={t.orders.title} section="orders" flash={flash} sheet={[[t.sheet.records, all]]}>

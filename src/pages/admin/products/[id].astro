@@ -21,7 +21,7 @@ const { lang, t, user, url, flash } = c;
 if (!isAdmin(user)) return forbiddenPage(Astro);
 const id = idParam(Astro.params.id);
 if (id !== null && id < 0) return Astro.rewrite('/404');
-const existing = id ? get<any>('SELECT * FROM products WHERE id = ?', id) : null;
+const existing = id ? await get<any>('SELECT * FROM products WHERE id = ?', id) : null;
 if (id && !existing) return Astro.rewrite('/404');
 
 const FIELDS = ['slug', 'brand', 'model', 'name_sq', 'name_en', 'summary_sq', 'summary_en', 'body_sq', 'body_en', 'width_mm', 'height_mm', 'depth_mm', 'weight_kg', 'warranty_years', 'datasheet_url', 'status'] as const;
@@ -30,7 +30,7 @@ const show = (n: number | null | undefined) => (n === null || n === undefined ? 
 const v: Record<string, string> = Object.fromEntries(FIELDS.map((k) => [k, existing ? (NUMS.includes(k as any) ? show(existing[k]) : String(existing[k] ?? '')) : '']));
 if (!existing) v.status = 'draft';
 let featured = !!existing?.featured;
-let specs: Record<string, string> = existing ? productSpecValues(existing.id) : {};
+let specs: Record<string, string> = existing ? await productSpecValues(existing.id) : {};
 let catId: number | null = Number(url.searchParams.get('category')) || existing?.category_id || null;
 let errors: Errs = {};
 let unsaved = false;
@@ -69,7 +69,7 @@ if (Astro.request.method === 'POST') {
           datasheet_url: v.datasheet_url || null, status: v.status as ProductInput['status'], featured, specs,
         };
         try {
-          const r = saveProduct(user, id, input, lang);
+          const r = await saveProduct(user, id, input, lang);
           if (r.id && !Object.keys(r.errors).length) return Astro.redirect(`/admin/products/${r.id}?ok=${id ? 'saved' : 'created'}`, 303);
           errors = r.errors;
         } catch (e) {
@@ -82,10 +82,10 @@ if (Astro.request.method === 'POST') {
   }
 }
 
-const cats = allCategories();
+const cats = await allCategories();
 const cat = catId ? cats.find((x: any) => x.id === catId) : null;
-const attrs = cat ? attributes(cat.id) : [];
-const offers = existing ? offersForProductAdmin(existing.id) : [];
+const attrs = cat ? await attributes(cat.id) : [];
+const offers = existing ? await offersForProductAdmin(existing.id) : [];
 const num = (s: string) => {
   const n = Number(String(s).replace(/\s/g, '').replace(',', '.'));
   return s !== '' && Number.isFinite(n) && n > 0 ? n : null;

@@ -1,5 +1,5 @@
 ---
-// A-11 Settings (admin): delivery, bank details, contact, exchange rate, electricity tariffs (with the ERE source),
+// A-11 Settings (admin): delivery, bank details, contact, exchange rate, electricity await tariffs (with the ERE source),
 // subscription plans. Each section is its own form and saves one settings key.
 import Admin from '../../layouts/Admin.astro';
 import Field from './_parts/Field.astro';
@@ -15,12 +15,12 @@ const { lang, t, user, url, flash } = c;
 if (!isAdmin(user)) return forbiddenPage(Astro);
 
 type Plan = { key: string; name: string; monthly_all: number | null; commission_pct: number; features_sq: string[]; features_en: string[] };
-const delivery = setting<any>('delivery', { zoneSurcharge: { 1: 0, 2: 0, 3: 0 }, pickupAvailable: true, codLimit: 0 });
-const bank = setting<any>('bank', { beneficiary: '', bank: null, iban: null, swift: null });
-const contact = setting<any>('contact', { email: null, phone: null, address: null, hours_sq: null, hours_en: null });
-const currency = setting<any>('currency', { eurAll: 100, source: '', url: '', date: '' });
-const tariffs = setting<any>('tariffs', { household: {}, business: null, businessPeak: null, exportLekPerKwh: null, source: '', url: '' });
-const plans = setting<Plan[]>('plans', []);
+const delivery = await setting<any>('delivery', { zoneSurcharge: { 1: 0, 2: 0, 3: 0 }, pickupAvailable: true, codLimit: 0 });
+const bank = await setting<any>('bank', { beneficiary: '', bank: null, iban: null, swift: null });
+const contact = await setting<any>('contact', { email: null, phone: null, address: null, hours_sq: null, hours_en: null });
+const currency = await setting<any>('currency', { eurAll: 100, source: '', url: '', date: '' });
+const tariffs = await setting<any>('tariffs', { household: {}, business: null, businessPeak: null, exportLekPerKwh: null, source: '', url: '' });
+const plans = await setting<Plan[]>('plans', []);
 
 const dec = (n: number | null | undefined) => (n === null || n === undefined ? '' : String(n).replace('.', lang === 'sq' ? ',' : '.'));
 // Values shown in each form; on an invalid post they hold what was typed.
@@ -117,7 +117,7 @@ if (Astro.request.method === 'POST') {
     }
     if (key && !Object.keys(errors).length) {
       try {
-        saveSettingAs(user, key, value);
+        await saveSettingAs(user, key, value);
       } catch (e) {
         if (e instanceof Forbidden) return forbiddenPage(Astro);
         throw e;

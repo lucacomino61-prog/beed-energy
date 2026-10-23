@@ -21,20 +21,22 @@ const other: Lang = lang === 'sq' ? 'en' : 'sq';
 const DIFF = { sq: 'ndryshime', en: 'diff' } as const;
 const diffOn = Astro.url.searchParams.get(DIFF.sq) === '1' || Astro.url.searchParams.get(DIFF.en) === '1';
 
-const all = productCardsByIds(ids.slice(0, COMPARE_MAX));
-const cat = all[0] ? categoryById(all[0].category_id) : undefined;
+const all = await productCardsByIds(ids.slice(0, COMPARE_MAX));
+const cat = all[0] ? await categoryById(all[0].category_id) : undefined;
 const items: ProductCard[] = cat ? all.filter((p) => p.category_id === cat.id) : [];
 const dropped = all.length - items.length;
 const catName = cat ? (lang === 'sq' ? cat.name_sq : cat.name_en) : '';
 const unitLabel = cat ? (lang === 'sq' ? cat.unit_label_sq : cat.unit_label_en) : null;
-const attrs = cat ? attributes(cat.id).filter((a) => a.comparable) : [];
+const attrs = cat ? (await attributes(cat.id)).filter((a) => a.comparable) : [];
 const nameOf = (p: ProductCard) => (lang === 'sq' ? p.name_sq : p.name_en);
 const best = new Map(
-  items.map((p) => {
-    const basis = cat?.unit_basis ? p.specs[cat.unit_basis] : null;
-    const rows = offerRows(offersFor(p.id), null, typeof basis === 'number' ? basis : null);
-    return [p.id, rows.find((r) => r.stock_qty > 0 && r.total !== null) ?? null];
-  }),
+  await Promise.all(
+    items.map(async (p) => {
+      const basis = cat?.unit_basis ? p.specs[cat.unit_basis] : null;
+      const rows = offerRows(await offersFor(p.id), null, typeof basis === 'number' ? basis : null);
+      return [p.id, rows.find((r) => r.stock_qty > 0 && r.total !== null) ?? null] as const;
+    }),
+  ),
 );
 
 type Cell = { id: number; text: string; best: boolean; v: string };

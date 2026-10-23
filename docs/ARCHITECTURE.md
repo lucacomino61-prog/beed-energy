@@ -3,8 +3,8 @@
 Local build, nothing deployed. Dev server: `npm run dev` → http://127.0.0.1:3810 (launch entry "beed-energy").
 
 ## Stack
-- **Astro 7 SSR** (`output: 'server'`, `@astrojs/node` standalone). Every page is server-rendered: all words, prices and links are in the HTML before scripts run.
-- **SQLite through `node:sqlite`** (Node ≥ 22.13; no native build). One file: `data/beed.db`. Schema: `src/lib/schema.sql` (applied on every open, `CREATE … IF NOT EXISTS`).
+- **Astro 7 SSR** (`output: 'server'`, `@astrojs/cloudflare`, running as a Cloudflare Worker). Every page is server-rendered: all words, prices and links are in the HTML before scripts run.
+- **Cloudflare D1** (SQLite), binding `DB`. Schema: `migrations/0001_init.sql`, generated from `src/lib/schema.sql` and applied with `wrangler d1 migrations apply`. `src/lib/db.ts` reads the binding from `cloudflare:workers`; every query is awaited. The seed scripts still build `data/beed.db` with `node:sqlite`, and `scripts/d1-export.mjs` turns it into `seed.sql` for D1.
 - **GSAP 3.15 + ScrollTrigger + Lenis 1.3** on one ticker: GSAP's ticker is the only `requestAnimationFrame` owner; Lenis steps from it (`autoRaf: false`). No other animation library, no component that brings its own loop.
 - Vanilla TypeScript in Astro `<script>` modules. No front-end framework.
 
@@ -45,7 +45,7 @@ Whole lekë, VAT (TVSH 20%) included, formatted by hand (`src/lib/money.ts`) bec
 
 ## Basket and checkout
 - Basket = HttpOnly cookie `beed_cart` (`offerId-qty.offerId-qty`), written only by `POST /api/cart` (form post without scripts, JSON with scripts). A line is a product **from a seller**. The compare list is the cookie `beed_cmp` (max 4, one category). Both render in the HTML (header count, basket page, compare tray). The server re-prices everything (`src/lib/cart.ts → quote()`): volume tiers, stock, minimum quantity, seller delivery zones, one parcel fee per seller (+ zone surcharge, free above the seller's threshold), VAT contained, platform commission.
-- `createOrder()` (`src/lib/orders.ts`) runs in one `BEGIN IMMEDIATE` transaction: re-quote, decrement stock with a guarded UPDATE, write order + lines + first event. Order link carries an unguessable token.
+- `createOrder()` (`src/lib/orders.ts`) re-quotes, then writes everything as one D1 batch (atomic, but nothing can branch inside it): stock decrements first, held by `CHECK (stock_qty >= 0)` so an oversold line aborts the whole batch; then order, lines, parcels, nonce and first event, the child rows finding the order through its UNIQUE `code`. A clash on `code` retries with the next number. Order link carries an unguessable token.
 - Payment: cash on delivery (up to a limit), bank transfer, card through POK (`src/lib/payments.ts`; without keys: a clearly labelled local test gateway in `npm run dev` or with `PAY_TEST=1`, otherwise card payment is off; every attempt is a row in `payments`; paid only after re-reading the POK order and checking its reference and amount). Unpaid card orders are cancelled after 45 minutes (stock returned). Each parcel's delivery fee is stored in `order_parcels`; a checkout form carries a one-time nonce (double submits land on the first order).
 
 ## Admin

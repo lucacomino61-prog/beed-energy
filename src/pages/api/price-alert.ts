@@ -17,7 +17,7 @@ export const POST: APIRoute = async ({ request, cookies, url, redirect, clientAd
   const lang = str(form, 'lang', 2) === 'en' ? 'en' : 'sq';
   const productId = Number(str(form, 'productId', 12));
   const product = Number.isInteger(productId) && productId > 0
-    ? get<{ id: number; slug: string }>("SELECT id, slug FROM products WHERE id = ? AND status = 'published'", productId)
+    ? await get<{ id: number; slug: string }>("SELECT id, slug FROM products WHERE id = ? AND status = 'published'", productId)
     : undefined;
   if (!product) return redirect(href(lang, 'shop'), 303);
 
@@ -45,12 +45,12 @@ export const POST: APIRoute = async ({ request, cookies, url, redirect, clientAd
     writeAlertFlash(cookies, { pid: product.id, email, target: targetRaw, errors: ['rate'] }, secure);
     return redirect(`${back}#njoftim`, 303);
   }
-  const { errors, target } = validateAlert(email, targetRaw, product.id);
+  const { errors, target } = await validateAlert(email, targetRaw, product.id);
   if (errors.length || target === null) {
     writeAlertFlash(cookies, { pid: product.id, email, target: targetRaw, errors }, secure);
     return redirect(`${back}#njoftim`, 303);
   }
-  saveAlert(product.id, email, target, lang);
+  await saveAlert(product.id, email, target, lang);
   writeAlertFlash(cookies, { pid: product.id, ok: true, target: String(target) }, secure);
   return redirect(withOk(back), 303);
 };

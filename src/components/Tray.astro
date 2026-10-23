@@ -6,7 +6,7 @@ import { tc } from '../i18n/common';
 interface Props { lang: Lang; ids: number[]; hide?: boolean; }
 const { lang, ids, hide = false } = Astro.props;
 const t = tc(lang);
-const items = productCardsByIds(ids);
+const items = await productCardsByIds(ids);
 ---
 <aside class="tray" data-tray hidden={hide || items.length === 0} aria-label={t.tray.title} data-label-remove={t.tray.remove}>
   <div class="row between">

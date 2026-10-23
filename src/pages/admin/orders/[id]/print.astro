@@ -15,7 +15,7 @@ const id = idParam(Astro.params.id);
 if (!id || id < 0) return Astro.rewrite('/404');
 let o: any;
 try {
-  o = orderDetail(user, id);
+  o = await orderDetail(user, id);
 } catch (e) {
   if (e instanceof Forbidden) return forbiddenPage(Astro);
   throw e;
@@ -30,7 +30,7 @@ for (const it of o.items) {
 const city = lang === 'sq' ? o.city_sq : o.city_en;
 const n = parcels.size;
 // The courier collects the parcel's goods plus the delivery fee charged for that parcel at checkout.
-const feeOf = parcelFees(o.id, o.delivery_all);
+const feeOf = await parcelFees(o.id, o.delivery_all);
 const due = (p: { sellerId: number | null; items: any[] }) => {
   const sub = p.items.reduce((s, it) => s + it.line_total_all, 0);
   const f = feeOf(p.sellerId).fee;

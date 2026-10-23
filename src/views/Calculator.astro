@@ -21,12 +21,12 @@ const t = w.calc;
 const f = w.form;
 // No city in the URL: the one remembered from a product or basket page (city-pref.ts), when it has PVGIS data.
 const params = new URLSearchParams(Astro.url.searchParams);
-const remembered = rememberedCity(Astro.cookies);
-if (!params.has('qyteti') && !params.has('city') && remembered && pvCities().some((c) => c.slug === remembered)) params.set('qyteti', remembered);
+const remembered = await rememberedCity(Astro.cookies);
+if (!params.has('qyteti') && !params.has('city') && remembered && (await pvCities()).some((c) => c.slug === remembered)) params.set('qyteti', remembered);
 const input = readCalcInput(params);
-const out = runCalc(input);
-const cities = pvCities();
-const tar = tariffs();
+const out = await runCalc(input);
+const cities = await pvCities();
+const tar = await tariffs();
 const touched = Astro.url.searchParams.size > 0;
 const q = touched ? calcQuery(input) : undefined;
 const alternate = href(other(lang), 'calculator', {}, q);

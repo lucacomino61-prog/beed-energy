@@ -15,7 +15,7 @@ const { lang, doc } = Astro.props;
 const L = legal[lang];
 const d = L[doc];
 const w = tp(lang);
-const delivery = setting<{ codLimit?: number }>('delivery', {});
+const delivery = await setting<{ codLimit?: number }>('delivery', {});
 const codNote = delivery.codLimit ? (lang === 'sq' ? ` Kufiri aktual: ${lekLong(delivery.codLimit, lang)}.` : ` Current limit: ${lekLong(delivery.codLimit, lang)}.`) : '';
 const alternate = href(other(lang), doc);
 ---

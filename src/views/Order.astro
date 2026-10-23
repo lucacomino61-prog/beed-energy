@@ -1,7 +1,7 @@
 ---
 // Order page, reached only with the order's token (?k=). Title block, timeline, parcels per seller,
 // totals with VAT, delivery, payment instructions per method, invoice note, what happens next.
-// The route runs orderPage() (lib/checkout-flow.ts): 404 without the right token, POST = card retry.
+// The route runs await orderPage() (lib/checkout-flow.ts): 404 without the right token, POST = card retry.
 import Site from '../layouts/Site.astro';
 import TitleBlock from '../components/TitleBlock.astro';
 import '../styles/checkout.css';
@@ -25,9 +25,16 @@ const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
       <p class="row" style="margin-top:1.5rem"><a class="btn" href={href(lang, 'contact')}>{t.order.contactLink}</a><a class="btn btn--ghost" href={href(lang, 'shop')}>{t.order.shop}</a></p>
     </div>
   </Site>
-) : (() => {
+) : (async () => {
   const k = o.token as string;
-  const parcels = orderParcels(o.id);
+  const parcels = await orderParcels(o.id);
+  // The drawings are looked up by line below: the JSX map callback that renders them is not async,
+  // and orderDrawing has to read the item's category to pick the right drawing.
+  const drawings = new Map<number, string>(
+    await Promise.all(
+      parcels.flatMap((p: any) => p.items).map(async (it: any) => [it.id, await orderDrawing(it)] as const),
+    ),
+  );
   const pagesa = Astro.url.searchParams.get('pagesa');
   const paid = o.payment_status === 'paid';
   const isCard = o.payment_method === 'card';
@@ -37,7 +44,7 @@ const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
   // No retry on a cancelled order (its stock is back on sale) or while card payment is switched off.
   const canRetry = isCard && !paid && !cancelled && state.mode !== 'off';
   const payLabel = o.payment_method === 'cod' && !paid ? t.payStatus.cod : t.payStatus[o.payment_status] ?? o.payment_status;
-  const bank = bankDetails();
+  const bank = await bankDetails();
   const cityLabel = lang === 'sq' ? o.city_sq : o.city_en;
   const steps = t.order.steps[o.payment_method === 'cod' ? (isPickup ? 'codPickup' : 'cod') : o.payment_method];
   const events = (o.events as any[]).filter((e) => t.event[e.status]);
@@ -119,7 +126,7 @@ const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
                   <ul class="parcel__lines" role="list">
                     {p.items.map((it: any) => (
                       <li class="bline bline--order">
-                        <span class="bline__fig" aria-hidden="true" set:html={orderDrawing(it)} />
+                        <span class="bline__fig" aria-hidden="true" set:html={drawings.get(it.id) ?? ""} />
                         <div class="bline__info">
                           {it.brand && <p class="bline__brand">{it.brand}</p>}
                           <p class="bline__name">{it.slug ? <a href={href(lang, 'product', { slug: it.slug })}>{(lang === 'sq' ? it.name_sq : it.name_en) || it.product_name}</a> : it.product_name}</p>

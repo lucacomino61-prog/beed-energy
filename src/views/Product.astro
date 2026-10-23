@@ -23,10 +23,10 @@ const { lang, product: p, flash } = Astro.props;
 const t = ts(lang);
 const P = t.product;
 const other: Lang = lang === 'sq' ? 'en' : 'sq';
-const cat = categoryById(p.category_id)!;
-const card = productCardsByIds([p.id])[0];
-const specs = productSpecs(p.id, p.category_id);
-const attrs = attributes(p.category_id);
+const cat = (await categoryById(p.category_id))!;
+const card = (await productCardsByIds([p.id]))[0];
+const specs = await productSpecs(p.id, p.category_id);
+const attrs = await attributes(p.category_id);
 const name: string = lang === 'sq' ? p.name_sq : p.name_en;
 const catName = lang === 'sq' ? cat.name_sq : cat.name_en;
 const summary: string = (lang === 'sq' ? p.summary_sq : p.summary_en) || '';
@@ -36,13 +36,13 @@ const basis = cat.unit_basis ? card?.specs[cat.unit_basis] : null;
 
 // City: ?qyteti= (sq) or ?city= (en); either works in both languages.
 const CITY = { sq: 'qyteti', en: 'city' } as const;
-const cityList = allCities();
+const cityList = await allCities();
 // …or, without one, the city remembered from an earlier product, basket or calculator page (city-pref.ts).
-const citySlug = chosenCitySlug(Astro.url, Astro.cookies);
+const citySlug = await chosenCitySlug(Astro.url, Astro.cookies);
 const city = cityList.find((c) => c.slug === citySlug) ?? null;
 const cityName = city ? (lang === 'sq' ? city.name_sq : city.name_en) : null;
 
-const rows = offerRows(offersFor(p.id), city, typeof basis === 'number' ? basis : null);
+const rows = offerRows(await offersFor(p.id), city, typeof basis === 'number' ? basis : null);
 const live = rows.filter((r) => r.stock_qty > 0 && r.total !== null);
 const bestOffer = live.find((r) => r.best) ?? live[0] ?? null;
 const prices = rows.map((r) => r.price_all);
@@ -50,8 +50,8 @@ const lowPrice = prices.length ? Math.min(...prices) : null;
 const highPrice = prices.length ? Math.max(...prices) : null;
 const sellerCount = new Set(rows.map((r) => r.seller_id)).size;
 const anyDemo = rows.some((r) => r.isDemo);
-const history = priceHistory(p.id, 90);
-const rel = related(p, 4);
+const history = await priceHistory(p.id, 90);
+const rel = await related(p, 4);
 const compared = new Set(readCompare(Astro.cookies));
 const sources = parseSources(p.sources_json);
 const dno = drawingNo(cat.id, p.id);

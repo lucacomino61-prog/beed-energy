@@ -7,5 +7,5 @@ import { langFromPath } from '../../lib/i18n';
 export const POST: APIRoute = async (ctx) => {
   const ref = ctx.request.headers.get('referer');
   const lang = ctx.url.searchParams.get('lang') === 'en' || (ref && langFromPath(new URL(ref, ctx.url).pathname) === 'en') ? 'en' : 'sq';
-  return jsonResult(await handleApplication(ctx, lang, plans().map((p) => p.key)));
+  return jsonResult(await handleApplication(ctx, lang, (await plans()).map((p) => p.key)));
 };

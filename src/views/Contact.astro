@@ -13,7 +13,7 @@ const { lang, state } = Astro.props;
 const w = tp(lang);
 const t = w.contact;
 const f = w.form;
-const c = contactSettings();
+const c = await contactSettings();
 const sent = Astro.url.searchParams.get('dergua') === '1' && !state;
 const pre = Astro.url.searchParams.get('tema');
 const v: Record<string, string> = { name: '', email: '', phone: '', topic: pre && (TOPIC_KEYS as string[]).includes(pre) ? pre : 'buying', body: '', ...(state?.values ?? {}) };

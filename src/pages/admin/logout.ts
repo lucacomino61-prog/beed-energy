@@ -8,9 +8,9 @@ export const POST: APIRoute = async ({ request, cookies, locals, redirect }) => 
   if (user) {
     const form = await request.formData().catch(() => new FormData());
     if (!csrfOk(user, form)) return new Response('Forbidden', { status: 403 });
-    audit(user.id, 'auth.logout');
+    await audit(user.id, 'auth.logout');
   }
-  endSession(cookies);
+  await endSession(cookies);
   return redirect('/admin/login?ok=signedOut', 303);
 };
 

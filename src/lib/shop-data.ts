@@ -1,5 +1,5 @@
 // Shop helpers on top of catalog.ts: price text in lekë only (consumer law 9902 art. 9.4: no euro amounts on public pages),
-// cities for the delivery select, one offer's delivered total to a city (same rules as cart.ts quote()),
+// cities for the delivery select, one offer's delivered total to a city (same rules as cart.ts await quote()),
 // filter-URL normalising, drawing numbers and page-title fitting.
 import { all, setting } from './db';
 import { DEFAULT_DELIVERY, type DeliverySettings } from './cart';
@@ -27,8 +27,8 @@ export function unitPrice(v: number, label: string, lang: Lang): string {
 
 export type City = { id: number; slug: string; name_sq: string; name_en: string; zone: number };
 
-export function cities(): City[] {
-  return all<City>('SELECT id, slug, name_sq, name_en, zone FROM cities ORDER BY sort, name_sq');
+export async function cities(): Promise<City[]> {
+  return await all<City>('SELECT id, slug, name_sq, name_en, zone FROM cities ORDER BY sort, name_sq');
 }
 
 export function deliverySettings(): DeliverySettings {

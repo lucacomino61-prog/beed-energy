@@ -13,7 +13,7 @@ const { lang, state } = Astro.props;
 const w = tp(lang);
 const t = w.quote;
 const f = w.form;
-const cities = allCities();
+const cities = await allCities();
 const sp = Astro.url.searchParams;
 const preProject = sp.get('projekt');
 const v: Record<string, string> = {
@@ -24,7 +24,7 @@ const v: Record<string, string> = {
   qty: sp.get('sasia') ?? '1',
   ...(state?.values ?? {}),
 };
-const product = v.produkt ? productForQuote(v.produkt) : undefined;
+const product = v.produkt ? await productForQuote(v.produkt) : undefined;
 const err = state?.errors ?? {};
 const order = ['project', 'city', 'name', 'phone', 'email', 'company', 'nipt', 'details', 'budget'];
 const first = order.find((k) => err[k]);

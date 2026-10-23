@@ -92,8 +92,8 @@ function safeJson<T>(s: string | null | undefined, fallback: T): T {
   }
 }
 
-export function categories(): Category[] {
-  return all<Category>(
+export async function categories(): Promise<Category[]> {
+  return await all<Category>(
     `SELECT c.*,
             (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.status = 'published') AS product_count,
             (SELECT MIN(o.price_all) FROM offers o JOIN products p ON p.id = o.product_id
@@ -102,22 +102,22 @@ export function categories(): Category[] {
   );
 }
 
-export function categoryBySlug(slug: string, lang: Lang): Category | undefined {
-  return get<Category>(`SELECT * FROM categories WHERE ${lang === 'sq' ? 'slug_sq' : 'slug_en'} = ? AND active = 1`, slug);
+export async function categoryBySlug(slug: string, lang: Lang): Promise<Category | undefined> {
+  return await get<Category>(`SELECT * FROM categories WHERE ${lang === 'sq' ? 'slug_sq' : 'slug_en'} = ? AND active = 1`, slug);
 }
 
-export function categoryById(id: number): Category | undefined {
-  return get<Category>('SELECT * FROM categories WHERE id = ?', id);
+export async function categoryById(id: number): Promise<Category | undefined> {
+  return await get<Category>('SELECT * FROM categories WHERE id = ?', id);
 }
 
-export function attributes(categoryId: number): Attr[] {
-  return all('SELECT * FROM spec_attributes WHERE category_id = ? ORDER BY sort, id', categoryId).map(toAttr);
+export async function attributes(categoryId: number): Promise<Attr[]> {
+  return (await all('SELECT * FROM spec_attributes WHERE category_id = ? ORDER BY sort, id', categoryId)).map(toAttr);
 }
 
-function specsFor(productIds: number[]): Map<number, Record<string, SpecValue>> {
+async function specsFor(productIds: number[]): Promise<Map<number, Record<string, SpecValue>>> {
   const out = new Map<number, Record<string, SpecValue>>();
   if (!productIds.length) return out;
-  const rows = all<{ product_id: number; key: string; type: string; value_num: number | null; value_text: string | null }>(
+  const rows = await all<{ product_id: number; key: string; type: string; value_num: number | null; value_text: string | null }>(
     `SELECT ps.product_id, a.key, a.type, ps.value_num, ps.value_text
        FROM product_specs ps JOIN spec_attributes a ON a.id = ps.attribute_id
       WHERE ps.product_id IN (${productIds.map(() => '?').join(',')})`,
@@ -146,8 +146,8 @@ const CARD_SQL = `
     LEFT JOIN offers o ON o.product_id = p.id AND o.active = 1
            AND o.seller_id IN (SELECT id FROM sellers WHERE status = 'active')`;
 
-function withSpecs(rows: Omit<ProductCard, 'specs' | 'unit_price'>[], unitBasis: (catId: number) => string | null): ProductCard[] {
-  const specs = specsFor(rows.map((r) => r.id));
+async function withSpecs(rows: Omit<ProductCard, 'specs' | 'unit_price'>[], unitBasis: (catId: number) => string | null): Promise<ProductCard[]> {
+  const specs = await specsFor(rows.map((r) => r.id));
   return rows.map((r) => {
     const s = specs.get(r.id) ?? {};
     const basis = unitBasis(r.category_id);
@@ -157,36 +157,36 @@ function withSpecs(rows: Omit<ProductCard, 'specs' | 'unit_price'>[], unitBasis:
   });
 }
 
-function basisLookup(): (id: number) => string | null {
-  const map = new Map(all<{ id: number; unit_basis: string | null }>('SELECT id, unit_basis FROM categories').map((c) => [c.id, c.unit_basis]));
+async function basisLookup(): Promise<(id: number) => string | null> {
+  const map = new Map((await all<{ id: number; unit_basis: string | null }>('SELECT id, unit_basis FROM categories')).map((c) => [c.id, c.unit_basis]));
   return (id) => map.get(id) ?? null;
 }
 
-export function productsInCategory(categoryId: number): ProductCard[] {
-  const rows = all<any>(`${CARD_SQL} WHERE p.category_id = ? AND p.status = 'published' GROUP BY p.id`, categoryId);
-  return withSpecs(rows, basisLookup());
+export async function productsInCategory(categoryId: number): Promise<ProductCard[]> {
+  const rows = await all<any>(`${CARD_SQL} WHERE p.category_id = ? AND p.status = 'published' GROUP BY p.id`, categoryId);
+  return withSpecs(rows, await basisLookup());
 }
 
-export function featuredProducts(limit = 8): ProductCard[] {
-  const rows = all<any>(
+export async function featuredProducts(limit = 8): Promise<ProductCard[]> {
+  const rows = await all<any>(
     `${CARD_SQL} WHERE p.status = 'published' GROUP BY p.id HAVING offer_count > 0 ORDER BY p.featured DESC, offer_count DESC, p.id LIMIT ?`,
     limit,
   );
-  return withSpecs(rows, basisLookup());
+  return withSpecs(rows, await basisLookup());
 }
 
-export function productCardsByIds(ids: number[]): ProductCard[] {
+export async function productCardsByIds(ids: number[]): Promise<ProductCard[]> {
   if (!ids.length) return [];
-  const rows = all<any>(`${CARD_SQL} WHERE p.id IN (${ids.map(() => '?').join(',')}) AND p.status = 'published' GROUP BY p.id`, ...ids);
-  const cards = withSpecs(rows, basisLookup());
+  const rows = await all<any>(`${CARD_SQL} WHERE p.id IN (${ids.map(() => '?').join(',')}) AND p.status = 'published' GROUP BY p.id`, ...ids);
+  const cards = await withSpecs(rows, await basisLookup());
   return ids.map((id) => cards.find((c) => c.id === id)).filter(Boolean) as ProductCard[];
 }
 
-export function searchProducts(q: string, limit = 40): ProductCard[] {
+export async function searchProducts(q: string, limit = 40): Promise<ProductCard[]> {
   const terms = fold(q).split(/\s+/).filter((t) => t.length > 1).slice(0, 6);
   if (!terms.length) return [];
-  const rows = all<any>(`${CARD_SQL} WHERE p.status = 'published' GROUP BY p.id`);
-  const cats = new Map(all<Category>('SELECT * FROM categories').map((c) => [c.id, c]));
+  const rows = await all<any>(`${CARD_SQL} WHERE p.status = 'published' GROUP BY p.id`);
+  const cats = new Map((await all<Category>('SELECT * FROM categories')).map((c) => [c.id, c]));
   const hits = rows
     .map((r) => {
       const c = cats.get(r.category_id);
@@ -198,7 +198,7 @@ export function searchProducts(q: string, limit = 40): ProductCard[] {
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map((x) => x.r);
-  return withSpecs(rows.filter((r) => hits.includes(r)).sort((a, b) => hits.indexOf(a) - hits.indexOf(b)), basisLookup());
+  return withSpecs(rows.filter((r) => hits.includes(r)).sort((a, b) => hits.indexOf(a) - hits.indexOf(b)), await basisLookup());
 }
 
 /** Lower-case and strip diacritics so "ngrohes" finds "ngrohës" and "celes" finds "çelës". */
@@ -364,25 +364,25 @@ export type Offer = {
   tiers: { min_qty: number; price_all: number }[];
 };
 
-export function productBySlug(slug: string) {
-  return get<any>("SELECT * FROM products WHERE slug = ? AND status = 'published'", slug);
+export async function productBySlug(slug: string) {
+  return await get<any>("SELECT * FROM products WHERE slug = ? AND status = 'published'", slug);
 }
 
-export function productSpecs(productId: number, categoryId: number) {
-  const attrs = attributes(categoryId);
-  const vals = specsFor([productId]).get(productId) ?? {};
+export async function productSpecs(productId: number, categoryId: number) {
+  const attrs = await attributes(categoryId);
+  const vals = (await specsFor([productId])).get(productId) ?? {};
   return attrs.map((a) => ({ attr: a, value: vals[a.key] ?? null })).filter((x) => x.value !== null && x.value !== '');
 }
 
-export function productImages(productId: number) {
-  return all<{ id: number; path: string; width: number | null; height: number | null; alt_sq: string; alt_en: string }>(
+export async function productImages(productId: number) {
+  return await all<{ id: number; path: string; width: number | null; height: number | null; alt_sq: string; alt_en: string }>(
     'SELECT * FROM product_images WHERE product_id = ? ORDER BY sort, id',
     productId,
   );
 }
 
-export function offersFor(productId: number): Offer[] {
-  const offers = all<Offer>(
+export async function offersFor(productId: number): Promise<Offer[]> {
+  const offers = await all<Offer>(
     `SELECT o.*, s.slug AS seller_slug, s.name AS seller_name, s.kind AS seller_kind, s.verified AS seller_verified,
             s.rating AS seller_rating, s.rating_count AS seller_rating_count, s.delivery_zones AS seller_zones,
             c.name_sq AS seller_city_sq, c.name_en AS seller_city_en
@@ -391,7 +391,7 @@ export function offersFor(productId: number): Offer[] {
       ORDER BY o.price_all`,
     productId,
   );
-  const tiers = all<{ offer_id: number; min_qty: number; price_all: number }>(
+  const tiers = await all<{ offer_id: number; min_qty: number; price_all: number }>(
     `SELECT * FROM offer_tiers WHERE offer_id IN (SELECT id FROM offers WHERE product_id = ?) ORDER BY min_qty`,
     productId,
   );
@@ -407,8 +407,8 @@ export function unitPriceFor(offer: Pick<Offer, 'price_all' | 'tiers'>, qty: num
 }
 
 /** Lowest active price per day for the last `days` days, for the product's price-history line. */
-export function priceHistory(productId: number, days = 90) {
-  return all<{ day: string; low: number; high: number }>(
+export async function priceHistory(productId: number, days = 90) {
+  return await all<{ day: string; low: number; high: number }>(
     `SELECT date(h.recorded_at) AS day, MIN(h.price_all) AS low, MAX(h.price_all) AS high
        FROM price_history h JOIN offers o ON o.id = h.offer_id
       WHERE o.product_id = ? AND h.recorded_at >= datetime('now', ?)
@@ -418,14 +418,14 @@ export function priceHistory(productId: number, days = 90) {
   );
 }
 
-export function related(product: { id: number; category_id: number }, limit = 4): ProductCard[] {
-  const rows = all<any>(
+export async function related(product: { id: number; category_id: number }, limit = 4): Promise<ProductCard[]> {
+  const rows = await all<any>(
     `${CARD_SQL} WHERE p.category_id = ? AND p.id != ? AND p.status = 'published' GROUP BY p.id HAVING offer_count > 0 ORDER BY p.featured DESC, offer_count DESC LIMIT ?`,
     product.category_id,
     product.id,
     limit,
   );
-  return withSpecs(rows, basisLookup());
+  return withSpecs(rows, await basisLookup());
 }
 
 // ---------- formatting ----------

@@ -16,7 +16,7 @@ const { lang, t, user, url, flash } = c;
 if (!isAdmin(user)) return forbiddenPage(Astro);
 const id = idParam(Astro.params.id);
 if (id !== null && id < 0) return Astro.rewrite('/404');
-const existing = id ? get<any>('SELECT * FROM sellers WHERE id = ?', id) : null;
+const existing = id ? await get<any>('SELECT * FROM sellers WHERE id = ?', id) : null;
 if (id && !existing) return Astro.rewrite('/404');
 
 let v: any = existing
@@ -30,12 +30,12 @@ if (Astro.request.method === 'POST') {
     errors._form = t.err.csrf;
     Astro.response.status = 403;
   } else {
-    const r = readSeller(f, id, t);
+    const r = await readSeller(f, id, t);
     v = r.v;
     errors = r.errors;
     if (!Object.keys(errors).length) {
       try {
-        const newId = saveSeller(user, id, v);
+        const newId = await saveSeller(user, id, v);
         return Astro.redirect(`/admin/sellers/${newId}?ok=${id ? 'saved' : 'created'}`, 303);
       } catch (e) {
         if (e instanceof Forbidden) return forbiddenPage(Astro);
@@ -45,7 +45,7 @@ if (Astro.request.method === 'POST') {
     Astro.response.status = 422;
   }
 }
-const cityList = cities();
+const cityList = await cities();
 const zones = String(v.delivery_zones ?? '').split(',');
 const labels: Record<string, string> = { name: t.sellers.name, slug: t.sellers.slug, kind: t.sellers.kind, plan: t.sellers.plan, status: t.sellers.status, commission_pct: t.sellers.commissionLabel, zones: t.sellers.zones, nipt: t.sellers.nipt, email: t.sellers.email, website: t.sellers.website };
 ---

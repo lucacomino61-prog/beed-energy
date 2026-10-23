@@ -5,7 +5,7 @@ export const common = {
   sq: {
     skip: 'Kalo te përmbajtja',
     brandTag: 'Treg për ndërtimin dhe energjinë',
-    nav: { shop: 'Dyqani', compare: 'Krahaso', cart: 'Shporta', menu: 'Menyja', close: 'Mbyll', search: 'Kërko', categories: 'Kategoritë', calculator: 'Kalkulatori', sellers: 'Shitësit', quote: 'Kërko ofertë', sell: 'Shit me ne', about: 'Rreth nesh', contact: 'Kontakt', home: 'Kreu' },
+    nav: { shop: 'Dyqani', compare: 'Krahaso', cart: 'Shporta', menu: 'Menu', close: 'Mbyll', search: 'Kërko', categories: 'Kategoritë', calculator: 'Kalkulatori', sellers: 'Shitësit', quote: 'Kërko ofertë', sell: 'Shit me ne', about: 'Rreth nesh', contact: 'Kontakt', home: 'Kreu' },
     lang: { sq: 'Shqip', en: 'English', switchTo: 'Switch to English' },
     saver: { label: 'Kursim energjie', on: 'Kursimi i energjisë është i ndezur: animacionet janë ndalur.', off: 'Kursimi i energjisë është i fikur.', hint: 'Ndal animacionet dhe efektet e rënda' },
     menu: { heading: 'Kategoritë', products: (n: number) => `${n} produkte`, from: 'nga', empty: 'pa oferta ende', allShop: 'I gjithë dyqani', tools: 'Mjete', hours: 'Tregu është i hapur 24 orë, shitësit përgjigjen në ditët e punës.' },

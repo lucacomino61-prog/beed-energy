@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "beed-energy",
+  "compatibility_date": "2026-10-01",
+  // nodejs_compat covers node:crypto (scrypt for the staff password hashes) and node:async_hooks
+  // (AsyncLocalStorage, which carries the D1 binding into src/lib/db.ts).
+  "compatibility_flags": ["nodejs_compat"],
+  // `main` and the static assets are the adapter's: @astrojs/cloudflare points them at its own build
+  // output, so setting them here only fights it.
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "beed-energy",
+      // Replace with the id `wrangler d1 create beed-energy` prints. Local dev does not need it.
+      "database_id": "PLACEHOLDER_RUN_WRANGLER_D1_CREATE",
+      "migrations_dir": "migrations"
+    }
+  ]
+  // Secrets are not kept here. Set the POK card keys with `wrangler secret put POK_KEY_ID` (and
+  // POK_KEY_SECRET, POK_MERCHANT_ID); POK_ENV=staging points them at POK's test API. Local values
+  // for `astro dev` / `wrangler dev` go in .dev.vars (see .dev.vars.example).
+}

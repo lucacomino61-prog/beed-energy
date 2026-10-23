@@ -19,7 +19,7 @@ const id = idParam(Astro.params.id);
 if (id !== null && id < 0) return Astro.rewrite('/404');
 let existing: any = null;
 try {
-  existing = id ? offerForEdit(user, id) : null;
+  existing = id ? await offerForEdit(user, id) : null;
 } catch (e) {
   if (e instanceof Forbidden) return forbiddenPage(Astro);
   throw e;
@@ -86,7 +86,7 @@ if (Astro.request.method === 'POST') {
         promoted: admin ? flags.promoted : false, active: flags.active, tiers: tierVals,
       };
       try {
-        const r = saveOffer(user, id, input, lang);
+        const r = await saveOffer(user, id, input, lang);
         if (r.id && !Object.keys(r.errors).length) return Astro.redirect(`/admin/offers/${r.id}?ok=${id ? 'saved' : 'created'}`, 303);
         errors = r.errors;
         if (errors.tiers) errors.t0_min = errors.tiers;
@@ -100,8 +100,8 @@ if (Astro.request.method === 'POST') {
   }
 }
 
-const products = existing ? [] : productOptions();
-const sellers = admin && !existing ? sellersList() : [];
+const products = existing ? [] : await productOptions();
+const sellers = admin && !existing ? await sellersList() : [];
 const tierTarget = Math.max(3, tiers.filter((r) => r.min_qty || r.price_all).length + 1);
 while (tiers.length < tierTarget) tiers.push({ min_qty: '', price_all: '' });
 const name = existing ? `${existing.brand} ${existing.model}` : t.offers.newTitle;

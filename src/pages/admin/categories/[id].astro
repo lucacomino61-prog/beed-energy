@@ -1,6 +1,6 @@
 ---
 // Category editor + spec-template editor. Works without scripts: the whole table is submitted on every action;
-// "add", "up", "down" and "remove" re-render the table unsaved, "save" writes it with saveTemplate().
+// "add", "up", "down" and "remove" re-render the table unsaved, "save" writes it with (await saveTemplate()).
 // Removing an attribute that products already use needs an explicit confirmation (its values are deleted).
 import Admin from '../../../layouts/Admin.astro';
 import Field from '../_parts/Field.astro';
@@ -21,14 +21,14 @@ const { lang, t, user, url, flash } = c;
 if (!isAdmin(user)) return forbiddenPage(Astro);
 const id = idParam(Astro.params.id);
 if (id !== null && id < 0) return Astro.rewrite('/404');
-const existing = id ? get<any>('SELECT * FROM categories WHERE id = ?', id) : null;
+const existing = id ? await get<any>('SELECT * FROM categories WHERE id = ?', id) : null;
 if (id && !existing) return Astro.rewrite('/404');
 
 let cv: CatInput = existing
   ? { ...existing, active: !!existing.active }
   : { slug_sq: '', slug_en: '', name_sq: '', name_en: '', group_key: 'energy', intro_sq: '', intro_en: '', unit_basis: null, unit_label_sq: null, unit_label_en: null, sort: 99, active: true };
 let catErrors: Errs = {};
-let rows: TplRow[] = existing ? rowsFromDb(attributes(existing.id)) : [];
+let rows: TplRow[] = existing ? rowsFromDb(await attributes(existing.id)) : [];
 let tplErrors: Errs = {};
 let tplUnsaved = false;
 let needConfirm = false;
@@ -43,11 +43,11 @@ if (Astro.request.method === 'POST') {
     const op = fstr(f, 'op', 20);
     try {
       if (op === 'cat') {
-        const r = readCategory(f, id, t);
+        const r = await readCategory(f, id, t);
         cv = r.v;
         catErrors = r.errors;
         if (!Object.keys(catErrors).length) {
-          const newId = saveCategory(user, id, cv);
+          const newId = await saveCategory(user, id, cv);
           return Astro.redirect(`/admin/categories/${newId}?ok=${id ? 'saved' : 'created'}`, 303);
         }
         Astro.response.status = 422;
@@ -72,14 +72,14 @@ if (Astro.request.method === 'POST') {
         } else {
           const parsed = parseRows(rows, t);
           tplErrors = parsed.errors;
-          const gone = removedAttrs(existing.id, parsed.attrs.map((a) => a.id));
+          const gone = await removedAttrs(existing.id, parsed.attrs.map((a) => a.id));
           if (!Object.keys(tplErrors).length && gone.some((g) => g.values > 0) && !fbool(f, 'confirm_delete')) {
             needConfirm = true;
             tplErrors._form = t.tpl.needConfirm;
           }
           if (!Object.keys(tplErrors).length) {
             try {
-              const moved = saveTemplate(user, existing.id, parsed.attrs);
+              const moved = await saveTemplate(user, existing.id, parsed.attrs);
               const extra = `${moved.converted ? `&converted=${moved.converted}` : ''}${moved.dropped ? `&dropped=${moved.dropped}` : ''}`;
               return Astro.redirect(`/admin/categories/${existing.id}?ok=template${extra}#template`, 303);
             } catch (e) {
@@ -101,8 +101,8 @@ if (Astro.request.method === 'POST') {
   }
 }
 
-const counts = existing ? attrValueCounts(existing.id) : {};
-const gone = existing && tplUnsaved ? removedAttrs(existing.id, rows.map((r) => Number(r.id) || null)) : [];
+const counts = existing ? await attrValueCounts(existing.id) : {};
+const gone = existing && tplUnsaved ? await removedAttrs(existing.id, rows.map((r) => Number(r.id) || null)) : [];
 const goneValues = gone.reduce((s, g) => s + g.values, 0);
 const numericKeys = rows.filter((r) => r.type === 'number' && r.key).map((r) => r.key);
 const title = existing ? (lang === 'sq' ? existing.name_sq : existing.name_en) : t.cat.newTitle;

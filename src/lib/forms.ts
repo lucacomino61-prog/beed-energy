@@ -16,7 +16,7 @@ export function rateLimited(key: string, max = 8, windowMs = 10 * 60 * 1000): bo
 
 /**
  * The visitor's address for rate limits. X-Forwarded-For is anyone's to write, so it counts only
- * behind a proxy we run (TRUST_PROXY=1), and then its last entry: the one our proxy appended.
+ * behind a proxy we await run (TRUST_PROXY=1), and then its last entry: the one our proxy appended.
  */
 export function clientKey(request: Request, clientAddress?: string): string {
   if (trustProxy()) {

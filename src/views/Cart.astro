@@ -1,5 +1,5 @@
 ---
-// Basket: one parcel per seller, re-priced on the server by quote(). Works without scripts
+// Basket: one parcel per seller, re-priced on the server by (await quote()). Works without scripts
 // (every control is a form post to /api/cart or a GET for the city); scripts update it in place.
 import Site from '../layouts/Site.astro';
 import TitleBlock from '../components/TitleBlock.astro';
@@ -18,13 +18,13 @@ const { lang } = Astro.props;
 const t = tco(lang);
 const tcm = tc(lang);
 const lines = readCart(Astro.cookies);
-const allCities = cities();
-const city = readCity(Astro.url, allCities, Astro.cookies); // ?qyteti= wins; else the city chosen on a product page
-const q = quote(lines, { cityId: city?.id ?? null });
+const allCities = await cities();
+const city = await readCity(Astro.url, allCities, Astro.cookies); // ?qyteti= wins; else the city chosen on a product page
+const q = await quote(lines, { cityId: city?.id ?? null });
 const groups = groupBySeller(q);
-const sellers = sellerInfo(groups.map((g) => g.sellerId));
-const thresholds = freeOver(q.lines.map((l) => l.offerId));
-const demo = demoOffers(q.lines.map((l) => l.offerId));
+const sellers = await sellerInfo(groups.map((g) => g.sellerId));
+const thresholds = await freeOver(q.lines.map((l) => l.offerId));
+const demo = await demoOffers(q.lines.map((l) => l.offerId));
 const anyDemo = demo.size > 0;
 const addedId = Number(Astro.url.searchParams.get('shtuar'));
 const added = addedId ? q.lines.find((l) => l.offerId === addedId) : undefined;
@@ -98,7 +98,7 @@ const cityName_ = city ? cityName(city, lang) : allCities.find((c) => c.zone ===
           </div>
           <p class="lede co-intro">{t.cart.intro}</p>
           {anyDemo && <p class="small muted co-demo"><span class="tag tag--demo">{t.sample}</span> {t.sampleNote}</p>}
-          {groups.map((g, gi) => {
+          {groups.map(async (g, gi) => {
             const s = sellers.get(g.sellerId);
             const p = g.parcel;
             const over = thresholds.get(g.sellerId);
@@ -119,14 +119,14 @@ const cityName_ = city ? cityName(city, lang) : allCities.find((c) => c.zone ===
                   </p>
                 </header>
                 <ol class="parcel__lines" role="list">
-                  {g.lines.map((l) => {
+                  {g.lines.map(async (l) => {
                     const name = productName(l, lang);
                     const tier = l.unitPrice < l.listPrice;
                     const qid = `qty-${l.offerId}`;
                     const pid = `prob-${l.offerId}`;
                     return (
                       <li class="bline" data-line={l.offerId} data-problem={l.problem ?? ''}>
-                        <a class="bline__fig" href={href(lang, 'product', { slug: l.slug })} tabindex="-1" aria-hidden="true" set:html={lineDrawing(l)} />
+                        <a class="bline__fig" href={href(lang, 'product', { slug: l.slug })} tabindex="-1" aria-hidden="true" set:html={await lineDrawing(l)} />
                         <div class="bline__info">
                           <p class="bline__brand">{l.brand}</p>
                           <h3 class="bline__name"><a href={href(lang, 'product', { slug: l.slug })}>{name}</a></h3>

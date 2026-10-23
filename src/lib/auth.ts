@@ -2,7 +2,7 @@
 // the cookie carries a random token and the database keeps only its SHA-256.
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import type { AstroCookies } from 'astro';
-import { get, run } from './db';
+import { batch, get, run, stmt } from './db';
 
 export const SESSION_COOKIE = 'beed_s';
 const SESSION_DAYS = 7;
@@ -33,35 +33,37 @@ export function verifyPassword(password: string, stored: string | null | undefin
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 
-export function createSession(userId: number, cookies: AstroCookies, secure: boolean) {
+export async function createSession(userId: number, cookies: AstroCookies, secure: boolean) {
   const token = randomBytes(32).toString('base64url');
   const csrf = randomBytes(18).toString('base64url');
   const expires = new Date(Date.now() + SESSION_DAYS * 864e5);
-  run('INSERT INTO sessions (id, user_id, csrf, expires_at) VALUES (?, ?, ?, ?)', sha256(token), userId, csrf, expires.toISOString());
-  run("UPDATE users SET last_login_at = datetime('now') WHERE id = ?", userId);
+  await batch([
+    stmt('INSERT INTO sessions (id, user_id, csrf, expires_at) VALUES (?, ?, ?, ?)', sha256(token), userId, csrf, expires.toISOString()),
+    stmt("UPDATE users SET last_login_at = datetime('now') WHERE id = ?", userId),
+  ]);
   cookies.set(SESSION_COOKIE, token, { path: '/', httpOnly: true, sameSite: 'lax', secure, expires });
 }
 
-export function readSession(cookies: AstroCookies): User | null {
+export async function readSession(cookies: AstroCookies): Promise<User | null> {
   const token = cookies.get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  const row = get<User & { expires_at: string }>(
+  const row = await get<User & { expires_at: string }>(
     `SELECT u.id, u.email, u.name, u.role, u.seller_id, s.csrf, s.expires_at
        FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = ?`,
     sha256(token),
   );
   if (!row) return null;
   if (new Date(row.expires_at).getTime() < Date.now()) {
-    run('DELETE FROM sessions WHERE id = ?', sha256(token));
+    await run('DELETE FROM sessions WHERE id = ?', sha256(token));
     return null;
   }
   const { expires_at: _e, ...user } = row;
   return user;
 }
 
-export function endSession(cookies: AstroCookies) {
+export async function endSession(cookies: AstroCookies) {
   const token = cookies.get(SESSION_COOKIE)?.value;
-  if (token) run('DELETE FROM sessions WHERE id = ?', sha256(token));
+  if (token) await run('DELETE FROM sessions WHERE id = ?', sha256(token));
   cookies.delete(SESSION_COOKIE, { path: '/' });
 }
 

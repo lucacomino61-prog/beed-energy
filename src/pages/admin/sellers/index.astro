@@ -10,7 +10,7 @@ const c = adminCtx(Astro);
 if ('redirect' in c) return Astro.redirect(c.redirect, 303);
 const { lang, t, user, url, flash } = c;
 if (!isAdmin(user)) return forbiddenPage(Astro);
-const rows = sellersList();
+const rows = await sellersList();
 const active = rows.filter((s: any) => s.status === 'active').length;
 ---
 <Admin lang={lang} t={t} user={user} url={url} title={t.sellers.title} section="sellers" flash={flash} sheet={[[t.sheet.records, rows.length], [t.sstatus.active, active]]}>

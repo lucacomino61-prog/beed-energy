@@ -12,3 +12,8 @@ data/uploads/
 # Client documents and personal registry details stay local
 research/private/
 research/brief-page-*.webp
+
+# Cloudflare: local D1 state, local secrets, and the generated seed dump
+.wrangler/
+.dev.vars
+seed.sql

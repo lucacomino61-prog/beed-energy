@@ -34,18 +34,18 @@ type Ctx = Pick<AstroGlobal, 'request' | 'cookies' | 'url' | 'redirect' | 'clien
 // used and lands on the order the first post created.
 const NONCE_COOKIE = 'beed_co';
 
-function formNonce(ctx: Ctx, fresh = false): string {
+async function formNonce(ctx: Ctx, fresh = false): Promise<string> {
   const have = ctx.cookies.get(NONCE_COOKIE)?.value ?? '';
-  if (!fresh && /^[\w-]{16,40}$/.test(have) && !orderForNonce(have)) return have;
+  if (!fresh && /^[\w-]{16,40}$/.test(have) && !await orderForNonce(have)) return have;
   const n = randomToken(18);
   ctx.cookies.set(NONCE_COOKIE, n, { path: '/', httpOnly: true, sameSite: 'lax', secure: secureCookies(ctx.url), maxAge: 60 * 60 * 6 });
   return n;
 }
 
-const cityIdOf = (slug: string) => get<{ id: number }>('SELECT id FROM cities WHERE slug = ?', slug)?.id ?? null;
+const cityIdOf = async (slug: string) => (await get<{ id: number }>('SELECT id FROM cities WHERE slug = ?', slug))?.id ?? null;
 
-function quoteFor(lines: CartLineInput[], v: CheckoutValues) {
-  return quote(lines, { cityId: cityIdOf(v.city), pickup: v.delivery === 'pickup' });
+async function quoteFor(lines: CartLineInput[], v: CheckoutValues) {
+  return await quote(lines, { cityId: await cityIdOf(v.city), pickup: v.delivery === 'pickup' });
 }
 
 function problemText(l: Quote['lines'][number], lang: Lang, city: string): string {
@@ -87,66 +87,66 @@ export async function checkoutPage(ctx: Ctx, lang: Lang): Promise<Response | Che
   if (request.method !== 'POST') {
     if (!lines.length) return redirect(cartUrl, 303);
     const values = emptyCheckout();
-    const c = readCity(url, cities(), cookies); // ?qyteti= from the basket, else the remembered city
+    const c = await readCity(url, await cities(), cookies); // ?qyteti= from the basket, else the remembered city
     if (c) values.city = c.slug;
-    const q = quoteFor(lines, values);
+    const q = await quoteFor(lines, values);
     if (!q.codAllowed) values.payment = 'bank';
-    return { values, errors: {}, formError: null, changes: [], lines, quote: q, nonce: formNonce(ctx) };
+    return { values, errors: {}, formError: null, changes: [], lines, quote: q, nonce: await formNonce(ctx) };
   }
 
   const form = await request.formData();
   // A second post of a form that already made an order goes to that order (the first post emptied the basket).
   const sentNonce = String(form.get('nonce') ?? '');
-  const done = orderForNonce(sentNonce);
+  const done = await orderForNonce(sentNonce);
   if (done) return redirect(orderLink(lang, done), 303);
   if (!lines.length) return redirect(cartUrl, 303);
   if (isBot(form)) return redirect(cartUrl, 303);
   const values = readCheckout(form);
-  let q = quoteFor(lines, values);
+  let q = await quoteFor(lines, values);
   const state: CheckoutState = { values, errors: {}, formError: null, changes: [], lines, quote: q, nonce: '' };
   if (rateLimited(`checkout:${clientKey(request, ctx.clientAddress)}`, 12)) {
     state.formError = 'rate';
-    state.nonce = formNonce(ctx);
+    state.nonce = await formNonce(ctx);
     return state;
   }
   const cookieNonce = cookies.get(NONCE_COOKIE)?.value ?? '';
   if (!sentNonce || sentNonce !== cookieNonce) {
     // An old tab, or a form from before the cookie expired: draw it again with a fresh token.
     state.formError = 'stale';
-    state.nonce = formNonce(ctx, true);
+    state.nonce = await formNonce(ctx, true);
     return state;
   }
   state.nonce = sentNonce;
 
   const source = String(form.get('source') ?? '').replace(/[^a-z0-9-]/gi, '').slice(0, 40) || 'web';
-  const { input, errors } = validateCheckout(values, lines, lang, source);
+  const { input, errors } = await validateCheckout(values, lines, lang, source);
   state.errors = errors;
   const t = tco(lang).co;
   const seenTotal = parseSeenTotal(String(form.get('seen_total') ?? ''));
   state.changes = priceChanges(String(form.get('seen') ?? ''), seenTotal, q, lang);
   if (!q.ok && q.lines.length) {
-    const c = cities().find((x) => x.slug === values.city);
+    const c = (await cities()).find((x) => x.slug === values.city);
     const city = c ? cityName(c, lang) : '';
     for (const l of q.lines) if (l.problem) state.changes.push(problemText(l, lang, city));
   }
-  if (values.payment === 'cod' && !q.codAllowed) state.errors.payment = t.codError(lekLong(codLimit(), lang));
+  if (values.payment === 'cod' && !q.codAllowed) state.errors.payment = t.codError(lekLong(await codLimit(), lang));
   if (!input || Object.keys(state.errors).length || state.changes.length) return state;
 
-  let order: ReturnType<typeof createOrder>;
+  let order: Awaited<ReturnType<typeof createOrder>>;
   try {
-    order = createOrder({ ...input, expectedTotal: seenTotal ?? undefined, nonce: sentNonce });
+    order = await createOrder({ ...input, expectedTotal: seenTotal ?? undefined, nonce: sentNonce });
   } catch (e) {
     if (e instanceof OrderError) {
       if (e.code === 'duplicate') {
-        const o = orderForNonce(sentNonce);
+        const o = await orderForNonce(sentNonce);
         return redirect(o ? orderLink(lang, o) : cartUrl, 303);
       }
       if (e.code === 'empty') return redirect(cartUrl, 303);
-      q = e.quote ?? quoteFor(lines, values);
+      q = e.quote ?? (await quoteFor(lines, values));
       state.quote = q;
-      if (e.code === 'payment') state.errors.payment = t.codError(lekLong(codLimit(), lang));
+      if (e.code === 'payment') state.errors.payment = t.codError(lekLong(await codLimit(), lang));
       else {
-        const c = cities().find((x) => x.slug === values.city);
+        const c = (await cities()).find((x) => x.slug === values.city);
         const city = c ? cityName(c, lang) : '';
         const probs = q.lines.filter((l) => l.problem).map((l) => problemText(l, lang, city));
         if (!probs.length && seenTotal !== null && seenTotal !== q.total) probs.push(t.changed.total(lekLong(seenTotal, lang), lekLong(q.total, lang)));
@@ -168,8 +168,8 @@ async function startCard(ctx: Ctx, orderId: number, code: string, token: string,
   // A retry first asks the provider about earlier attempts: a paid one whose webhook was lost must
   // settle the order, not start a second charge.
   if (await settleEarlierPayments(orderId)) return ctx.redirect(orderPath({ pagesa: 'ok' }), 303);
-  const o = get<any>('SELECT total_all, delivery_all FROM orders WHERE id = ?', orderId)!;
-  const items = all<any>('SELECT product_name, qty, unit_price_all FROM order_items WHERE order_id = ? ORDER BY id', orderId);
+  const o = (await get<any>('SELECT total_all, delivery_all FROM orders WHERE id = ?', orderId))!;
+  const items = await all<any>('SELECT product_name, qty, unit_price_all FROM order_items WHERE order_id = ? ORDER BY id', orderId);
   const origin = publicOrigin(ctx.url);
   const pay = await createCardPayment({
     code,
@@ -182,11 +182,11 @@ async function startCard(ctx: Ctx, orderId: number, code: string, token: string,
     testUrl: `/api/pay/test?code=${encodeURIComponent(code)}&k=${encodeURIComponent(token)}`,
   });
   if (!pay.ok) return ctx.redirect(orderPath({ pagesa: 'nisja' }), 303);
-  recordPayment(orderId, pay.providerId, o.total_all);
+  await recordPayment(orderId, pay.providerId, o.total_all);
   return ctx.redirect(pay.redirect, 303);
 }
 
-export type OrderState = { order: NonNullable<ReturnType<typeof orderByCode>> | null; mode: ReturnType<typeof paymentMode> };
+export type OrderState = { order: NonNullable<Awaited<ReturnType<typeof orderByCode>>> | null; mode: Awaited<ReturnType<typeof paymentMode>> };
 
 export async function orderPage(ctx: Ctx & Pick<AstroGlobal, 'params' | 'response'>, lang: Lang): Promise<Response | OrderState> {
   // The page shows a name, a phone and an address behind a token link: never cached, never indexed.
@@ -194,7 +194,7 @@ export async function orderPage(ctx: Ctx & Pick<AstroGlobal, 'params' | 'respons
   ctx.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
   const code = String(ctx.params.code ?? '');
   const k = ctx.url.searchParams.get('k') ?? '';
-  const order = code && k ? orderByCode(code, k) : null;
+  const order = code && k ? await orderByCode(code, k) : null;
   if (!order) {
     ctx.response.status = 404;
     return { order: null, mode: paymentMode() };
