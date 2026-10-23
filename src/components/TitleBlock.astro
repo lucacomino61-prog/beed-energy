@@ -1,0 +1,96 @@
+---
+// The one page-head title block, like a drawing sheet's: label/value cells on the double rule (3 px + 1 px),
+// hairlines between cells, no outline box. Columns: repeat(auto-fit, minmax(10rem, 1fr)); when the cells wrap,
+// the last cell spans the rest of its row (container queries below), so no cell is left alone on a short row.
+export interface TitleBlockItem {
+  label: string;
+  value: string | number | null | undefined;
+  /** Render the value as a link. */
+  href?: string;
+  /** The link leaves the site (new tab, rel="noopener external"). */
+  external?: boolean;
+  /** Extra attributes on the <dd>, e.g. data-tb for values a script keeps live. */
+  dd?: Record<string, string>;
+  /** Brand and model names: translate="no". */
+  noTranslate?: boolean;
+}
+interface Props {
+  items: (TitleBlockItem | false | '' | null | undefined)[];
+  class?: string;
+  [attr: `data-${string}`]: string | undefined;
+}
+const { items, class: cls, ...rest } = Astro.props;
+const list = items.filter((i): i is TitleBlockItem => !!i);
+const show = (v: TitleBlockItem['value']) => (v === null || v === undefined || v === '' ? '—' : v);
+---
+<dl class:list={['titleblock rule-double tb', cls]} {...rest}>
+  {list.map((i) => (
+    <div>
+      <dt>{i.label}</dt>
+      <dd translate={i.noTranslate ? 'no' : undefined} {...(i.dd ?? {})}>
+        {i.href ? (
+          <a href={i.href} {...(i.external ? { rel: 'noopener external', target: '_blank' } : {})}>{show(i.value)}</a>
+        ) : show(i.value)}
+      </dd>
+    </div>
+  ))}
+</dl>
+
+<style>
+  /* .titleblock and .rule-double come from global.css; .titleblock.tb is specific enough to override both. */
+  .titleblock.tb {
+    container: tb / inline-size;
+    width: 100%;
+    grid-template-columns: repeat(auto-fit, minmax(min(10rem, 50%), 1fr));
+    border: 0;
+    border-top: 3px solid var(--ink);
+    border-bottom: 1px solid var(--line-strong);
+    padding: 4px 0 0; /* 3 px gap, then the 1 px second rule drawn by .rule-double::before */
+    overflow: hidden; /* clips the hairlines of the cells on the outer edges */
+  }
+  .titleblock.tb > div {
+    min-width: 0;
+    margin: -1px 0 0 -1px;
+    padding: 0.65rem 0.85rem 0.75rem;
+    border: 0;
+    border-left: 1px solid var(--line);
+    border-top: 1px solid var(--line);
+  }
+  .titleblock.tb dd { overflow-wrap: anywhere; }
+  .titleblock.tb a { color: var(--copper-deep); display: inline-block; padding-block: 0.4rem; margin-block: -0.4rem; }
+
+  /* No orphan: when N cells wrap onto c columns, the last one spans what is left of its row. */
+  @container tb (width < 30rem) {
+    .titleblock.tb > div:last-child:nth-child(2n + 1):nth-child(n + 3) { grid-column: span 2; }
+  }
+  @container tb (30rem <= width < 40rem) {
+    .titleblock.tb > div:last-child:nth-child(3n + 1):nth-child(n + 4) { grid-column: span 3; }
+    .titleblock.tb > div:last-child:nth-child(3n + 2):nth-child(n + 4) { grid-column: span 2; }
+  }
+  @container tb (40rem <= width < 50rem) {
+    .titleblock.tb > div:last-child:nth-child(4n + 1):nth-child(n + 5) { grid-column: span 4; }
+    .titleblock.tb > div:last-child:nth-child(4n + 2):nth-child(n + 5) { grid-column: span 3; }
+    .titleblock.tb > div:last-child:nth-child(4n + 3):nth-child(n + 5) { grid-column: span 2; }
+  }
+  @container tb (50rem <= width < 60rem) {
+    .titleblock.tb > div:last-child:nth-child(5n + 1):nth-child(n + 6) { grid-column: span 5; }
+    .titleblock.tb > div:last-child:nth-child(5n + 2):nth-child(n + 6) { grid-column: span 4; }
+    .titleblock.tb > div:last-child:nth-child(5n + 3):nth-child(n + 6) { grid-column: span 3; }
+    .titleblock.tb > div:last-child:nth-child(5n + 4):nth-child(n + 6) { grid-column: span 2; }
+  }
+  @container tb (60rem <= width < 70rem) {
+    .titleblock.tb > div:last-child:nth-child(6n + 1):nth-child(n + 7) { grid-column: span 6; }
+    .titleblock.tb > div:last-child:nth-child(6n + 2):nth-child(n + 7) { grid-column: span 5; }
+    .titleblock.tb > div:last-child:nth-child(6n + 3):nth-child(n + 7) { grid-column: span 4; }
+    .titleblock.tb > div:last-child:nth-child(6n + 4):nth-child(n + 7) { grid-column: span 3; }
+    .titleblock.tb > div:last-child:nth-child(6n + 5):nth-child(n + 7) { grid-column: span 2; }
+  }
+  @container tb (70rem <= width < 80rem) {
+    .titleblock.tb > div:last-child:nth-child(7n + 1):nth-child(n + 8) { grid-column: span 7; }
+    .titleblock.tb > div:last-child:nth-child(7n + 2):nth-child(n + 8) { grid-column: span 6; }
+    .titleblock.tb > div:last-child:nth-child(7n + 3):nth-child(n + 8) { grid-column: span 5; }
+    .titleblock.tb > div:last-child:nth-child(7n + 4):nth-child(n + 8) { grid-column: span 4; }
+    .titleblock.tb > div:last-child:nth-child(7n + 5):nth-child(n + 8) { grid-column: span 3; }
+    .titleblock.tb > div:last-child:nth-child(7n + 6):nth-child(n + 8) { grid-column: span 2; }
+  }
+</style>

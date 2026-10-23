@@ -41,9 +41,10 @@
 /* phone and small tablets: the rail becomes a top bar with scrolling tabs */
 @media (max-width: 960px) {
   .adm { grid-template-columns: minmax(0, 1fr); }
-  .rail { position: static; height: auto; overflow: visible; grid-template-rows: auto auto auto; }
+  .rail { position: static; height: auto; overflow: visible; grid-template-rows: auto auto auto; grid-template-columns: minmax(0, 1fr); min-width: 0; }
   .rail__top { padding-right: 0.5rem; }
-  .rail__nav { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; border-bottom: 1px solid var(--line-on-ink); }
+  /* the tab rail: its own sideways scroller, never the page's */
+  .rail__nav { min-width: 0; max-width: 100%; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scroll-padding-inline: 1rem; scrollbar-width: none; border-bottom: 1px solid var(--line-on-ink); }
   .rail__nav::-webkit-scrollbar { display: none; }
   .rail__nav ol { display: flex; padding: 0; width: max-content; }
   .rail__a { grid-template-columns: auto auto auto; border-left: 0; border-bottom: 3px solid transparent; padding: 0.5rem 0.9rem; white-space: nowrap; min-height: 48px; }
@@ -59,7 +60,7 @@
 .adm-main { min-width: 0; isolation: isolate; padding: 0 clamp(1.25rem, 0.4rem + 2.6vw, 3.25rem) 7rem; }
 .adm-main:focus { outline: none; }
 .adm-flash { margin-top: 1.25rem; }
-.adm-head { position: relative; padding-top: clamp(2rem, 1rem + 3vw, 4.25rem); padding-bottom: 1.75rem; margin-bottom: 2.25rem; border-bottom: 3px solid var(--ink); box-shadow: 0 4px 0 -3px var(--paper), 0 5px 0 -3px var(--ink); }
+.adm-head { position: relative; padding-top: clamp(2rem, 1rem + 3vw, 4.25rem); padding-bottom: 1.75rem; margin-bottom: 1rem; }
 .adm-head::before {
   content: ''; position: absolute; z-index: -1; inset: 0 calc(-1 * clamp(1.25rem, 0.4rem + 2.6vw, 3.25rem));
   background:
@@ -153,7 +154,7 @@
 .adm-table a.rowlink:hover { text-decoration: underline; }
 .adm-table .mono { font-size: 0.875rem; }
 .adm-table td .row { gap: 0.4rem; }
-.table-scroll { border-top: 1px solid var(--line-strong); }
+.table-scroll { position: relative; border-top: 1px solid var(--line-strong); }
 .adm-empty { padding: 2rem 1rem; text-align: center; color: var(--ink-2); border: 1px dashed var(--line-strong); }
 
 /* status tags: word + mark, never colour alone */
@@ -163,7 +164,8 @@
 .st--new::before, .st--open::before, .st--pending::before { border-radius: 50%; }
 .st--confirmed, .st--processing, .st--answered { color: var(--ink); border-color: var(--ink); }
 .st--shipped::before { clip-path: polygon(0 0, 100% 50%, 0 100%); }
-.st--delivered, .st--paid, .st--active, .st--approved, .st--won, .st--published, .st--handled { color: var(--ok); border-color: var(--ok); }
+.st--delivered, .st--paid, .st--active, .st--approved, .st--won, .st--published, .st--handled { color: var(--paper); background: var(--ink); border-color: var(--ink); }
+.st--delivered::before, .st--paid::before, .st--active::before, .st--approved::before, .st--won::before, .st--published::before, .st--handled::before { width: 0.55rem; height: 0.3rem; background: none; border: solid currentColor; border-width: 0 0 1.5px 1.5px; transform: rotate(-45deg) translate(1px, -1px); }
 .st--cancelled, .st--failed, .st--closed, .st--rejected, .st--suspended, .st--archived, .st--refunded { color: var(--ink-2); border-style: dashed; }
 .st--cancelled::before, .st--closed::before, .st--rejected::before, .st--suspended::before, .st--archived::before { height: 1.5px; width: 0.6rem; }
 .st--draft { color: var(--ink-2); }
@@ -183,10 +185,8 @@
 .suffix { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
 .suffix .input { border-right: 0; }
 .suffix > span { display: grid; place-items: center; min-width: 3rem; padding: 0 0.75rem; border: 1px solid var(--line-strong); background: var(--paper-2); font: 500 0.8125rem var(--font-mono); color: var(--ink-2); white-space: nowrap; }
-.suffix:has(.input[aria-invalid="true"]) > span { border-color: var(--bad); }
 .input--num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .form-errors { display: grid; gap: 0.5rem; background: var(--paper); }
-.form-errors:focus { outline: 2px solid var(--bad); outline-offset: 2px; }
 .form-errors ul { padding-left: 1.1rem; display: grid; gap: 0.2rem; }
 .form-errors a { color: inherit; }
 .adm-savebar { position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; padding: 0.85rem 0; background: oklch(96.6% 0.008 75 / 0.96); border-top: 1px solid var(--line-strong); }
@@ -235,8 +235,7 @@
 .quick .input { min-height: 44px; padding: 0.4rem 0.55rem; width: 100%; text-align: right; }
 .quick .suffix > span { min-width: 0; padding: 0 0.5rem; }
 .quick-status { font: 500 0.75rem var(--font-mono); min-width: 5rem; }
-.quick-status[data-state="ok"] { color: var(--ok); }
-.quick-status[data-state="bad"] { color: var(--bad); }
+.quick-status[data-state="bad"] { font-weight: 600; }
 .tiers { display: grid; gap: 0.6rem; grid-column: 1 / -1; }
 .tiers__row { display: grid; grid-template-columns: repeat(2, minmax(0, 12rem)); gap: 0.75rem; }
 

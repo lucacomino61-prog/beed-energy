@@ -6,6 +6,7 @@ import '../styles/base.css';
 import '../styles/global.css';
 import '../styles/admin.css';
 import BrandMark from '../components/BrandMark.astro';
+import TitleBlock from '../components/TitleBlock.astro';
 import type { Lang } from '../lib/i18n';
 import type { User } from '../lib/auth';
 import type { AdminWords } from '../i18n/admin';
@@ -100,15 +101,14 @@ const today = new Date().toISOString().slice(0, 10);
         {flash && <p class="notice notice--ok adm-flash" role="status">{flash}</p>}
         {!hideHead && (
           <header class="adm-head">
-            <p class="adm-eyebrow"><span class="sheetno">{sheetNo}</span><span>{t.panel}</span>{section && section !== 'dashboard' && <span aria-hidden="true">/ {t.nav[section]}</span>}</p>
             <h1 class="adm-title">{title}</h1>
-            <dl class="titleblock adm-tb">
-              <div><dt>{t.sheet.no}</dt><dd>{sheetNo}</dd></div>
-              {user && <div><dt>{t.sheet.role}</dt><dd>{t.role[user.role]}</dd></div>}
-              {user && <div><dt>{t.sheet.scope}</dt><dd>{user.role === 'admin' ? t.sheet.scopeAll : (seller ?? '—')}</dd></div>}
-              {sheet.map(([k, v]) => <div><dt>{k}</dt><dd>{v}</dd></div>)}
-              <div><dt>{t.sheet.date}</dt><dd>{today}</dd></div>
-            </dl>
+            <TitleBlock class="adm-tb" items={[
+              { label: t.sheet.no, value: sheetNo },
+              user && { label: t.sheet.role, value: t.role[user.role] },
+              user && { label: t.sheet.scope, value: user.role === 'admin' ? t.sheet.scopeAll : seller },
+              ...sheet.map(([k, v]) => ({ label: k, value: v })),
+              { label: t.sheet.date, value: today },
+            ]} />
             <slot name="head" />
           </header>
         )}
@@ -117,6 +117,16 @@ const today = new Date().toISOString().slice(0, 10);
     </div>
     <script>
       import '../scripts/admin/admin';
+    </script>
+    <script>
+      // Phones: the tabs scroll sideways inside their own strip; start with the current tab in view.
+      const rail = document.querySelector<HTMLElement>('.rail__nav');
+      const here = rail?.querySelector<HTMLElement>('[aria-current="page"]');
+      if (rail && here && rail.scrollWidth > rail.clientWidth + 1) {
+        const r = rail.getBoundingClientRect();
+        const h = here.getBoundingClientRect();
+        rail.scrollLeft += h.left - r.left - (r.width - h.width) / 2;
+      }
     </script>
   </body>
 </html>

@@ -59,6 +59,16 @@ if (page) {
         const vals = [...tr.querySelectorAll<HTMLElement>('[data-v]')].map((c) => c.dataset.v);
         tr.toggleAttribute('data-same', new Set(vals).size <= 1);
       });
+      // The title block follows: product count and the lowest price left.
+      const n = page.querySelector<HTMLElement>('[data-cmp-n]');
+      if (n) n.textContent = `${left.length} / ${n.dataset.cmpN}`;
+      const low = page.querySelector<HTMLElement>('[data-cmp-low]');
+      const cells = [...(table?.querySelectorAll<HTMLElement>('tr[data-row="price"] td[data-v]') ?? [])].filter((c) => Number.isFinite(Number(c.dataset.v)));
+      if (low && cells.length) {
+        const min = cells.reduce((a, c) => (Number(c.dataset.v) < Number(a.dataset.v) ? c : a));
+        const text = [...min.childNodes].find((x) => x.nodeType === Node.TEXT_NODE && x.textContent!.trim())?.textContent?.trim();
+        if (text) low.textContent = text;
+      }
       const url = new URL(location.href);
       url.searchParams.set('p', left.join(','));
       history.replaceState(history.state, '', url);

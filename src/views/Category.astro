@@ -4,6 +4,7 @@
 import Site from '../layouts/Site.astro';
 import ProductCard from '../components/ProductCard.astro';
 import Facets from '../components/Facets.astro';
+import TitleBlock from '../components/TitleBlock.astro';
 import { applyFilters, attributes, attrLabel, categories, formatSpec, productsInCategory, readFilters, type Category } from '../lib/catalog';
 import { readCompare } from '../lib/basket';
 import { href, type Lang } from '../lib/i18n';
@@ -114,17 +115,16 @@ const jsonld = [
           <li aria-current="page">{name}</li>
         </ol>
       </nav>
-      <p class="eyebrow">{c.eyebrow(index)} · {groupName}</p>
       <h1 class="title title--xl shop-head__title">{name}</h1>
-      <div class="shop-head__row rule-double">
-        {intro && <p class="lede">{intro}</p>}
-        <dl class="titleblock shop-head__tb">
-          <div><dt>{lang === 'sq' ? 'Produkte' : 'Products'}</dt><dd>{cards.length}</dd></div>
-          <div><dt>{lang === 'sq' ? 'Oferta' : 'Offers'}</dt><dd>{offerTotal}</dd></div>
-          <div><dt>{t.from}</dt><dd>{priceLo !== null ? price(priceLo, lang) : '—'}</dd></div>
-          {unitLabel && <div><dt>{lang === 'sq' ? 'Njësia' : 'Unit'}</dt><dd>{unitLabel}</dd></div>}
-        </dl>
-      </div>
+      <TitleBlock class="shop-head__tb" items={[
+        { label: lang === 'sq' ? 'Fleta' : 'Sheet', value: String(index).padStart(2, '0') },
+        groupName && { label: lang === 'sq' ? 'Grupi' : 'Group', value: groupName },
+        { label: lang === 'sq' ? 'Produkte' : 'Products', value: cards.length },
+        { label: lang === 'sq' ? 'Oferta' : 'Offers', value: offerTotal },
+        { label: t.from, value: priceLo !== null ? price(priceLo, lang) : null },
+        unitLabel && { label: lang === 'sq' ? 'Njësia' : 'Unit', value: unitLabel },
+      ]} />
+      {intro && <p class="lede shop-head__lede">{intro}</p>}
     </header>
 
     {cards.length === 0 ? (

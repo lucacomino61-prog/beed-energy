@@ -5,12 +5,11 @@
 .shop-head { display: grid; gap: 1rem; }
 .shop-head__title { overflow-wrap: anywhere; text-wrap: balance; max-width: 18ch; }
 .shop-poster { line-height: 0.82; margin-block: 0.25rem 0.5rem; }
-.shop-head__row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; margin-top: 1rem; }
-.shop-head__tb { align-self: start; }
+.shop-head__tb { margin-top: 0.75rem; }
+.shop-head__lede { max-width: 60ch; margin-top: 0.25rem; }
+.shop-head__row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; margin-top: 0.25rem; }
 @media (min-width: 900px) {
-  .shop-head__row { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: start; column-gap: var(--gutter); }
-  .shop-head--landing .shop-head__row { grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); }
-  .shop-head--landing .shop-head__tb { grid-column: 1 / -1; }
+  .shop-head__row { grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); align-items: start; column-gap: var(--gutter); }
 }
 .shop-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
 .shop-search .input { border-right: 0; }
@@ -133,7 +132,7 @@
 .pcard__price .price { font-size: 1.125rem; }
 .pcard__from { font-size: 0.75rem; color: var(--ink-2); font-weight: 400; }
 .pcard__meta { display: flex; flex-wrap: wrap; gap: 0.2rem 0.75rem; font: 400 0.75rem var(--font-mono); color: var(--ink-2); }
-.pcard__stock { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--ok); }
+.pcard__stock { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--ink); }
 .pcard__stock.is-out { color: var(--ink-2); }
 .pcard__stock.is-out .dot { background: transparent; box-shadow: inset 0 0 0 1px currentColor; }
 .pcard__none { font: 500 0.8125rem var(--font-mono); color: var(--ink-2); }
@@ -192,10 +191,6 @@
 .buybox__delivery { padding-top: 0.5rem; border-top: 1px dashed var(--line); }
 .buybox__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.25rem; margin-top: 0.4rem; }
 .buybox__compare { justify-self: start; }
-.product__tb { grid-template-columns: repeat(auto-fill, minmax(min(10rem, 100%), 1fr)); }
-.product__tb > div { border-bottom: 1px solid var(--line); }
-.product__tb dd { overflow-wrap: anywhere; }
-.product__tb a { color: var(--copper-deep); }
 .product__datasheet { justify-self: start; }
 
 .product__section { padding-top: clamp(3.5rem, 2rem + 4vw, 6rem); display: grid; gap: 1.25rem; }
@@ -211,6 +206,7 @@
 .offers__city { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
 .offers__city label { font: 500 0.75rem var(--font-mono); text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-2); }
 .offers__city .select { width: auto; min-width: 14rem; }
+.offers__scroll { position: relative; }
 .offers__table { font-size: 0.875rem; }
 .offers__table td, .offers__table tbody th { vertical-align: top; padding-block: 1rem; }
 .offers__table tbody th.offer__seller { font: 400 0.875rem/1.4 var(--font-text); letter-spacing: 0; text-transform: none; color: var(--ink); white-space: normal; min-width: 13rem; }
@@ -227,7 +223,7 @@
 .offer--best > * { background: var(--paper-2); }
 .offer--best > :first-child { box-shadow: inset 3px 0 0 var(--copper); }
 .offer__tiers { list-style: none; padding: 0; font: 400 0.75rem/1.5 var(--font-mono); white-space: nowrap; }
-.offer__stock { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--ok); font-weight: 600; }
+.offer__stock { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--ink); font-weight: 600; }
 .offer__stock.is-out { color: var(--ink-2); }
 .offer__stock.is-out .dot { background: transparent; box-shadow: inset 0 0 0 1px currentColor; }
 .offer__nozone { font-size: 0.8125rem; color: var(--ink-2); }
@@ -235,6 +231,11 @@
 .offer__qty { min-height: 40px; padding: 0.4rem 0.5rem; text-align: center; font-family: var(--font-mono); }
 .offer__buy { text-align: right; }
 .offer--out { color: var(--ink-2); }
+/* mid widths: when the table scrolls sideways in its wrapper, the quantity and add column stays in view */
+@media (min-width: 900px) {
+  .offers__table thead th:last-child, .offers__table td.offer__buy { position: sticky; right: 0; z-index: 1; background: var(--paper); box-shadow: -1px 0 0 var(--line); }
+  .offers__table .offer--best > td.offer__buy { background: var(--paper-2); }
+}
 
 @media (max-width: 899.98px) {
   .offers__table, .offers__table tbody, .offers__table tr, .offers__table td, .offers__table tbody th { display: block; }
@@ -244,8 +245,10 @@
   .offer--best > * { background: none; }
   .offer--best > :first-child { box-shadow: none; }
   .offers__table td, .offers__table tbody th { border: 0; padding: 0.45rem 0.9rem; }
-  .offers__table td[data-label] { display: grid; grid-template-columns: minmax(7.5rem, 40%) minmax(0, 1fr); gap: 0.75rem; text-align: left; }
-  .offers__table td[data-label]::before { content: attr(data-label); font: 500 0.6875rem/1.6 var(--font-mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-2); }
+  .offers__table td[data-label] { display: grid; grid-template-columns: minmax(6.5rem, 38%) minmax(0, 1fr); gap: 0.75rem; text-align: left; white-space: normal; }
+  .offers__table td[data-label]::before { content: attr(data-label); font: 500 0.6875rem/1.6 var(--font-mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-2); overflow-wrap: anywhere; }
+  .offers__table td[data-label] > * { grid-column: 2; min-width: 0; }
+  .offer__tiers { white-space: normal; }
   .offers__table tbody th { padding-top: 0.8rem; border-bottom: 1px dashed var(--line); }
   .offers__table .offer__buy { text-align: left; padding-bottom: 0.9rem; }
   .offer__form { grid-template-columns: 5rem minmax(0, 1fr); justify-content: stretch; }
@@ -253,14 +256,18 @@
   .offer__qty { min-height: 44px; }
 }
 
-/* fan-out ghosts (signature #4): decorative, never interactive */
-.fan-layer { position: absolute; top: 0; left: 0; width: 0; height: 0; z-index: 40; pointer-events: none; }
+/* fan-out cards (signature #4): decorative, never interactive. They live in the offers section and pass under its
+   heading and city picker (and under the header, dock and action bar), then rest on the seller cells. */
+#ofertat { position: relative; }
+#ofertat > .section-head, .offers__city, .offers__intro { position: relative; z-index: 2; background: var(--paper); }
+.fan-layer { position: absolute; top: 0; left: 0; width: 0; height: 0; z-index: 1; pointer-events: none; }
 .fan-card {
-  position: absolute; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 1rem;
-  background: var(--paper); border: 1px solid var(--ink); box-shadow: var(--shadow-2); color: var(--ink);
-  font: 500 0.875rem var(--font-mono); white-space: nowrap; overflow: hidden; will-change: transform, opacity; transform-origin: 50% 50%;
+  position: absolute; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 0.9rem 0 1.1rem;
+  background: var(--paper); border: 1px solid var(--ink); box-shadow: inset 3px 0 0 var(--copper), var(--shadow-2); color: var(--ink);
+  font: 500 0.8125rem var(--font-mono); white-space: nowrap; overflow: hidden; will-change: transform, opacity;
 }
-.fan-card b { color: var(--copper-deep); font-weight: 600; }
+.fan-card span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.fan-card b { flex: none; color: var(--copper-deep); font-weight: 600; }
 html[data-motion="off"] .fan-layer { display: none; }
 
 /* specs */
@@ -302,10 +309,13 @@ html[data-motion="off"] .fan-layer { display: none; }
 @media (max-width: 760px) {
   .actionbar {
     position: fixed; z-index: 44; left: 10px; right: 10px; bottom: calc(76px + env(safe-area-inset-bottom));
-    display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 0.5rem;
+    display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 0.5rem;
     padding: 0.5rem 0.5rem 0.5rem 0.9rem; background: var(--paper); border: 1px solid var(--ink); box-shadow: var(--shadow-2);
   }
-  .actionbar .btn { min-height: 44px; }
+  .actionbar:not(:has(.actionbar__form)) { grid-template-columns: auto minmax(0, 1fr); }
+  .actionbar__form { display: grid; min-width: 0; }
+  .actionbar .btn { min-height: 44px; min-width: 0; width: 100%; padding-inline: 0.6rem; }
+  .actionbar__t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .actionbar__price { display: grid; line-height: 1.15; min-width: 0; }
   .actionbar__price .price { font-size: 1rem; }
   body.has-actionbar { padding-bottom: calc(146px + env(safe-area-inset-bottom)); }
@@ -318,10 +328,14 @@ html[data-motion="off"] .fan-layer { display: none; }
 html.js .compare__tools [data-diff-submit] { display: none; }
 .compare__legend { margin-left: auto; color: var(--ink-2); }
 .bestmark { color: var(--copper-deep); }
-.compare__scroll { border-top: 3px solid var(--ink); }
-.compare__table { table-layout: fixed; width: calc(11rem + var(--cols, 2) * 17rem); max-width: none; }
-.compare__table th[scope="row"] { position: sticky; left: 0; z-index: 1; background: var(--paper); width: 11rem; text-transform: none; letter-spacing: 0; font: 500 0.8125rem var(--font-text); color: var(--ink); white-space: normal; border-bottom: 1px solid var(--line); box-shadow: 1px 0 0 var(--line); }
-.compare__corner { position: sticky; left: 0; z-index: 2; background: var(--paper); width: 11rem; vertical-align: bottom; box-shadow: 1px 0 0 var(--line); }
+.compare__scroll { position: relative; container-type: inline-size; border-top: 3px solid var(--ink); }
+.compare__table {
+  --label: clamp(6.5rem, 30cqi, 14rem);
+  table-layout: fixed; max-width: none;
+  width: max(calc(var(--label) + var(--cols, 2) * 9rem), min(100cqi, calc(var(--label) + var(--cols, 2) * 20rem)));
+}
+.compare__table th[scope="row"] { position: sticky; left: 0; z-index: 1; background: var(--paper); width: var(--label); text-transform: none; letter-spacing: 0; font: 500 0.8125rem var(--font-text); color: var(--ink); white-space: normal; overflow-wrap: anywhere; border-bottom: 1px solid var(--line); box-shadow: 1px 0 0 var(--line-strong); }
+.compare__corner { position: sticky; left: 0; z-index: 2; background: var(--paper); width: var(--label); vertical-align: bottom; box-shadow: 1px 0 0 var(--line-strong); overflow-wrap: anywhere; }
 .compare__table th.compare__head { vertical-align: top; text-transform: none; letter-spacing: 0; font: inherit; color: var(--ink); white-space: normal; padding: 1rem 0.75rem; }
 .compare__fig { aspect-ratio: 4 / 3; display: grid; place-items: center; padding: 0.75rem; margin-bottom: 0.6rem; border: 1px solid var(--line); background: linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 20px 20px, linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 20px 20px; }
 .compare__fig { position: relative; }
@@ -334,6 +348,7 @@ html.js .compare__tools [data-diff-submit] { display: none; }
 .bestmark-tag { display: block; margin-top: 0.2rem; font: 500 0.6875rem var(--font-mono); text-transform: uppercase; letter-spacing: 0.05em; color: var(--copper-deep); }
 .compare[data-diff] tr[data-same] { display: none; }
 .compare__more { display: grid; gap: 0.5rem; justify-items: start; }
+.compare__table .btn--s { min-height: 44px; }
 
 /* ---------- search ---------- */
 .shop-search--big { margin-top: 0.75rem; }
@@ -357,10 +372,8 @@ html.js .compare__tools [data-diff-submit] { display: none; }
   .results--list .pcard__fig { padding: 0.5rem; }
 }
 @media (max-width: 559.98px) {
-  .compare__table { width: calc(7.5rem + var(--cols, 2) * 12.5rem); }
-  .compare__table th[scope="row"], .compare__corner { width: 7.5rem; font-size: 0.75rem; }
+  .compare__table th[scope="row"], .compare__corner { font-size: 0.75rem; padding-inline: 0.5rem 0.6rem; }
+  .compare__table th.compare__head, .compare__table td { padding-inline: 0.6rem; }
   .compare__legend { margin-left: 0; }
 }
-/* stock green darkened for 4.5:1 on the best-offer row's paper-2 */
-.offer__stock, .pcard__stock { color: oklch(44% 0.1 150); }
-.product__sources a, .product__tb dd a { display: inline-block; padding-block: 0.45rem; }
+.product__sources a { display: inline-block; padding-block: 0.45rem; }

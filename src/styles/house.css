@@ -20,8 +20,10 @@
 .house .site { fill: none; stroke: currentColor; stroke-width: 0.6; stroke-dasharray: 2 5; opacity: 0.5; }
 .house .dimline { fill: none; stroke: currentColor; stroke-width: 0.6; opacity: 0.7; }
 .house .dimtext { font: 500 13px var(--font-mono); fill: currentColor; opacity: 0.75; }
+/* keys: 20-unit circles; home.ts sets --ks so they read 21 px across with 11 px numbers at any drawing scale */
+.house .key { transform: scale(var(--ks, 1)); transform-box: fill-box; transform-origin: center; }
 .house .key circle { fill: var(--ink); stroke: var(--paper); stroke-width: 1.5; }
-.house .key text { font: 600 11.5px var(--font-mono); fill: var(--paper); }
+.house .key text { font: 600 21px var(--font-mono); fill: var(--paper); }
 
 /* parts move with their transform; the exploded offset lives in --dx/--dy */
 .house .part { transition: opacity 300ms var(--ease-out); }

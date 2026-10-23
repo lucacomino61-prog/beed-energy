@@ -2,6 +2,7 @@
 // Solar calculator. A GET form that works without scripts (state in the URL); src/scripts/calculator.ts
 // re-renders the result block from /api/solar as you type, with no motion over the inputs.
 import Site from '../layouts/Site.astro';
+import TitleBlock from '../components/TitleBlock.astro';
 import AlbaniaMap from '../components/AlbaniaMap.astro';
 import '../styles/pages.css';
 import { href, other, type Lang } from '../lib/i18n';
@@ -44,17 +45,14 @@ const jsonld = {
     <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
       <ol class="crumbs"><li><a href={href(lang, 'home')}>{w.crumbsHome}</a></li><li aria-current="page">{w.calc.h1}</li></ol>
     </nav>
-    <p class="eyebrow">{t.eyebrow}</p>
     <h1 class="title title--xl pg-title">{t.h1}</h1>
-    <div class="pg-head__row rule-double">
-      <p class="lede">{t.lede}</p>
-      <dl class="titleblock pg-tb">
-        <div><dt>{lang === 'sq' ? 'Rendimenti' : 'Yield'}</dt><dd>PVGIS 5.3</dd></div>
-        <div><dt>{lang === 'sq' ? 'Tarifa' : 'Tariff'}</dt><dd>ERE 2026</dd></div>
-        <div><dt>{lang === 'sq' ? 'Humbjet' : 'Losses'}</dt><dd>14%</dd></div>
-        <div><dt>{lang === 'sq' ? 'Jetëgjatësia' : 'Lifetime'}</dt><dd>25 {lang === 'sq' ? 'vjet' : 'years'}</dd></div>
-      </dl>
-    </div>
+    <TitleBlock class="pg-tb" items={[
+      { label: lang === 'sq' ? 'Rendimenti' : 'Yield', value: 'PVGIS 5.3' },
+      { label: lang === 'sq' ? 'Tarifa' : 'Tariff', value: 'ERE 2026' },
+      { label: lang === 'sq' ? 'Humbjet' : 'Losses', value: '14%' },
+      { label: lang === 'sq' ? 'Jetëgjatësia' : 'Lifetime', value: `25 ${lang === 'sq' ? 'vjet' : 'years'}` },
+    ]} />
+    <p class="lede pg-lede">{t.lede}</p>
   </header>
 
   <div class="wrap calc" data-calc data-lang={lang} data-words={JSON.stringify(words)}>

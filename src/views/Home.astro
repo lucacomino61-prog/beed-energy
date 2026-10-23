@@ -86,7 +86,7 @@ const jsonld = [
       </h1>
       <p class="lede">{t.lede}</p>
       <div class="row stage__cta">
-        <a class="btn btn--copper" href={href(lang, 'shop')}>{t.shop} <span class="arrow" aria-hidden="true">→</span></a>
+        <a class="btn" href={href(lang, 'shop')}>{t.shop} <span class="arrow" aria-hidden="true">→</span></a>
         <a class="btn btn--ghost" href={href(lang, 'quote')}>{t.quote}</a>
       </div>
       <p class="mono small stage__stats">{t.stats(cats.length, counts.products, counts.offers)}</p>
@@ -94,8 +94,16 @@ const jsonld = [
     </div>
 
     <figure class="stage__drawing" data-drawing>
-      <div class="stage__sheet">
+      <div class="stage__sheet" data-sheet>
         <Fragment set:html={house.svg.replace('class="house"', 'class="house house--stage" data-house')} />
+        <div class="hud" data-hud aria-hidden="true" hidden>
+          <svg class="hud__lines" aria-hidden="true"><path class="hud__leader" data-hud-leader d="M0 0" /><circle class="hud__dot" data-hud-dot r="2.5" cx="0" cy="0" /></svg>
+          <div class="hud__label" data-hud-label>
+            <p class="hud__head"><span class="hud__n" data-hud-n></span><span class="hud__name" data-hud-name></span></p>
+            <p class="hud__cat" data-hud-cat></p>
+            <p class="hud__meta" data-hud-meta></p>
+          </div>
+        </div>
       </div>
       <figcaption class="stage__caption mono">
         <span>{t.drawingTitle}</span>
@@ -109,14 +117,16 @@ const jsonld = [
     <ol class="chapters" aria-label={t.layers}>
       {LAYERS.map((l) => {
         const fact = factFor(l.fact);
+        const first = bySlug.get(l.categories[0]);
+        const catMeta = (c: (typeof cats)[number]) => `${t.products(c.product_count ?? 0)} · ${c.min_price ? `${t.from} ${lek(c.min_price, lang)}` : t.noOffers}`;
         return (
-          <li class="chapter" id={`shtresa-${l.n}`} data-chapter={l.n}>
+          <li class="chapter" id={`shtresa-${l.n}`} data-chapter={l.n} data-hud-cat={first ? (lang === 'sq' ? first.name_sq : first.name_en) : undefined} data-hud-meta={first ? catMeta(first) : undefined}>
             <p class="chapter__key mono"><span class="tag tag--copper">{String(l.n).padStart(2, '0')} / 07</span> {l.short[lang]}</p>
             <h2 class="title chapter__title">{l.name[lang]}</h2>
-            <p class="chapter__fact"><strong class="chapter__value mono">{fact.value}</strong> {fact.text}</p>
+            <p class="chapter__fact"><strong class="chapter__value figure">{fact.value}</strong> {fact.text}</p>
             {fact.source && <p class="small muted mono chapter__src">{t.source}: <a href={fact.source.url} rel="noopener" target="_blank">{fact.source.label}</a>{fact.also && <>; <a href={fact.also.url} rel="noopener" target="_blank">{fact.also.label}</a></>}</p>}
             {fact.product && <p class="small muted mono chapter__src">{t.datasheet}: <a href={href(lang, 'product', { slug: fact.product.slug })}>{fact.product.name}</a></p>}
-            {l.extra && <p class="chapter__extra"><span class="mono">{l.extra.value[lang]}</span> {l.extra.text[lang]} <a class="small mono muted" href={l.extra.source.url} rel="noopener" target="_blank">↗ {l.extra.source.label[lang]}</a></p>}
+            {l.extra && <p class="chapter__extra"><span class="chapter__extra-value figure">{l.extra.value[lang]}</span> {l.extra.text[lang]} <a class="small mono muted" href={l.extra.source.url} rel="noopener" target="_blank">↗ {l.extra.source.label[lang]}</a></p>}
             <ul class="chapter__cats" aria-label={t.inShop}>
               {l.categories.map((s) => {
                 const c = bySlug.get(s);
@@ -125,7 +135,7 @@ const jsonld = [
                   <li>
                     <a href={href(lang, 'category', { slug: lang === 'sq' ? c.slug_sq : c.slug_en })}>
                       <span class="chapter__cat">{lang === 'sq' ? c.name_sq : c.name_en}</span>
-                      <span class="mono small">{t.products(c.product_count ?? 0)} · {c.min_price ? `${t.from} ${lek(c.min_price, lang)}` : t.noOffers}</span>
+                      <span class="mono small chapter__meta">{catMeta(c)}</span>
                       <span class="arrow" aria-hidden="true">→</span>
                     </a>
                   </li>
@@ -145,11 +155,11 @@ const jsonld = [
             <select class="select final__select" id="final-city" data-final-city>
               {cities.map((c) => <option value={c.slug} selected={c.slug === tirana.slug}>{lang === 'sq' ? c.name_sq : c.name_en}</option>)}
             </select>
-            <p class="final__out"><span class="final__num mono" data-final-num>{num(Math.round(tirana.pv_yield * 5), 0, lang)}</span> <span class="mono">{t.final.perYear}</span></p>
+            <p class="final__out"><span class="final__num figure" data-final-num>{num(Math.round(tirana.pv_yield * 5), 0, lang).replace(/ /g, ' ')}</span> <span class="mono">{t.final.perYear}</span></p>
             <p class="small muted mono">{t.final.note}</p>
           </div>
         )}
-        <a class="btn btn--copper" href={href(lang, 'calculator')}>{t.final.calc} <span class="arrow" aria-hidden="true">→</span></a>
+        <a class="btn" href={href(lang, 'calculator')}>{t.final.calc} <span class="arrow" aria-hidden="true">→</span></a>
       </li>
     </ol>
   </section>
@@ -219,15 +229,19 @@ const jsonld = [
         <h2 class="title title--xl" id="numbers-title">{t.numbers.title}</h2>
       </div>
       <ol class="numbers__list">
-        {NUMBERS.map((n, i) => (
-          <li class="numbers__item" style={`--i:${i}`}>
-            <span class="numbers__value">{n.value[lang]}</span>
-            <span class="numbers__text">{n.text[lang]}</span>
-            {n.also ? (
-              <span><a class="mono small muted" href={n.source.url} rel="noopener" target="_blank">↗ {n.source.label[lang]}</a> <a class="mono small muted" href={n.also.url} rel="noopener" target="_blank">↗ {n.also.label[lang]}</a></span>
-            ) : (
-              <a class="mono small muted" href={n.source.url} rel="noopener" target="_blank">↗ {n.source.label[lang]}</a>
-            )}
+        {NUMBERS.map((n) => (
+          <li class="numbers__item" data-dim>
+            <div class="dim">
+              <span class="dim__tick" aria-hidden="true"></span>
+              <span class="dim__rule" aria-hidden="true" data-dim-rule></span>
+              <span class="dim__tick dim__tick--end" aria-hidden="true" data-dim-end></span>
+              <span class="numbers__value figure" data-dim-value>{n.value[lang]}</span>
+            </div>
+            <p class="numbers__text" data-dim-text>{n.text[lang]}</p>
+            <p class="numbers__src mono small" data-dim-text>
+              <a href={n.source.url} rel="noopener" target="_blank">↗ {n.source.label[lang]}</a>
+              {n.also && <a href={n.also.url} rel="noopener" target="_blank">↗ {n.also.label[lang]}</a>}
+            </p>
           </li>
         ))}
       </ol>
@@ -258,8 +272,8 @@ const jsonld = [
 
   <section class="sell-band on-ink" aria-labelledby="sell-title">
     <div class="wrap sell-band__inner">
-      <h2 class="poster poster--s" id="sell-title">{t.sellBand.title}</h2>
-      <div class="stack-m">
+      <h2 class="poster sell-band__title" id="sell-title">{t.sellBand.title}</h2>
+      <div class="stack-m sell-band__copy">
         <p class="lede" style="color:inherit">{t.sellBand.text}</p>
         <a class="btn btn--copper" href={href(lang, 'sell')}>{t.sellBand.cta} <span class="arrow" aria-hidden="true">→</span></a>
       </div>

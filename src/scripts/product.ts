@@ -1,8 +1,6 @@
 // Product page: city select applies at once, the price-alert form focuses its first error (or the success note),
-// and the signature moment (DESIGN.md technique #4): on first view the drawing card fans out into the sellers'
-// offer cards, which settle into the table rows sorted by price.
-// The fan uses aria-hidden ghost cards on a pointer-events:none layer; the real rows only fade (opacity),
-// so no tap target ever moves and nothing blocks interaction. Under 1.2 s, once per product per session, never with motion off.
+// and the signature moment (DESIGN.md technique #4): one product becomes many sellers — small offer cards leave
+// the best-offer box and land on their rows in the offers table.
 import { gsap, motionOn, onMotionChange, ScrollTrigger } from './motion';
 import { syncCompareToggles } from './compare';
 
@@ -37,80 +35,103 @@ const alertForm = document.querySelector<HTMLFormElement>('.alert-form[data-firs
 if (alertForm) document.getElementById(alertForm.dataset.firstError!)?.focus();
 else if (location.hash === '#njoftim') document.querySelector<HTMLElement>('#njoftim')?.focus({ preventScroll: true });
 
-// ---------- signature: the drawing fans out into the offers ----------
-const source = document.querySelector<HTMLElement>('[data-fan-source] .sheet__paper');
+// ---------- signature: one product → many sellers ----------
+// Small row-height cards (as wide as the box they leave, never the table) leave the best-offer box — or the drawing,
+// or the phone action bar, whichever is on screen — and travel to the left edge of their rows: transform only,
+// 600 ms at most, then they fade. The table keeps full opacity; only the rows that get a card come in from 0.6.
+// The cards sit on an aria-hidden, pointer-events:none layer inside the offers section, under its heading and city
+// picker (they slide beneath them), and come to rest on the seller cell, never on a quantity field or a button. Once per product per session, never with motion off, and any pointer, touch or key
+// input finishes it at once.
+const host = document.getElementById('ofertat');
 const table = document.querySelector<HTMLElement>('[data-offers-table]');
 const rows = [...document.querySelectorAll<HTMLElement>('[data-offer-row]')];
+const bar = document.querySelector<HTMLElement>('[data-actionbar]');
 const slug = document.querySelector<HTMLElement>('[data-product]')?.dataset.slug ?? '';
 const KEY = `beed-fan-${slug}`;
+const CARD_H = 48;
+const STOP = ['pointerdown', 'keydown'] as const;
 let seen = false;
 try { seen = sessionStorage.getItem(KEY) === '1'; } catch { /* ignore */ }
 
 let tl: gsap.core.Timeline | null = null;
 let layer: HTMLElement | null = null;
+let lit: HTMLElement[] = [];
 
-function cleanup() {
+/** The element's box when at least 40% of it (or of the screen) is visible, else null. */
+function onScreen(el: Element | null): DOMRect | null {
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  if (!r.width || !r.height) return null;
+  const shown = Math.min(r.bottom, innerHeight) - Math.max(r.top, 0);
+  return shown >= Math.min(r.height, innerHeight) * 0.4 ? r : null;
+}
+
+function finish() {
+  for (const t of STOP) window.removeEventListener(t, finish, true);
   tl?.kill();
   tl = null;
   layer?.remove();
   layer = null;
-  gsap.set(rows, { clearProps: 'opacity' });
+  if (lit.length) gsap.set(lit, { clearProps: 'opacity' });
+  lit = [];
+}
+
+function card(row: HTMLElement, w: number, left: number, top: number) {
+  const g = document.createElement('div');
+  g.className = 'fan-card';
+  const who = document.createElement('span');
+  who.textContent = row.dataset.seller ?? '';
+  const what = document.createElement('b');
+  what.textContent = row.dataset.price ?? '';
+  g.append(who, what);
+  g.style.cssText = `left:${left}px;top:${top}px;width:${w}px;height:${CARD_H}px`;
+  return g;
 }
 
 function fan() {
-  if (!source || !table || !rows.length || !motionOn()) return;
+  if (!host || !table || !rows.length || !motionOn() || tl) return;
+  const src =
+    onScreen(document.querySelector('.buybox')) ??
+    onScreen(document.querySelector('[data-fan-source] .sheet__paper')) ??
+    onScreen(bar);
+  if (!src) return; // nothing on screen to leave from: the rows are simply there
+  // Rows whose top is on screen (above the phone action bar) get a card; at most six.
+  const floor = (bar?.getBoundingClientRect().top || innerHeight) - CARD_H;
+  const targets = rows.map((row) => ({ row, r: row.getBoundingClientRect() })).filter(({ r }) => r.top >= 0 && r.top <= floor).slice(0, 6);
+  if (!targets.length) return;
   try { sessionStorage.setItem(KEY, '1'); } catch { /* ignore */ }
-  const s = source.getBoundingClientRect();
-  const sx = window.scrollX;
-  const sy = window.scrollY;
+
+  const h = host.getBoundingClientRect();
   layer = document.createElement('div');
   layer.className = 'fan-layer';
   layer.setAttribute('aria-hidden', 'true');
-  document.body.append(layer);
-
-  // Read every rect first, then write.
-  const rects = rows.map((r) => r.getBoundingClientRect());
-  const n = rows.length;
-  const stagger = Math.min(0.05, 0.24 / n);
-  tl = gsap.timeline({ onComplete: cleanup });
-  rows.forEach((row, i) => {
-    const r = rects[i];
-    const g = document.createElement('div');
-    g.className = 'fan-card';
-    const who = document.createElement('span');
-    who.textContent = row.dataset.seller ?? '';
-    const what = document.createElement('b');
-    what.textContent = row.dataset.price ?? '';
-    g.append(who, what);
-    g.style.cssText = `left:${r.left + sx}px;top:${r.top + sy}px;width:${r.width}px;height:${r.height}px`;
+  const n = targets.length;
+  const stagger = Math.min(0.04, 0.12 / n);
+  const cards = targets.map(({ row, r }, i) => {
+    const w = Math.min(src.width, r.width);
+    const g = card(row, w, r.left - h.left, r.top - h.top);
     layer!.append(g);
-
-    const scale = Math.min(1, Math.max(0.3, (s.width * 0.55) / r.width));
-    const fromX = s.left + s.width / 2 - (r.left + r.width / 2);
-    const fromY = s.top + s.height / 2 - (r.top + r.height / 2);
-    const spread = i - (n - 1) / 2;
-    const t0 = i * stagger;
-    tl!.fromTo(g, { x: fromX, y: fromY, scale: scale * 0.94, rotation: 0, opacity: 0 }, { opacity: 1, scale, duration: 0.14, ease: 'power2.out' }, t0);
-    // Fan out from the drawing like a hand of cards.
-    tl!.to(g, { rotation: spread * 6, x: fromX + spread * 22 * scale, y: fromY - 26 - Math.abs(spread) * 5, duration: 0.3, ease: 'power2.out' }, 0.1 + t0);
-    // Settle into the table row, in price order (the table is already sorted).
-    tl!.to(g, { x: 0, y: 0, scale: 1, rotation: 0, duration: 0.4, ease: 'power3.inOut' }, 0.38 + t0);
-    tl!.to(row, { opacity: 1, duration: 0.16, ease: 'none' }, 0.74 + t0);
-    tl!.to(g, { opacity: 0, duration: 0.16, ease: 'none' }, 0.78 + t0);
+    // Start stacked on the source box, each a few pixels lower, like a short deck.
+    gsap.set(g, { x: src.left - r.left, y: src.top + src.height / 2 - CARD_H / 2 + i * 6 - r.top, opacity: 0 });
+    return g;
   });
-  gsap.set(rows, { opacity: 0.12 });
+  host.append(layer);
+  lit = targets.map((x) => x.row);
+  gsap.set(lit, { opacity: 0.6 });
+
+  tl = gsap.timeline({ onComplete: finish });
+  cards.forEach((g, i) => {
+    const t0 = i * stagger;
+    tl!.to(g, { opacity: 1, duration: 0.08, ease: 'none' }, t0);
+    tl!.to(g, { x: 0, y: 0, duration: 0.34, ease: 'power2.inOut' }, t0 + 0.02);
+    tl!.to(lit[i], { opacity: 1, duration: 0.2, ease: 'none' }, t0 + 0.2);
+    tl!.to(g, { opacity: 0, duration: 0.12, ease: 'none' }, t0 + 0.36);
+  });
+  for (const t of STOP) window.addEventListener(t, finish, { capture: true, passive: true });
 }
 
-if (source && table && rows.length && !seen && motionOn() && !location.hash) {
-  // Wait for the table to come into view: the cards travel from wherever the drawing is at that moment.
-  ScrollTrigger.create({ trigger: table, start: 'top bottom-=60', once: true, onEnter: fan });
+if (table && rows.length && !seen && motionOn() && !location.hash) {
+  // When the table is well into view; the cards leave from wherever the best offer is shown at that moment.
+  ScrollTrigger.create({ trigger: table, start: 'top 80%', once: true, onEnter: fan });
 }
-onMotionChange((on) => {
-  if (!on && tl) {
-    tl.progress(1);
-    cleanup();
-  }
-});
-// Any interaction with a row mid-flight finishes the moment at once.
-table?.addEventListener('pointerdown', () => { if (tl) { tl.progress(1); cleanup(); } }, true);
-table?.addEventListener('focusin', () => { if (tl) { tl.progress(1); cleanup(); } });
+onMotionChange((on) => { if (!on) finish(); });

@@ -2,6 +2,7 @@
 // Terms and privacy drafts (src/i18n/legal.ts). A visible draft notice at the top; section ids
 // stay the same in both languages so the footer's #kthimet, #dergesa and #pagesat links work.
 import Site from '../layouts/Site.astro';
+import TitleBlock from '../components/TitleBlock.astro';
 import '../styles/pages.css';
 import { href, other, type Lang } from '../lib/i18n';
 import { setting } from '../lib/db';
@@ -23,9 +24,13 @@ const alternate = href(other(lang), doc);
     <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
       <ol class="crumbs"><li><a href={href(lang, 'home')}>{w.crumbsHome}</a></li><li aria-current="page">{d.h1}</li></ol>
     </nav>
-    <p class="eyebrow">{d.eyebrow} · {d.updated}</p>
     <h1 class="title title--xl pg-title">{d.h1}</h1>
-    <div class="notice lg-draft rule-double" role="note">
+    <TitleBlock class="pg-tb" items={[
+      { label: lang === 'sq' ? 'Dokumenti' : 'Document', value: d.eyebrow },
+      { label: lang === 'sq' ? 'Versioni' : 'Version', value: d.updated },
+      { label: lang === 'sq' ? 'Seksione' : 'Sections', value: d.sections.length },
+    ]} />
+    <div class="notice lg-draft" role="note">
       <p class="lg-draft__t"><span class="tag tag--copper">{d.draftTitle}</span></p>
       <p>{d.draft}</p>
     </div>

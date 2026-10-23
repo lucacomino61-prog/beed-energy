@@ -32,7 +32,6 @@ const catLink = (c: (typeof cats)[number]) => href(lang, 'category', { slug: lan
       <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'} class="crumbs">
         <ol><li><a href={href(lang, 'home')}>{t.home}</a></li><li><a href={href(lang, 'shop')}>{t.shop}</a></li><li aria-current="page">{S.h1}</li></ol>
       </nav>
-      <p class="eyebrow">{S.eyebrow}</p>
       <h1 class="poster poster--s">{S.h1}</h1>
       <form class="shop-search shop-search--big rule-double" role="search" method="get" action={href(lang, 'search')}>
         <label class="visually-hidden" for="search-q">{S.label}</label>

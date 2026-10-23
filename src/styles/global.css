@@ -22,6 +22,8 @@ hr { border: 0; border-top: 1px solid var(--line); }
 .mono, .eyebrow, .key, .price, .num, .tag, .dim { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .eyebrow { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); font-weight: 500; }
 .key { font-size: 0.75rem; letter-spacing: 0.04em; }
+/* Big display numbers (facts, counters, "Pse tani"): Archivo condensed, tabular, keeps the no-break and narrow spaces as set */
+.figure { font-family: var(--font-text); font-stretch: 75%; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 .poster {
   font-family: var(--font-text);
   font-size: var(--step-display);
@@ -71,10 +73,11 @@ hr { border: 0; border-top: 1px solid var(--line); }
 .titleblock dt { font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
 .titleblock dd { margin: 0.15rem 0 0; font-family: var(--font-mono); font-size: 0.875rem; }
 
-.crumbs { display: flex; flex-wrap: wrap; gap: 0.35rem 0.6rem; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-2); }
-.crumbs a { text-decoration: none; display: inline-flex; align-items: center; min-height: 24px; }
+.crumbs { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.35rem 0.6rem; margin: 0; padding: 0; list-style: none; font-family: var(--font-mono); font-size: 0.75rem; line-height: 24px; color: var(--ink-2); }
+.crumbs ol, .crumbs li { margin: 0; padding: 0; }
+.crumbs a { text-decoration: none; display: inline-block; min-height: 24px; }
 .crumbs a:hover { text-decoration: underline; }
-.crumbs li { list-style: none; display: flex; gap: 0.6rem; }
+.crumbs li { list-style: none; display: flex; align-items: baseline; gap: 0.6rem; }
 .crumbs li + li::before { content: '/'; opacity: 0.5; }
 .crumbs ol { display: contents; }
 
@@ -110,8 +113,9 @@ hr { border: 0; border-top: 1px solid var(--line); }
 .tag--copper { border-color: var(--copper-deep); color: var(--copper-deep); }
 .on-ink .tag--copper { border-color: var(--copper); color: var(--copper); }
 .tag--ink { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-.tag--ok { border-color: var(--ok); color: oklch(44% 0.1 150); }
-.tag--warn { border-color: var(--warn); color: oklch(45% 0.12 60); }
+.tag--ok { border-color: var(--ink); color: var(--ink); }
+.on-ink .tag--ok { border-color: var(--paper); color: var(--paper); }
+.tag--warn { border-color: var(--copper-deep); color: var(--copper-deep); }
 .tag--demo { border-style: dashed; color: var(--ink-2); }
 .dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: currentColor; display: inline-block; }
 
@@ -125,7 +129,9 @@ hr { border: 0; border-top: 1px solid var(--line); }
 .field { display: grid; gap: 0.4rem; }
 .field > label, .field > .label { font-weight: 600; font-size: 0.875rem; }
 .field .hint { font-size: 0.8125rem; color: var(--ink-2); }
-.field .error { font-size: 0.8125rem; color: var(--bad); font-weight: 600; }
+/* Errors: copper-deep words with a "!" marker; the field border goes from 1 px ink to 2 px copper-deep (inset, no shift) */
+.field .error { display: flex; gap: 0.45rem; align-items: baseline; font-size: 0.8125rem; color: var(--copper-deep); font-weight: 600; }
+.field .error::before, .form-errors::before, .notice--bad::before { content: '!'; flex: none; display: inline-grid; place-items: center; width: 1.15rem; height: 1.15rem; font: 700 0.75rem/1 var(--font-mono); color: var(--paper); background: var(--copper-deep); }
 .input, .select, .textarea {
   width: 100%; min-height: 48px; padding: 0.7rem 0.85rem;
   background: var(--paper); color: var(--ink);
@@ -136,7 +142,7 @@ hr { border: 0; border-top: 1px solid var(--line); }
 .textarea { min-height: 7.5rem; resize: vertical; }
 .input:hover, .select:hover, .textarea:hover { border-color: var(--ink); }
 .input:focus-visible, .select:focus-visible, .textarea:focus-visible { outline: 2px solid var(--copper-deep); outline-offset: 0; box-shadow: none; border-color: var(--ink); }
-.input[aria-invalid="true"], .select[aria-invalid="true"], .textarea[aria-invalid="true"] { border-color: var(--bad); }
+.input[aria-invalid="true"], .select[aria-invalid="true"], .textarea[aria-invalid="true"] { border-color: var(--copper-deep); box-shadow: inset 0 0 0 1px var(--copper-deep); }
 .select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 2.25rem; }
 .check { display: flex; gap: 0.65rem; align-items: flex-start; min-height: 44px; padding-block: 0.6rem; cursor: pointer; }
 .check input { width: 1.15rem; height: 1.15rem; margin-top: 0.12rem; accent-color: var(--ink); flex: none; }
@@ -145,10 +151,14 @@ hr { border: 0; border-top: 1px solid var(--line); }
 .choice:has(input:checked) { border-color: var(--ink); background: var(--paper-2); box-shadow: inset 3px 0 0 var(--copper); }
 .choice input { accent-color: var(--ink); width: 1.1rem; height: 1.1rem; margin-top: 0.15rem; flex: none; }
 .hp { position: absolute !important; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
-.form-errors { border: 1px solid var(--bad); padding: 1rem; color: var(--bad); }
+.form-errors { position: relative; border: 2px solid var(--copper-deep); padding: 1rem 1rem 1rem 2.6rem; color: var(--copper-deep); }
+.form-errors::before { position: absolute; left: 1rem; top: 1.05rem; }
+.form-errors a { color: inherit; }
 .notice { border: 1px solid var(--line-strong); border-left: 3px solid var(--copper); padding: 1rem 1.1rem; background: var(--paper-2); }
-.notice--ok { border-left-color: var(--ok); }
-.notice--bad { border-left-color: var(--bad); }
+.notice--ok { border-left-color: var(--ink); }
+.notice--bad { position: relative; border: 2px solid var(--copper-deep); padding-left: 2.6rem; color: var(--copper-deep); }
+.notice--bad::before { position: absolute; left: 1rem; top: 1.05rem; }
+.notice--bad a { color: inherit; }
 
 /* qty stepper */
 .qty { display: inline-grid; grid-template-columns: 44px 3.5rem 44px; border: 1px solid var(--line-strong); height: 48px; }
@@ -242,12 +252,16 @@ html[data-header="hidden"] .site-header:not(:focus-within) { transform: translat
   .dock {
     position: fixed; z-index: 45; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); transform: translateX(-50%);
     display: grid; grid-template-columns: repeat(4, 1fr); width: min(26rem, calc(100% - 20px));
-    background: var(--ink); color: var(--paper); border-radius: var(--pill); padding: 4px; box-shadow: var(--shadow-2);
+    background: var(--ink); color: var(--paper); border-radius: var(--pill); padding: 4px; box-shadow: var(--shadow-2), inset 0 0 0 1px var(--line-on-ink);
   }
   .dock a, .dock button { display: grid; place-items: center; gap: 2px; min-height: 52px; border-radius: var(--pill); text-decoration: none; font: 500 0.6875rem var(--font-mono); letter-spacing: 0.03em; background: none; border: 0; color: inherit; cursor: pointer; }
   .dock a[aria-current="page"] { background: oklch(30% 0.012 60); }
   .dock .count { height: 1.1rem; min-width: 1.3rem; font-size: 0.625rem; background: var(--copper); color: var(--ink); }
-  body { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+  /* dock = 52 px buttons + 2 × 4 px padding, 10 px off the edge; content keeps 16 px clear of it */
+  :root { --dock-clear: calc(60px + 10px + env(safe-area-inset-bottom) + 16px); }
+  html { scroll-padding-bottom: var(--dock-clear); }
+  main { padding-bottom: var(--dock-clear); }
+  main:has(> section.on-ink:last-of-type) { padding-bottom: 0; } /* an ink band runs straight into the ink footer */
   .nav .nav-phone-hide { display: none; }
 }
 
@@ -259,9 +273,10 @@ html[data-header="hidden"] .site-header:not(:focus-within) { transform: translat
 .footer__grid h2 { font: 500 0.75rem var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: oklch(78% 0.02 70); margin-bottom: 0.9rem; }
 .footer__grid ul { list-style: none; padding: 0; display: grid; gap: 0.15rem; }
 .footer__grid li a { display: inline-flex; align-items: center; min-height: 36px; }
-.footer__word { max-width: var(--max); margin: clamp(3rem, 2rem + 4vw, 6rem) auto 0; font-stretch: 62%; font-weight: 800; text-transform: uppercase; line-height: 0.8; font-size: clamp(4.5rem, 0.5rem + 19vw, 21rem); letter-spacing: -0.03em; color: var(--paper); white-space: nowrap; overflow: hidden; }
+.footer__word { max-width: var(--max); margin: clamp(3rem, 2rem + 4vw, 6rem) auto 0; font-stretch: 62%; font-weight: 800; text-transform: uppercase; line-height: 0.8; font-size: min(clamp(4.5rem, 0.5rem + 19vw, 21rem), 17.5vw); letter-spacing: -0.03em; color: var(--paper); white-space: nowrap; overflow: hidden; }
 .footer__word b { color: var(--copper); font-weight: 800; }
 .footer__bottom { max-width: var(--max); margin: 1.5rem auto 0; padding-top: 1.25rem; border-top: 1px solid var(--line-on-ink); display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; justify-content: space-between; align-items: center; font: 400 0.75rem var(--font-mono); color: oklch(78% 0.02 70); }
+@media (max-width: 760px) { .site-footer { padding-bottom: calc(2rem + var(--dock-clear)); } } /* its last row stays clear of the phone dock */
 
 /* ---------- loader ---------- */
 .loader { position: fixed; inset: 0; z-index: 90; background: var(--ink); color: var(--paper); display: grid; place-items: center; }
@@ -269,7 +284,11 @@ html[data-header="hidden"] .site-header:not(:focus-within) { transform: translat
 .loader__word { font-stretch: 62%; font-weight: 800; text-transform: uppercase; font-size: clamp(3.5rem, 1rem + 11vw, 11rem); line-height: 0.9; letter-spacing: -0.02em; height: 1em; overflow: hidden; position: relative; min-width: 8ch; text-align: center; }
 .loader__word span { display: block; }
 .loader__word b { color: var(--copper); font-weight: 800; }
-.loader__ground { position: absolute; left: var(--gutter); right: var(--gutter); bottom: 22%; height: 1px; background: var(--line-on-ink); }
+/* the site line of the drawing (dashed, with dimension ticks) is the progress line; copper draws along it left to right */
+.loader__ground { position: absolute; left: var(--gutter); right: var(--gutter); bottom: 22%; height: 2px; background: repeating-linear-gradient(90deg, oklch(96.6% 0.008 75 / 0.5) 0 2px, transparent 2px 7px) center / 100% 1px no-repeat; }
+.loader__ground::before, .loader__ground::after { content: ''; position: absolute; bottom: -9px; width: 1px; height: 20px; background: oklch(96.6% 0.008 75 / 0.7); }
+.loader__ground::before { left: 0; }
+.loader__ground::after { right: 0; }
 .loader__ground i { position: absolute; inset: 0; background: var(--copper); transform-origin: left; transform: scaleX(0); }
 .loader__meta { position: absolute; left: var(--gutter); right: var(--gutter); bottom: calc(22% - 2rem); display: flex; justify-content: space-between; font: 400 0.75rem var(--font-mono); color: oklch(78% 0.02 70); }
 .loader__skip { position: absolute; right: var(--gutter); top: 1rem; }

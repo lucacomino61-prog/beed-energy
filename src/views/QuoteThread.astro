@@ -2,6 +2,7 @@
 // The private thread of one quote request (opened only with ?k=token): the request, the sellers'
 // answers (written from the admin) and the buyer's replies (POST to this page, PRG back to #m-id).
 import Site from '../layouts/Site.astro';
+import TitleBlock from '../components/TitleBlock.astro';
 import '../styles/pages.css';
 import { date, href, other, type Lang } from '../lib/i18n';
 import { lek } from '../lib/money';
@@ -30,7 +31,6 @@ const who = (m: (typeof msgs)[number]) => (m.author_role === 'buyer' ? t.you : m
     <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
       <ol class="crumbs"><li><a href={href(lang, 'home')}>{w.crumbsHome}</a></li><li><a href={href(lang, 'quote')}>{w.quote.h1}</a></li><li aria-current="page">{q.code}</li></ol>
     </nav>
-    <p class="eyebrow">{t.eyebrow} · <span class="tag">{t.status[q.status] ?? q.status}</span></p>
     <h1 class="title title--xl pg-title mono-title">{q.code}</h1>
     {sent && (
       <div class="notice notice--ok th-sent" role="status">
@@ -39,14 +39,13 @@ const who = (m: (typeof msgs)[number]) => (m.author_role === 'buyer' ? t.you : m
         <p class="small muted" aria-live="polite" data-copy-status></p>
       </div>
     )}
-    <div class="pg-head__row rule-double">
-      <dl class="titleblock pg-tb th-tb">
-        <div><dt>{t.project}</dt><dd>{project}</dd></div>
-        <div><dt>{t.city}</dt><dd>{city}</dd></div>
-        <div><dt>{t.budget}</dt><dd>{q.budget_all ? lek(q.budget_all, lang) : t.noBudget}</dd></div>
-        <div><dt>{t.created}</dt><dd>{date(q.created_at, lang, true)}</dd></div>
-      </dl>
-    </div>
+    <TitleBlock class="pg-tb th-tb" items={[
+      { label: lang === 'sq' ? 'Gjendja' : 'Status', value: t.status[q.status] ?? q.status },
+      { label: t.project, value: project },
+      { label: t.city, value: city },
+      { label: t.budget, value: q.budget_all ? lek(q.budget_all, lang) : t.noBudget },
+      { label: t.created, value: date(q.created_at, lang, true) },
+    ]} />
   </header>
 
   <div class="wrap th">

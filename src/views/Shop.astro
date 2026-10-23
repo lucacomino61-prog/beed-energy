@@ -1,6 +1,7 @@
 ---
 // Shop landing: the 14 categories in three groups with live product counts and lowest prices, then the products with most offers.
 import Site from '../layouts/Site.astro';
+import TitleBlock from '../components/TitleBlock.astro';
 import ProductCard from '../components/ProductCard.astro';
 import ProductDrawing from '../components/ProductDrawing.astro';
 import { attributes, categories, featuredProducts } from '../lib/catalog';
@@ -39,20 +40,19 @@ const jsonld = [
       <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'} class="crumbs">
         <ol><li><a href={href(lang, 'home')}>{t.home}</a></li><li aria-current="page">{t.shop}</li></ol>
       </nav>
-      <p class="eyebrow">{L.eyebrow}</p>
       <h1 class="poster shop-poster">{L.h1}</h1>
-      <div class="shop-head__row rule-double">
+      <TitleBlock class="shop-head__tb" items={[
+        { label: lang === 'sq' ? 'Kategori' : 'Categories', value: cats.length },
+        { label: lang === 'sq' ? 'Produkte' : 'Products', value: totalProducts },
+        { label: lang === 'sq' ? 'Çmimet' : 'Prices', value: t.vatIncl },
+      ]} />
+      <div class="shop-head__row">
         <p class="lede">{L.lede}</p>
         <form class="shop-search" role="search" method="get" action={href(lang, 'search')}>
           <label class="visually-hidden" for="shop-q">{t.search.label}</label>
           <input class="input" id="shop-q" name="q" type="search" placeholder={t.search.placeholder} autocomplete="off" spellcheck="false" />
           <button class="btn" type="submit">{t.search.submit}</button>
         </form>
-        <dl class="titleblock shop-head__tb">
-          <div><dt>{lang === 'sq' ? 'Kategori' : 'Categories'}</dt><dd>{cats.length}</dd></div>
-          <div><dt>{lang === 'sq' ? 'Produkte' : 'Products'}</dt><dd>{totalProducts}</dd></div>
-          <div><dt>{lang === 'sq' ? 'Çmimet' : 'Prices'}</dt><dd>{t.vatIncl}</dd></div>
-        </dl>
       </div>
     </header>
 

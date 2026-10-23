@@ -2,6 +2,7 @@
 // One seller: who they are, the legal details a consumer needs (Law 9902 art. 36), the zones they
 // deliver to, and their live offers as a table linking to each product.
 import Site from '../layouts/Site.astro';
+import TitleBlock from '../components/TitleBlock.astro';
 import '../styles/pages.css';
 import { href, other, date, type Lang } from '../lib/i18n';
 import { lek, num } from '../lib/money';
@@ -52,22 +53,19 @@ const v = (x: string | null) => x || t.missing;
         <li aria-current="page">{s.name}</li>
       </ol>
     </nav>
-    <p class="eyebrow">{kind} · {cityName}</p>
     <h1 class="title title--xl pg-title">{s.name}</h1>
     <div class="row sd__tags">
       {s.verified ? <span class="tag tag--ok"><span aria-hidden="true">✓</span> {ts.verified}</span> : <span class="tag">{ts.unverified}</span>}
       {s.is_demo ? <span class="tag tag--demo">{ts.sample}</span> : null}
       <span class="tag">{s.rating !== null && s.rating_count > 0 ? ts.rating(num(s.rating, 1, lang), s.rating_count) : ts.noRating}</span>
     </div>
-    <div class="pg-head__row rule-double">
-      {about ? <p class="lede">{about}</p> : <p class="lede muted">{t.missing}</p>}
-      <dl class="titleblock pg-tb">
-        <div><dt>{t.kind}</dt><dd>{kind}</dd></div>
-        <div><dt>{t.city}</dt><dd>{cityName}</dd></div>
-        <div><dt>{t.offers}</dt><dd>{offers.length}</dd></div>
-        <div><dt>{t.since}</dt><dd>{date(s.joined_at, lang)}</dd></div>
-      </dl>
-    </div>
+    <TitleBlock class="pg-tb" items={[
+      { label: t.kind, value: kind },
+      { label: t.city, value: cityName },
+      { label: t.offers, value: offers.length },
+      { label: t.since, value: date(s.joined_at, lang) },
+    ]} />
+    {about ? <p class="lede pg-lede">{about}</p> : <p class="lede pg-lede muted">{t.missing}</p>}
     {s.is_demo ? <p class="notice sd__demo">{t.sampleNote}</p> : null}
   </header>
 

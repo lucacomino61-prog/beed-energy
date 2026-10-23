@@ -35,6 +35,7 @@ const hasUnit = !!unitLabel && rows.some((r) => r.perUnit !== null);
   </form>
   <p class="offers__intro small muted">{t.offersIntro}{!city && ` (${t.pickCityTotal})`}</p>
 
+  <div class="table-scroll offers__scroll">
   <table class="table offers__table" role="table" data-offers-table>
     <caption class="visually-hidden">{t.offersTitle}: {productName}</caption>
     <thead role="rowgroup">
@@ -110,4 +111,5 @@ const hasUnit = !!unitLabel && rows.some((r) => r.perUnit !== null);
       })}
     </tbody>
   </table>
+  </div>
 </div>

@@ -4,6 +4,7 @@
 // "Show differences only" is a GET parameter that compare.ts applies without a reload.
 import Site from '../layouts/Site.astro';
 import ProductDrawing from '../components/ProductDrawing.astro';
+import TitleBlock from '../components/TitleBlock.astro';
 import { attributes, attrLabel, bestOf, categoryById, formatSpec, offersFor, productCardsByIds, type ProductCard } from '../lib/catalog';
 import { COMPARE_MAX } from '../lib/basket';
 import { href, type Lang } from '../lib/i18n';
@@ -76,6 +77,8 @@ const removeAction = (id: number) => {
   return left.length ? `${base}?p=${left.join(',')}` : base;
 };
 const alternate = href(other, 'compare') + (pList.length ? `?p=${pList.join(',')}` : '');
+const mins = items.map((p) => p.min_price).filter((x): x is number => x !== null);
+const lowest = mins.length ? Math.min(...mins) : null;
 ---
 <Site lang={lang} title={C.metaTitle} description={C.metaDesc} alternate={alternate} current="compare" hideTray noindex={pList.length === 0}>
   <div class="shop compare" data-compare-page data-diff-param={DIFF[lang]} data-diff={diffOn ? '' : undefined} data-removed={t.product.removed}>
@@ -83,9 +86,17 @@ const alternate = href(other, 'compare') + (pList.length ? `?p=${pList.join(',')
       <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'} class="crumbs">
         <ol><li><a href={href(lang, 'home')}>{t.home}</a></li><li><a href={href(lang, 'shop')}>{t.shop}</a></li><li aria-current="page">{C.h1}</li></ol>
       </nav>
-      <p class="eyebrow">{C.eyebrow}</p>
       <h1 class="poster poster--s" tabindex="-1">{C.h1}</h1>
-      {items.length > 0 && <p class="lede rule-double">{C.lede(catName)}</p>}
+      {items.length > 0 && (
+        <>
+          <TitleBlock class="shop-head__tb" items={[
+            { label: lang === 'sq' ? 'Kategoria' : 'Category', value: catName },
+            { label: lang === 'sq' ? 'Produkte' : 'Products', value: `${items.length} / ${COMPARE_MAX}`, dd: { 'data-cmp-n': String(COMPARE_MAX) } },
+            { label: t.from, value: lowest !== null ? price(lowest, lang) : null, dd: { 'data-cmp-low': '' } },
+          ]} />
+          <p class="lede shop-head__lede">{C.lede(catName)}</p>
+        </>
+      )}
       <p class="visually-hidden" role="status" data-compare-status></p>
     </header>
 

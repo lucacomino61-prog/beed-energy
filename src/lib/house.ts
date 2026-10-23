@@ -6,6 +6,8 @@
 
 const C = Math.cos(Math.PI / 6);
 const S = 34; // px per metre in the viewBox
+/** Key radius in viewBox units. The home script scales keys so they read 21 px across with 11 px text on any screen. */
+export const KEY_R = 20;
 
 type V3 = [number, number, number];
 const P = ([x, y, z]: V3): [number, number] => [(x - y) * C * S, (x + y) * 0.5 * S - z * S];
@@ -57,7 +59,7 @@ function windowX(xc: number, y: number, z: number, w: number, h: number) {
 
 function key(n: number, at: V3) {
   const [x, y] = P(at).map(f);
-  return `<g class="key" data-key="${n}"><circle cx="${x}" cy="${y}" r="14"/><text x="${x}" y="${y + 4.2}" text-anchor="middle">${String(n).padStart(2, '0')}</text></g>`;
+  return `<g class="key" data-key="${n}"><circle cx="${x}" cy="${y}" r="${KEY_R}"/><text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central">${String(n).padStart(2, '0')}</text></g>`;
 }
 
 export function houseParts(): HousePart[] {
@@ -73,7 +75,7 @@ export function houseParts(): HousePart[] {
       s += `<path class="dash" d="${seg([W + 0.35, -0.2, z], [W + 0.35, D + 0.2, z])}"/><path class="dash" d="${seg([-0.2, D + 0.35, z], [W + 0.2, D + 0.35, z])}"/>`;
     }
     s += key(1, [W + 0.35, D + 0.35, -0.3]);
-    add('foundation', 1, [0, 0, -1.4], s);
+    add('foundation', 1, [0, 0, -2.6], s);
   }
   {
     let s = box(0, 0, 0, W, D, H);
@@ -84,7 +86,6 @@ export function houseParts(): HousePart[] {
     for (let x = 0.5; x < W; x += 1) for (let z = 0; z < H; z += 1) s += `<path class="hair" d="${seg([x + ((z / 0.5) % 2 ? 0.5 : 0), D, z], [x + ((z / 0.5) % 2 ? 0.5 : 0), D, z + 0.5])}"/>`;
     // first-floor slab band
     s += `<path class="thin" d="${seg([0, D, 3.05], [W, D, 3.05])} ${seg([W, 0, 3.05], [W, D, 3.05])}"/>`;
-    s += key(1, [W, D, 1.6]);
     add('walls', 1, [0, 0, 0], s);
   }
 
@@ -93,7 +94,7 @@ export function houseParts(): HousePart[] {
     let s = box(0, D, 0.25, W, 0.12, H - 0.25, 'board');
     for (let x = 1.2; x < W; x += 1.2) s += `<path class="hair" d="${seg([x, D + 0.12, 0.25], [x, D + 0.12, H])}"/>`;
     for (let z = 0.85; z < H; z += 0.6) s += `<path class="hair" d="${seg([0, D + 0.12, z], [W, D + 0.12, z])}"/>`;
-    s += key(2, [1.2, D + 0.12, 5.2]);
+    s += key(2, [0.45, D + 0.12, 5.55]);
     add('insulation-front', 2, [0, 2.6, 0], s);
   }
   {
@@ -168,7 +169,7 @@ export function houseParts(): HousePart[] {
     for (let z = 0.45; z < 1.4; z += 0.33) s += `<path class="hair" d="${seg([1.15, y + 0.15, z], [1.82, y + 0.15, z])}"/>`;
     s += `<path class="thin" d="${seg([0.61, y + 0.09, 1.25], [0.61, y + 0.09, 0.9])} ${seg([0.61, y + 0.09, 0.9], [1.15, y + 0.09, 0.9])}"/>`;
     s += key(5, [1.5, y + 0.15, 1.75]);
-    add('storage', 5, [-3.4, 1.0, 0], s);
+    add('storage', 5, [-1.0, 3.0, 2.2], s);
   }
 
   // 06 — heating and cooling: heat pump on the ground by the right wall, AC unit on a bracket above
@@ -188,8 +189,8 @@ export function houseParts(): HousePart[] {
     s += `<path class="thin" d="${ring(0.32)}"/><path class="hair" d="${ring(0.2)}"/>`;
     s += box(x, 6.65, 3.65, 0.3, 0.8, 0.55, 'unit');
     s += `<path class="hair" d="${seg([x + 0.3, 6.75, 3.92], [x + 0.3, 7.35, 3.92])}"/>`;
-    s += key(6, [x + 0.46, cy, 1.15]);
-    add('climate', 6, [3.2, 0, 0.6], s);
+    s += key(6, [x + 0.15, 7.05, 4.55]);
+    add('climate', 6, [4.4, 0, 2.0], s);
   }
 
   // 07 — energy meter and EV charger on the right wall, the grid pole beside the house, the service drop
@@ -203,7 +204,7 @@ export function houseParts(): HousePart[] {
     s += `<path class="thin" d="${seg(pole, [pole[0], pole[1], 7.6])} ${seg([pole[0] - 0.55, pole[1] + 0.55, 7.15], [pole[0] + 0.55, pole[1] - 0.55, 7.15])}"/>`;
     s += `<path class="wire" d="M${P([pole[0], pole[1], 7.15]).map(f).join(' ')} Q${P([W + 2, 1.0, 3.6]).map(f).join(' ')} ${P([x + 0.16, 2.37, 1.62]).map(f).join(' ')}"/>`;
     s += key(7, [x + 0.16, 2.37, 2.05]);
-    add('grid', 7, [3.0, 0, 0.4], s);
+    add('grid', 7, [3.0, -1.0, 2.6], s);
   }
   return parts;
 }
@@ -226,6 +227,25 @@ function site() {
   return s;
 }
 
+type Box = { x0: number; y0: number; x1: number; y1: number };
+/** Extent of an SVG fragment: every coordinate pair in its path data, circles with their radius, text anchors with a margin. */
+function extent(svg: string): Box {
+  const b: Box = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+  const add = (x: number, y: number, r = 0) => {
+    b.x0 = Math.min(b.x0, x - r);
+    b.y0 = Math.min(b.y0, y - r);
+    b.x1 = Math.max(b.x1, x + r);
+    b.y1 = Math.max(b.y1, y + r);
+  };
+  for (const m of svg.matchAll(/ d="([^"]+)"/g)) {
+    const n = (m[1].match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
+    for (let i = 0; i + 1 < n.length; i += 2) add(n[i], n[i + 1]);
+  }
+  for (const m of svg.matchAll(/<circle cx="(-?[\d.]+)" cy="(-?[\d.]+)" r="([\d.]+)"/g)) add(Number(m[1]), Number(m[2]), Number(m[3]));
+  for (const m of svg.matchAll(/<text[^>]* x="(-?[\d.]+)" y="(-?[\d.]+)"/g)) add(Number(m[1]), Number(m[2]), 28);
+  return b;
+}
+
 export type HouseSvg = { svg: string; viewBox: string; parts: { id: string; layer: number; dx: number; dy: number }[] };
 
 /** The whole drawing. Each part is a <g data-part data-layer> carrying its exploded screen offset in --dx/--dy. */
@@ -239,38 +259,38 @@ export function houseSvg(opts: { title?: string } = {}): HouseSvg {
     })();
     return { ...p, dx, dy };
   });
-  // Bounds over the assembled and the exploded positions, so nothing leaves the viewBox while moving.
-  const xs: number[] = [];
-  const ys: number[] = [];
-  const probe = (pt: V3, dx = 0, dy = 0) => {
-    const [x, y] = P(pt);
-    xs.push(x + dx);
-    ys.push(y + dy);
+  // Bounds over the assembled and the exploded position of every part (measured from the drawn
+  // geometry), so nothing leaves the viewBox while it moves and the house fills its frame.
+  const site0 = site();
+  const b = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+  const grow = (box: Box, dx = 0, dy = 0) => {
+    b.x0 = Math.min(b.x0, box.x0 + dx);
+    b.y0 = Math.min(b.y0, box.y0 + dy);
+    b.x1 = Math.max(b.x1, box.x1 + dx);
+    b.y1 = Math.max(b.y1, box.y1 + dy);
   };
+  grow(extent(site0));
   for (const p of drawn) {
-    const corners: V3[] = [[-O, -O, -0.6], [W + O + 1.5, -O, -0.6], [W + O + 1.5, D + O + 1, -0.6], [-O, D + O + 1, -0.6], [-O, -O, H + R], [W + O, D / 2, H + R + 0.3], [W + O + 1.5, D + O, H]];
-    for (const c of corners) {
-      probe(c, 0, 0);
-      if (p.layer === 4 || p.layer === 2 || p.layer === 3 || p.layer === 5 || p.layer === 6 || p.layer === 7) probe(c, p.dx * (p.id === 'panels' || p.id === 'roof' ? 1 : 0.2), p.dy * (p.id === 'panels' || p.id === 'roof' ? 1 : 0.2));
-    }
+    const e = extent(p.svg);
+    grow(e);
+    grow(e, p.dx, p.dy);
   }
-  for (const c of [[-2.5, -2.5, -0.55], [W + 6, -2.5, -0.55], [W + 6, D + 5, -0.55], [-2.5, D + 5, -0.55], [W + 3.8, -1.2, 8]] as V3[]) probe(c);
-  for (const p of drawn) {
-    // the parts themselves at their exploded offsets
-    const [x, y] = P([p.d[0] >= 0 ? W : 0, D, p.layer === 4 ? H + R : 0]);
-    xs.push(x + p.dx);
-    ys.push(y + p.dy);
-  }
-  const pad = 26;
-  const minX = Math.min(...xs) - pad;
-  const minY = Math.min(...ys) - pad - 40;
-  const maxX = Math.max(...xs) + pad;
-  const maxY = Math.max(...ys) + pad;
+  const pad = 24;
+  const minX = b.x0 - pad;
+  const minY = b.y0 - pad;
+  const maxX = b.x1 + pad;
+  const maxY = b.y1 + pad;
   const viewBox = `${f(minX)} ${f(minY)} ${f(maxX - minX)} ${f(maxY - minY)}`;
-  const body = drawn
-    .map((p) => `<g class="part" data-part="${p.id}" data-layer="${p.layer}" style="--dx:${p.dx}px;--dy:${p.dy}px">${p.svg}</g>`)
-    .join('');
+  // Keys are drawn last, above every face, in their own group that travels with the part (same layer, same offset).
+  const keyRe = /<g class="key"[^>]*>.*?<\/g>/g;
+  const keysOf = (svg: string) => svg.match(keyRe) ?? [];
+  const body =
+    drawn.map((p) => `<g class="part" data-part="${p.id}" data-layer="${p.layer}" style="--dx:${p.dx}px;--dy:${p.dy}px">${p.svg.replace(keyRe, '')}</g>`).join('') +
+    drawn
+      .filter((p) => keysOf(p.svg).length > 0)
+      .map((p) => `<g class="part part--keys" data-part="${p.id}-keys" data-layer="${p.layer}" style="--dx:${p.dx}px;--dy:${p.dy}px">${keysOf(p.svg).join('')}</g>`)
+      .join('');
   const title = opts.title ? `<title>${opts.title.replace(/[<&>]/g, '')}</title>` : '';
-  const svg = `<svg class="house" viewBox="${viewBox}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${(opts.title ?? '').replace(/"/g, '')}">${title}<g class="house__site">${site()}</g>${body}</svg>`;
+  const svg = `<svg class="house" viewBox="${viewBox}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${(opts.title ?? '').replace(/"/g, '')}">${title}<g class="house__site">${site0}</g>${body}</svg>`;
   return { svg, viewBox, parts: drawn.map(({ id, layer, dx, dy }) => ({ id, layer, dx, dy })) };
 }

@@ -2,6 +2,7 @@
 // Sellers list: every active seller with type, city, verification, rating and live offer count,
 // a type filter in the URL (?lloji=installer) and the line map of where they are.
 import Site from '../layouts/Site.astro';
+import TitleBlock from '../components/TitleBlock.astro';
 import AlbaniaMap from '../components/AlbaniaMap.astro';
 import '../styles/pages.css';
 import { href, other, type Lang } from '../lib/i18n';
@@ -36,17 +37,14 @@ const jsonld = {
     <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
       <ol class="crumbs"><li><a href={href(lang, 'home')}>{w.crumbsHome}</a></li><li aria-current="page">{t.h1}</li></ol>
     </nav>
-    <p class="eyebrow">{t.eyebrow}</p>
     <h1 class="title title--xl pg-title">{t.h1}</h1>
-    <div class="pg-head__row rule-double">
-      <p class="lede">{t.lede}</p>
-      <dl class="titleblock pg-tb">
-        <div><dt>{lang === 'sq' ? 'Shitës' : 'Sellers'}</dt><dd>{all.length}</dd></div>
-        <div><dt>{t.verified}</dt><dd>{all.filter((s) => s.verified).length}</dd></div>
-        <div><dt>{lang === 'sq' ? 'Oferta' : 'Offers'}</dt><dd>{num(all.reduce((a, s) => a + s.offer_count, 0), 0, lang)}</dd></div>
-        <div><dt>{lang === 'sq' ? 'Qytete' : 'Cities'}</dt><dd>{Object.keys(perCity).length}</dd></div>
-      </dl>
-    </div>
+    <TitleBlock class="pg-tb" items={[
+      { label: lang === 'sq' ? 'Shitës' : 'Sellers', value: all.length },
+      { label: t.verified, value: all.filter((s) => s.verified).length },
+      { label: lang === 'sq' ? 'Oferta' : 'Offers', value: num(all.reduce((a, s) => a + s.offer_count, 0), 0, lang) },
+      { label: lang === 'sq' ? 'Qytete' : 'Cities', value: Object.keys(perCity).length },
+    ]} />
+    <p class="lede pg-lede">{t.lede}</p>
   </header>
 
   <div class="wrap sl">

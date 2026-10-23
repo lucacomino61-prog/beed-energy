@@ -3,6 +3,7 @@
 // totals with VAT, delivery, payment instructions per method, invoice note, what happens next.
 // The route runs orderPage() (lib/checkout-flow.ts): 404 without the right token, POST = card retry.
 import Site from '../layouts/Site.astro';
+import TitleBlock from '../components/TitleBlock.astro';
 import '../styles/checkout.css';
 import { date, href, other, type Lang } from '../lib/i18n';
 import { lek } from '../lib/money';
@@ -45,15 +46,14 @@ const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
   return (
     <Site lang={lang} title={t.order.title(o.code)} description={t.order.description} alternate={alternate} noindex hideTray>
       <div class="wrap sheet-head co-head">
-        <p class="eyebrow">{t.order.eyebrow}</p>
         <h1 class="title title--xl co-title"><span class="visually-hidden">{t.order.tb.code} </span><span class="mono co-code">{o.code}</span></h1>
-        <p class="lede">{t.order.lead}</p>
-        <dl class="titleblock co-tb">
-          <div><dt>{t.order.tb.code}</dt><dd>{o.code}</dd></div>
-          <div><dt>{t.order.tb.date}</dt><dd>{date(o.created_at, lang, true)}</dd></div>
-          <div><dt>{t.order.tb.status}</dt><dd>{t.status[o.status] ?? o.status}</dd></div>
-          <div><dt>{t.order.tb.payment}</dt><dd>{payLabel}</dd></div>
-        </dl>
+        <TitleBlock class="co-tb" items={[
+          { label: t.order.tb.code, value: o.code },
+          { label: t.order.tb.date, value: date(o.created_at, lang, true) },
+          { label: t.order.tb.status, value: t.status[o.status] ?? o.status },
+          { label: t.order.tb.payment, value: payLabel },
+        ]} />
+        <p class="lede">{t.order.eyebrow}. {t.order.lead}</p>
       </div>
 
       <div class="wrap co-body">

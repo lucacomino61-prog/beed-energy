@@ -7,7 +7,9 @@
 .pg-poster { font-size: clamp(3.25rem, 0.6rem + 11vw, 10rem); max-width: 100%; }
 .pg-head__row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.5rem var(--gutter); align-items: start; margin-top: 1.75rem; }
 .pg-head__row > .btn { justify-self: end; }
-.pg-tb { align-self: start; }
+.pg-tb { margin-top: 1.75rem; }
+.pg-tb-src { margin-top: 0.6rem; }
+.pg-lede { margin-top: 1.25rem; max-width: 60ch; }
 @media (max-width: 960px) {
   .pg-head__row { grid-template-columns: minmax(0, 1fr); }
   .pg-head__row > .btn { justify-self: start; }
@@ -238,7 +240,6 @@ fieldset.field > legend { padding: 0; margin-bottom: 0.4rem; }
 @media (max-width: 960px) { .th { grid-template-columns: minmax(0, 1fr); } }
 
 /* ---------- about ---------- */
-.ab-company { display: grid; gap: 0.75rem; }
 .ab-tb dd { font-size: 0.9375rem; }
 .ab-mission__text { margin-top: 1rem; font-weight: 650; font-stretch: 80%; font-size: clamp(1.75rem, 1rem + 2.6vw, 3.5rem); line-height: 1.05; letter-spacing: -0.01em; max-width: 26ch; }
 .ab-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2.5rem var(--gutter); }
@@ -286,7 +287,6 @@ fieldset.field > legend { padding: 0; margin-bottom: 0.4rem; }
 
 /* ---------- legal ---------- */
 .lg-draft { margin-top: 1.5rem; max-width: 72ch; display: grid; gap: 0.5rem; border-left-color: var(--copper); }
-.lg-draft.rule-double { padding-top: 1rem; }
 .lg { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 2.5rem var(--gutter); padding-bottom: var(--section-gap); align-items: start; }
 .lg-toc { position: sticky; top: calc(var(--header-h) + 1rem); display: grid; gap: 0.75rem; }
 .lg-toc ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line-strong); }

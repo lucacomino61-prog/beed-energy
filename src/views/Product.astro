@@ -7,6 +7,7 @@ import ProductCard from '../components/ProductCard.astro';
 import OffersTable from '../components/OffersTable.astro';
 import PriceHistory from '../components/PriceHistory.astro';
 import SpecSheet from '../components/SpecSheet.astro';
+import TitleBlock from '../components/TitleBlock.astro';
 import { attributes, categoryById, offersFor, priceHistory, productCardsByIds, productSpecs, related } from '../lib/catalog';
 import { readCompare } from '../lib/basket';
 import { href, type Lang } from '../lib/i18n';
@@ -128,7 +129,6 @@ const quoteHref = href(lang, 'quote', {}, { produkt: p.slug });
       </figure>
 
       <div class="sheet__info">
-        <p class="eyebrow"><span translate="no">{p.brand}</span> · {catName}</p>
         <h1 id="product-title" class="title product__title">{name}</h1>
         {summary && <p class="lede product__summary">{summary}</p>}
 
@@ -177,16 +177,16 @@ const quoteHref = href(lang, 'quote', {}, { produkt: p.slug });
           </form>
         </div>
 
-        <dl class="titleblock product__tb">
-          <div><dt>{P.brand}</dt><dd translate="no">{p.brand}</dd></div>
-          <div><dt>{P.model}</dt><dd translate="no">{p.model}</dd></div>
-          <div><dt>{P.drawingNo}</dt><dd>{dno}</dd></div>
-          <div><dt>{P.dims}</dt><dd>{dims.some(Boolean) ? dims.map((v) => (v ? num(v, 0, lang) : '—')).join(' × ') : '—'}</dd></div>
-          <div><dt>{P.weight}</dt><dd>{p.weight_kg ? `${num(p.weight_kg, p.weight_kg < 10 ? 1 : 0, lang)} kg` : '—'}</dd></div>
-          <div><dt>{P.warranty}</dt><dd>{p.warranty_years ? P.years(num(p.warranty_years, 0, lang)) : '—'}</dd></div>
-          <div><dt>{P.scale}</dt><dd>{P.noScale}</dd></div>
-          <div><dt>{P.source}</dt><dd>{sources[0] ? <a href={sources[0].url} rel="noopener external" target="_blank">{sources[0].label}</a> : '—'}</dd></div>
-        </dl>
+        <TitleBlock class="product__tb" items={[
+          { label: P.brand, value: p.brand, noTranslate: true },
+          { label: P.model, value: p.model, noTranslate: true },
+          { label: P.drawingNo, value: dno },
+          { label: P.dims, value: dims.some(Boolean) ? dims.map((v) => (v ? num(v, 0, lang) : '—')).join(' × ') : null },
+          { label: P.weight, value: p.weight_kg ? `${num(p.weight_kg, p.weight_kg < 10 ? 1 : 0, lang)} kg` : null },
+          { label: P.warranty, value: p.warranty_years ? P.years(num(p.warranty_years, 0, lang)) : null },
+          { label: P.scale, value: P.noScale },
+          { label: P.source, value: sources[0]?.label, href: sources[0]?.url, external: true },
+        ]} />
         {p.datasheet_url && (
           <a class="link-arrow product__datasheet" href={p.datasheet_url} rel="noopener external" target="_blank">
             <span>{P.datasheet}</span><span class="arrow" aria-hidden="true">↗</span>
@@ -297,12 +297,12 @@ const quoteHref = href(lang, 'quote', {}, { produkt: p.slug });
       <div class="actionbar__price">
         {lowPrice !== null ? <><span class="small muted">{P.barFrom}</span> <span class="price">{price(bestOffer?.price_all ?? lowPrice, lang)}</span></> : <span class="small">{t.noOffers}</span>}
       </div>
-      <a class="btn btn--ghost btn--s" href={quoteHref}>{t.requestQuote}</a>
+      <a class="btn btn--ghost btn--s actionbar__btn" href={quoteHref}><span class="actionbar__t">{t.requestQuote}</span></a>
       {bestOffer && (
-        <form method="post" action="/api/cart" data-cart-form>
+        <form class="actionbar__form" method="post" action="/api/cart" data-cart-form>
           <input type="hidden" name="offerId" value={bestOffer.id} />
           <input type="hidden" name="qty" value={bestOffer.qty} />
-          <button class="btn btn--s" type="submit">{P.barAdd}<span class="visually-hidden">: {P.addBest}</span></button>
+          <button class="btn btn--s actionbar__btn" type="submit" aria-label={P.addBest}><span class="actionbar__t">{P.barAdd}</span></button>
         </form>
       )}
     </div>

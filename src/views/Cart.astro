@@ -2,6 +2,7 @@
 // Basket: one parcel per seller, re-priced on the server by quote(). Works without scripts
 // (every control is a form post to /api/cart or a GET for the city); scripts update it in place.
 import Site from '../layouts/Site.astro';
+import TitleBlock from '../components/TitleBlock.astro';
 import '../styles/checkout.css';
 import { readCart } from '../lib/basket';
 import { quote } from '../lib/cart';
@@ -64,12 +65,12 @@ const cityName_ = city ? cityName(city, lang) : allCities.find((c) => c.zone ===
     </nav>
     <h1 class="title title--xl co-title">{t.cart.h1}</h1>
     {q.lines.length > 0 && (
-      <dl class="titleblock co-tb" data-basket-tb>
-        <div><dt>{t.cart.tb.items}</dt><dd data-tb="items">{itemCount}</dd></div>
-        <div><dt>{t.cart.tb.parcels}</dt><dd data-tb="parcels">{parcelCount}</dd></div>
-        <div><dt>{t.cart.tb.city}</dt><dd data-tb="city">{cityLabel}</dd></div>
-        <div><dt>{t.cart.tb.total}</dt><dd data-tb="total">{lek(q.total, lang)}</dd></div>
-      </dl>
+      <TitleBlock class="co-tb" data-basket-tb="" items={[
+        { label: t.cart.tb.items, value: itemCount, dd: { 'data-tb': 'items' } },
+        { label: t.cart.tb.parcels, value: parcelCount, dd: { 'data-tb': 'parcels' } },
+        { label: t.cart.tb.city, value: cityLabel, dd: { 'data-tb': 'city' } },
+        { label: t.cart.tb.total, value: lek(q.total, lang), dd: { 'data-tb': 'total' } },
+      ]} />
     )}
   </div>
 

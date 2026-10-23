@@ -1,9 +1,11 @@
 ---
 import Compare from '../views/Compare.astro';
-import { compareIds, removeFromCompare } from '../lib/shop-compare';
+import { compareIds, removeFromCompare, syncCompareCookie } from '../lib/shop-compare';
 if (Astro.request.method === 'POST') {
   await removeFromCompare(Astro.request, Astro.cookies, Astro.url);
   return Astro.redirect(Astro.url.pathname + Astro.url.search, 303);
 }
+// A shared ?p= link becomes the compare list before the layout renders the header count, dock and tray.
+syncCompareCookie(Astro.url, Astro.cookies);
 ---
 <Compare lang="sq" ids={compareIds(Astro.url, Astro.cookies)} />

@@ -2,6 +2,7 @@
 // About: the company (registry facts only), mission, problem, offer, who benefits, revenue model,
 // the Balkan plan and "Albania in numbers" with a source on every figure.
 import Site from '../layouts/Site.astro';
+import TitleBlock from '../components/TitleBlock.astro';
 import '../styles/pages.css';
 import { href, other, type Lang } from '../lib/i18n';
 import { STORY_NUMBERS, tp } from '../i18n/pages';
@@ -31,20 +32,11 @@ const jsonld = {
     <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
       <ol class="crumbs"><li><a href={href(lang, 'home')}>{w.crumbsHome}</a></li><li aria-current="page">{t.h1}</li></ol>
     </nav>
-    <p class="eyebrow">{t.eyebrow}</p>
     <h1 class="poster poster--s pg-poster">{t.h1}</h1>
-    <div class="pg-head__row rule-double">
-      <p class="lede">{t.lede}</p>
-    </div>
+    <TitleBlock class="pg-tb ab-tb" items={t.facts.map((x) => ({ label: x.k, value: x.v }))} />
+    <p class="small muted pg-tb-src">{t.registry}</p>
+    <p class="lede pg-lede">{t.lede}</p>
   </header>
-
-  <section class="wrap ab-company" aria-labelledby="ab-co-h">
-    <h2 class="eyebrow" id="ab-co-h">{t.company}</h2>
-    <dl class="titleblock ab-tb">
-      {t.facts.map((x) => <div><dt>{x.k}</dt><dd>{x.v}</dd></div>)}
-    </dl>
-    <p class="small muted">{t.registry}</p>
-  </section>
 
   <section class="wrap section ab-mission" aria-labelledby="ab-m-h">
     <h2 class="eyebrow" id="ab-m-h">{t.missionTitle}</h2>
