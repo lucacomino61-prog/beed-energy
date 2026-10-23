@@ -1,0 +1,55 @@
+---
+// Terms and privacy drafts (src/i18n/legal.ts). A visible draft notice at the top; section ids
+// stay the same in both languages so the footer's #kthimet, #dergesa and #pagesat links work.
+import Site from '../layouts/Site.astro';
+import '../styles/pages.css';
+import { href, other, type Lang } from '../lib/i18n';
+import { setting } from '../lib/db';
+import { lek } from '../lib/money';
+import { legal } from '../i18n/legal';
+import { tp } from '../i18n/pages';
+
+interface Props { lang: Lang; doc: 'terms' | 'privacy' }
+const { lang, doc } = Astro.props;
+const L = legal[lang];
+const d = L[doc];
+const w = tp(lang);
+const delivery = setting<{ codLimit?: number }>('delivery', {});
+const codNote = delivery.codLimit ? (lang === 'sq' ? ` Kufiri aktual: ${lek(delivery.codLimit, lang)}.` : ` Current limit: ${lek(delivery.codLimit, lang)}.`) : '';
+const alternate = href(other(lang), doc);
+---
+<Site lang={lang} title={d.title} description={d.description} alternate={alternate} current={doc}>
+  <header class="wrap sheet-head pg-head">
+    <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
+      <ol class="crumbs"><li><a href={href(lang, 'home')}>{w.crumbsHome}</a></li><li aria-current="page">{d.h1}</li></ol>
+    </nav>
+    <p class="eyebrow">{d.eyebrow} · {d.updated}</p>
+    <h1 class="title title--xl pg-title">{d.h1}</h1>
+    <div class="notice lg-draft rule-double" role="note">
+      <p class="lg-draft__t"><span class="tag tag--copper">{d.draftTitle}</span></p>
+      <p>{d.draft}</p>
+    </div>
+  </header>
+
+  <div class="wrap lg">
+    <nav class="lg-toc" aria-labelledby="lg-toc-h">
+      <h2 class="eyebrow" id="lg-toc-h">{d.toc}</h2>
+      <ol>{d.sections.map((s) => <li><a href={`#${s.id}`}>{s.title}</a></li>)}</ol>
+    </nav>
+    <article class="prose lg-body">
+      <p class="mono small muted">{L.operator}</p>
+      {d.sections.map((s) => (
+        <section id={s.id} aria-labelledby={`${s.id}-h`} tabindex="-1">
+          <h2 id={`${s.id}-h`}>{s.title}</h2>
+          {s.paras?.map((p) => <p>{p}</p>)}
+          {s.list && <ul>{s.list.map((x, i) => <li>{x}{s.id === 'pagesat' && i === 0 ? codNote : ''}</li>)}</ul>}
+          {s.after?.map((p) => <p>{p}</p>)}
+        </section>
+      ))}
+      <section aria-labelledby="lg-src-h">
+        <h2 id="lg-src-h">{d.sources}</h2>
+        <ul>{d.lawLinks.map((l) => <li><a href={l.url} rel="noopener">{l.label}</a></li>)}</ul>
+      </section>
+    </article>
+  </div>
+</Site>

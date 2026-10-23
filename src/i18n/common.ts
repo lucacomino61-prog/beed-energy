@@ -20,7 +20,7 @@ export const common = {
       about: 'BeeD Energy është treg online ku furnitorët, instaluesit dhe kompanitë e ndërtimit shesin produkte për ndërtim dhe energji të rinovueshme në Shqipëri.',
       operator: 'Operuar nga BeeD Consulting sh.p.k. · NIPT M41722050A · Tiranë',
       prices: 'Çmimet janë në lekë dhe përfshijnë TVSH-në 20%.',
-      terms: 'Kushtet e përdorimit', privacy: 'Privatësia', returns: 'Kthimet dhe heqja dorë nga blerja', delivery: 'Dërgesa', payments: 'Pagesat',
+      terms: 'Kushtet e përdorimit', privacy: 'Privatësia', returns: 'Kthimet dhe e drejta e heqjes dorë nga kontrata', delivery: 'Dërgesa', payments: 'Pagesat',
       demo: 'Prototip: shitësit, çmimet dhe stoku janë shembuj deri në nisjen e tregut.',
       top: 'Kthehu lart',
     },

@@ -1,0 +1,133 @@
+---
+// One seller: who they are, the legal details a consumer needs (Law 9902 art. 36), the zones they
+// deliver to, and their live offers as a table linking to each product.
+import Site from '../layouts/Site.astro';
+import '../styles/pages.css';
+import { href, other, date, type Lang } from '../lib/i18n';
+import { lek, num } from '../lib/money';
+import { allCities, sellerOffers, zones, type SellerRow } from '../lib/pages-db';
+import { tp } from '../i18n/pages';
+
+interface Props { lang: Lang; seller: SellerRow }
+const { lang, seller: s } = Astro.props;
+const w = tp(lang);
+const t = w.seller;
+const ts = w.sellers;
+const offers = sellerOffers(s.id);
+const cityName = (lang === 'sq' ? s.city_sq : s.city_en) ?? '—';
+const kind = w.kinds[s.kind];
+const about = lang === 'sq' ? s.about_sq : s.about_en || s.about_sq;
+const cities = allCities();
+const zoneList = zones(s).map((z) => ({ z, name: t.zoneNames[z], cities: cities.filter((c) => c.zone === z).map((c) => (lang === 'sq' ? c.name_sq : c.name_en)) }));
+const title = `${s.name}: ${kind.toLowerCase()}, ${cityName}`;
+const alternate = href(other(lang), 'seller', { slug: s.slug });
+const jsonld = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: s.name,
+    ...(s.legal_name ? { legalName: s.legal_name } : {}),
+    ...(s.nipt ? { taxID: s.nipt } : {}),
+    ...(s.city_en ? { address: { '@type': 'PostalAddress', addressLocality: s.city_en, addressCountry: 'AL' } } : {}),
+    url: new URL(href(lang, 'seller', { slug: s.slug }), Astro.url).href,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: w.crumbsHome, item: new URL(href(lang, 'home'), Astro.url).href },
+      { '@type': 'ListItem', position: 2, name: ts.h1, item: new URL(href(lang, 'sellers'), Astro.url).href },
+      { '@type': 'ListItem', position: 3, name: s.name },
+    ],
+  },
+];
+const v = (x: string | null) => x || t.missing;
+---
+<Site lang={lang} title={title} description={t.descr(s.name, kind, cityName)} alternate={alternate} current="sellers" jsonld={s.is_demo ? [] : jsonld}>
+  <header class="wrap sheet-head pg-head">
+    <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
+      <ol class="crumbs">
+        <li><a href={href(lang, 'home')}>{w.crumbsHome}</a></li>
+        <li><a href={href(lang, 'sellers')}>{ts.h1}</a></li>
+        <li aria-current="page">{s.name}</li>
+      </ol>
+    </nav>
+    <p class="eyebrow">{kind} · {cityName}</p>
+    <h1 class="title title--xl pg-title">{s.name}</h1>
+    <div class="row sd__tags">
+      {s.verified ? <span class="tag tag--ok"><span aria-hidden="true">✓</span> {ts.verified}</span> : <span class="tag">{ts.unverified}</span>}
+      {s.is_demo ? <span class="tag tag--demo">{ts.sample}</span> : null}
+      <span class="tag">{s.rating !== null && s.rating_count > 0 ? ts.rating(num(s.rating, 1, lang), s.rating_count) : ts.noRating}</span>
+    </div>
+    <div class="pg-head__row rule-double">
+      {about ? <p class="lede">{about}</p> : <p class="lede muted">{t.missing}</p>}
+      <dl class="titleblock pg-tb">
+        <div><dt>{t.kind}</dt><dd>{kind}</dd></div>
+        <div><dt>{t.city}</dt><dd>{cityName}</dd></div>
+        <div><dt>{t.offers}</dt><dd>{offers.length}</dd></div>
+        <div><dt>{t.since}</dt><dd>{date(s.joined_at, lang)}</dd></div>
+      </dl>
+    </div>
+    {s.is_demo ? <p class="notice sd__demo">{t.sampleNote}</p> : null}
+  </header>
+
+  <div class="wrap sd">
+    <section class="sd__offers" aria-labelledby="sd-offers-h">
+      <div class="row between">
+        <h2 class="title" id="sd-offers-h">{t.offers}</h2>
+        <p class="mono small muted">{t.offersCount(offers.length)}</p>
+      </div>
+      {offers.length === 0 ? (
+        <div class="empty"><p>{t.noOffers}</p><a class="btn btn--ghost" href={href(lang, 'shop')}>{lang === 'sq' ? 'Shiko dyqanin' : 'See the shop'}</a></div>
+      ) : (
+        <div class="table-scroll">
+          <table class="table sd__table">
+            <caption class="visually-hidden">{t.offers}: {s.name}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{t.th.product}</th>
+                <th scope="col">{t.th.category}</th>
+                <th scope="col" class="num">{t.th.price}</th>
+                <th scope="col" class="num">{t.th.stock}</th>
+                <th scope="col" class="num">{t.th.lead}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {offers.map((o) => (
+                <tr>
+                  <th scope="row"><a href={href(lang, 'product', { slug: o.slug })}><span class="sd__brand">{o.brand}</span> {o.model}</a></th>
+                  <td><a class="muted" href={href(lang, 'category', { slug: lang === 'sq' ? o.cat_slug_sq : o.cat_slug_en })}>{lang === 'sq' ? o.cat_sq : o.cat_en}</a></td>
+                  <td class="num price">{lek(o.price_all, lang)}{o.compare_at_all && o.compare_at_all > o.price_all ? <s>{lek(o.compare_at_all, lang)}</s> : null}</td>
+                  <td class="num mono">{o.stock_qty > 0 ? t.inStock(o.stock_qty) : <span class="tag tag--warn">{t.out}</span>}</td>
+                  <td class="num mono">{t.lead(o.lead_days)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+
+    <aside class="sd__side">
+      <section aria-labelledby="sd-zones-h">
+        <h2 class="eyebrow" id="sd-zones-h">{t.zones}</h2>
+        <ul class="sd__zones">
+          {zoneList.map((z) => (
+            <li><strong>{z.name}</strong><span class="small muted">{z.cities.join(', ')}</span></li>
+          ))}
+        </ul>
+      </section>
+      <section aria-labelledby="sd-legal-h">
+        <h2 class="eyebrow" id="sd-legal-h">{t.legal}</h2>
+        <dl class="sd__legal">
+          <div><dt>{t.legalName}</dt><dd>{v(s.legal_name)}</dd></div>
+          <div><dt>{t.nipt}</dt><dd class="mono">{v(s.nipt)}</dd></div>
+          <div><dt>{t.address}</dt><dd>{v(s.address)}</dd></div>
+          <div><dt>{t.contact}</dt><dd>{s.phone || s.email ? [s.phone, s.email].filter(Boolean).join(' · ') : t.missing}</dd></div>
+        </dl>
+      </section>
+      <a class="btn btn--block" href={href(lang, 'quote')}>{t.ask} <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="link-arrow" href={href(lang, 'sellers')}><span aria-hidden="true">←</span> <span>{t.back}</span></a>
+    </aside>
+  </div>
+</Site>

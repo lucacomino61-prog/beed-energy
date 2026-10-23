@@ -1,0 +1,13 @@
+---
+import Contact from '../views/Contact.astro';
+import { handleContact } from '../lib/pages-forms';
+import type { FormResult } from '../lib/pages-forms';
+
+let state: FormResult | null = null;
+if (Astro.request.method === 'POST') {
+  state = await handleContact(Astro, 'sq');
+  if (state.redirect) return Astro.redirect(state.redirect, 303);
+  Astro.response.status = state.status;
+}
+---
+<Contact lang="sq" state={state} />

@@ -1,0 +1,160 @@
+---
+// Solar calculator. A GET form that works without scripts (state in the URL); src/scripts/calculator.ts
+// re-renders the result block from /api/solar as you type, with no motion over the inputs.
+import Site from '../layouts/Site.astro';
+import AlbaniaMap from '../components/AlbaniaMap.astro';
+import '../styles/pages.css';
+import { href, other, type Lang } from '../lib/i18n';
+import { num } from '../lib/money';
+import { pvCities } from '../lib/pages-db';
+import { calcQuery, readCalcInput, runCalc } from '../lib/pages-solar';
+import { calcResultsHtml } from '../lib/pages-calc-html';
+import { tariffs } from '../lib/solar';
+import { setting } from '../lib/db';
+import { tp } from '../i18n/pages';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const w = tp(lang);
+const t = w.calc;
+const f = w.form;
+const input = readCalcInput(Astro.url.searchParams);
+const out = runCalc(input);
+const cities = pvCities();
+const tar = tariffs();
+const fx = setting<{ url?: string } | null>('currency', null);
+const touched = Astro.url.searchParams.size > 0;
+const q = touched ? calcQuery(input) : undefined;
+const alternate = href(other(lang), 'calculator', {}, q);
+const errMsg = (k: string) => (out.errors as Record<string, string>)[k] ? t.err[k as 'kwh' | 'bill' | 'city'] : null;
+const firstErr = ['city', 'kwh', 'bill'].find((k) => errMsg(k));
+const labels = Object.fromEntries(cities.map((c) => [c.slug, num(c.pv_yield, 0, lang)]));
+const cityName = (c: { name_sq: string; name_en: string }) => (lang === 'sq' ? c.name_sq : c.name_en);
+const words = { updating: t.updating, updated: t.updated, adding: t.adding, addFail: t.addFail, cart: href(lang, 'cart') };
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: lang === 'sq' ? 'Kalkulatori diellor i BeeD Energy' : 'BeeD Energy solar calculator',
+  applicationCategory: 'UtilitiesApplication',
+  operatingSystem: 'Any',
+  inLanguage: lang,
+  offers: { '@type': 'Offer', price: 0, priceCurrency: 'ALL' },
+};
+---
+<Site lang={lang} title={t.title} description={t.description} alternate={alternate} current="calculator" jsonld={[jsonld]}>
+  <header class="wrap sheet-head pg-head">
+    <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
+      <ol class="crumbs"><li><a href={href(lang, 'home')}>{w.crumbsHome}</a></li><li aria-current="page">{w.calc.h1}</li></ol>
+    </nav>
+    <p class="eyebrow">{t.eyebrow}</p>
+    <h1 class="title title--xl pg-title">{t.h1}</h1>
+    <div class="pg-head__row rule-double">
+      <p class="lede">{t.lede}</p>
+      <dl class="titleblock pg-tb">
+        <div><dt>{lang === 'sq' ? 'Rendimenti' : 'Yield'}</dt><dd>PVGIS 5.3</dd></div>
+        <div><dt>{lang === 'sq' ? 'Tarifa' : 'Tariff'}</dt><dd>ERE 2026</dd></div>
+        <div><dt>{lang === 'sq' ? 'Humbjet' : 'Losses'}</dt><dd>14%</dd></div>
+        <div><dt>{lang === 'sq' ? 'Jetëgjatësia' : 'Lifetime'}</dt><dd>25 {lang === 'sq' ? 'vjet' : 'years'}</dd></div>
+      </dl>
+    </div>
+  </header>
+
+  <div class="wrap calc" data-calc data-lang={lang} data-words={JSON.stringify(words)}>
+    <form class="calc-form" method="get" action={href(lang, 'calculator')} novalidate data-calc-form data-errs={JSON.stringify(t.err)} aria-labelledby="calc-form-h">
+      <h2 class="eyebrow" id="calc-form-h">{t.inputs}</h2>
+      {firstErr && (
+        <div class="form-errors" role="alert">
+          <p>{f.errorsTitle(Object.keys(out.errors).length)}</p>
+          <ul>{['city', 'kwh', 'bill'].filter((k) => errMsg(k)).map((k) => <li><a href={`#c-${k}`}>{errMsg(k)}</a></li>)}</ul>
+        </div>
+      )}
+      <div class="field">
+        <label for="c-city">{t.city}</label>
+        <select class="select" id="c-city" name="qyteti" aria-describedby={['c-city-h', errMsg('city') ? 'c-city-err' : ''].join(' ').trim()} aria-invalid={errMsg('city') ? 'true' : undefined} autofocus={firstErr === 'city' || undefined}>
+          {cities.map((c) => <option value={c.slug} selected={c.slug === input.city}>{cityName(c)} · {num(c.pv_yield, 0, lang)} kWh/kWp</option>)}
+        </select>
+        <p class="hint" id="c-city-h">{t.cityHint}</p>
+        {errMsg('city') && <p class="error" id="c-city-err">{errMsg('city')}</p>}
+      </div>
+
+      <fieldset class="field calc-seg">
+        <legend class="label">{t.mode}</legend>
+        <div class="seg">
+          <label class="seg__opt"><input type="radio" name="mode" value="kwh" checked={input.mode === 'kwh'} /> <span>{t.modeKwh}</span></label>
+          <label class="seg__opt"><input type="radio" name="mode" value="bill" checked={input.mode === 'bill'} /> <span>{t.modeBill}</span></label>
+        </div>
+      </fieldset>
+
+      <div class="field" data-mode-field="kwh">
+        <label for="c-kwh">{t.kwh}</label>
+        <div class="unit-input">
+          <input class="input" id="c-kwh" name="kwh" inputmode="decimal" autocomplete="off" value={input.kwh} aria-describedby={['c-kwh-h', errMsg('kwh') ? 'c-kwh-err' : ''].join(' ').trim()} aria-invalid={errMsg('kwh') ? 'true' : undefined} autofocus={firstErr === 'kwh' || undefined} />
+          <span class="unit-input__u" aria-hidden="true">kWh</span>
+        </div>
+        <p class="hint" id="c-kwh-h">{t.kwhHint}</p>
+        {errMsg('kwh') && <p class="error" id="c-kwh-err">{errMsg('kwh')}</p>}
+      </div>
+      <div class="field" data-mode-field="bill">
+        <label for="c-bill">{t.bill}</label>
+        <div class="unit-input">
+          <input class="input" id="c-bill" name="fatura" inputmode="numeric" autocomplete="off" value={input.bill} aria-describedby={['c-bill-h', errMsg('bill') ? 'c-bill-err' : ''].join(' ').trim()} aria-invalid={errMsg('bill') ? 'true' : undefined} autofocus={firstErr === 'bill' || undefined} />
+          <span class="unit-input__u" aria-hidden="true">{lang === 'sq' ? 'lekë' : 'lekë'}</span>
+        </div>
+        <p class="hint" id="c-bill-h">{t.billHint}</p>
+        {errMsg('bill') && <p class="error" id="c-bill-err">{errMsg('bill')}</p>}
+      </div>
+
+      <fieldset class="field calc-seg">
+        <legend class="label">{t.kind}</legend>
+        <div class="seg">
+          <label class="seg__opt"><input type="radio" name="lidhja" value="household" checked={input.kind === 'household'} /> <span>{t.household}</span></label>
+          <label class="seg__opt"><input type="radio" name="lidhja" value="business" checked={input.kind === 'business'} /> <span>{t.business}</span></label>
+        </div>
+      </fieldset>
+      <fieldset class="field calc-seg">
+        <legend class="label">{t.battery}</legend>
+        <div class="seg">
+          <label class="seg__opt"><input type="radio" name="bateri" value="0" checked={!input.battery} /> <span>{t.batteryNo}</span></label>
+          <label class="seg__opt"><input type="radio" name="bateri" value="1" checked={input.battery} /> <span>{t.batteryYes}</span></label>
+        </div>
+      </fieldset>
+      <fieldset class="field calc-seg">
+        <legend class="label">{t.phases}</legend>
+        <div class="seg">
+          <label class="seg__opt"><input type="radio" name="faza" value="1" checked={input.phases === 1} /> <span>{t.phase1}</span></label>
+          <label class="seg__opt"><input type="radio" name="faza" value="3" checked={input.phases === 3} /> <span>{t.phase3}</span></label>
+        </div>
+      </fieldset>
+      <div class="row calc-form__go">
+        <button class="btn" type="submit">{t.submit} <span class="arrow" aria-hidden="true">→</span></button>
+        <p class="small muted" role="status" aria-live="polite" data-calc-status></p>
+      </div>
+    </form>
+
+    <section class="calc-res" aria-labelledby="res-h" data-calc-results>
+      {out.ok ? <Fragment set:html={calcResultsHtml(out, lang)} /> : <h2 class="title" id="res-h">{t.result}</h2>}
+    </section>
+  </div>
+
+  <section class="wrap section calc-how" aria-labelledby="how-h">
+    <div class="calc-how__text">
+      <p class="eyebrow">{lang === 'sq' ? 'Supozimet' : 'Assumptions'}</p>
+      <h2 class="title" id="how-h">{t.howTitle}</h2>
+      <ol class="calc-how__list">{t.how.map((s) => <li>{s}</li>)}</ol>
+      <h3 class="eyebrow calc-how__src-h">{t.sources}</h3>
+      <ul class="calc-how__src">
+        <li><a href="https://re.jrc.ec.europa.eu/api/v5_3/PVcalc?lat=41.32833&lon=19.81806&peakpower=1&loss=14&optimalangles=1&outputformat=json" rel="noopener">{t.src.pvgis}</a></li>
+        <li><a href={tar.url ?? 'https://ere.gov.al/sq/tarifat/tarifat-dhe-cmimet'} rel="noopener">{t.src.ere}</a></li>
+        <li><a href="https://ere.gov.al/doc/Udhezim_3_20.06.2019%20(2).pdf" rel="noopener">{t.src.udh}</a></li>
+        <li><a href={fx?.url ?? 'https://www.bankofalbania.org/Tregjet/Kursi_zyrtar_i_kembimit/'} rel="noopener">{t.src.boa}</a></li>
+      </ul>
+    </div>
+    <div class="calc-how__map">
+      <AlbaniaMap lang={lang} id="calc-map" title={t.mapTitle} desc={t.mapDesc} labels={labels} highlight={out.city ? [out.city.slug] : [input.city]} only="labelled" />
+      <p class="small muted">{t.mapDesc}</p>
+    </div>
+  </section>
+  <script>
+    import '../scripts/calculator';
+  </script>
+</Site>

@@ -1,0 +1,9 @@
+---
+import Seller from '../../views/Seller.astro';
+import NotFound from '../../views/NotFound.astro';
+import { sellerBySlug } from '../../lib/pages-db';
+
+const seller = sellerBySlug(String(Astro.params.slug ?? ''));
+if (!seller) Astro.response.status = 404;
+---
+{seller ? <Seller lang="sq" seller={seller} /> : <NotFound lang="sq" />}

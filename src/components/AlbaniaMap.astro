@@ -1,0 +1,109 @@
+---
+// A line map of Albania drawn like a sheet of the drawing set: the border from Natural Earth
+// (src/lib/albania-outline.ts), a half-degree graticule, city dots at their real latitude and longitude,
+// and leader labels (PVGIS yield, seller counts…). Coastal cities label to the west, over the sea.
+import { MAP_HEIGHT, MAP_WIDTH, outlinePath, project, OUTLINE_SOURCE } from '../lib/albania-outline';
+import { allCities, type City } from '../lib/pages-db';
+import type { Lang } from '../lib/i18n';
+import { tp } from '../i18n/pages';
+
+interface Props {
+  lang: Lang;
+  title: string;
+  desc: string;
+  labels?: Record<string, string>; // city slug → label text
+  highlight?: string[]; // city slugs drawn in copper
+  only?: 'labelled' | 'all'; // which dots to draw
+  id?: string;
+  class?: string;
+}
+const { lang, title, desc, labels = {}, highlight = [], only = 'all', id = 'map', class: cls } = Astro.props;
+const t = tp(lang);
+const cities: City[] = allCities().filter((c) => c.lat !== null && c.lon !== null && (only === 'all' || labels[c.slug]));
+const SIDE = 190;
+const vb = `${-SIDE} 0 ${MAP_WIDTH + SIDE * 2} ${MAP_HEIGHT}`;
+const WEST_LIMIT = 19.75; // west of this, the label goes over the sea
+const pts = cities.map((c) => {
+  const [x, y] = project(c.lon!, c.lat!);
+  const west = c.lon! < WEST_LIMIT;
+  const name = lang === 'sq' ? c.name_sq : c.name_en;
+  return { slug: c.slug, x, y, west, name, label: labels[c.slug] ?? null, hot: highlight.includes(c.slug) };
+});
+// Graticule every half degree.
+const lats = [40, 40.5, 41, 41.5, 42, 42.5];
+const lons = [19.5, 20, 20.5, 21];
+const tick = (v: number) => (Number.isInteger(v) ? `${v}°` : lang === 'sq' ? `${v.toString().replace('.', ',')}°` : `${v}°`);
+---
+<figure class:list={['amap', cls]} id={id}>
+  <svg viewBox={vb} role="img" aria-labelledby={`${id}-t ${id}-d`} preserveAspectRatio="xMidYMid meet">
+    <title id={`${id}-t`}>{title}</title>
+    <desc id={`${id}-d`}>{desc}</desc>
+    <g class="amap__grid" aria-hidden="true">
+      {lats.map((la) => {
+        const [, y] = project(19.272, la);
+        return (
+          <g>
+            <line x1={-SIDE + 8} x2={MAP_WIDTH + SIDE - 8} y1={y} y2={y} />
+            <text x={MAP_WIDTH + SIDE - 10} y={y - 5} text-anchor="end">{tick(la)}N</text>
+          </g>
+        );
+      })}
+      {lons.map((lo) => {
+        const [x] = project(lo, 42);
+        return (
+          <g>
+            <line x1={x} x2={x} y1={6} y2={MAP_HEIGHT - 6} />
+            <text x={x + 5} y={MAP_HEIGHT - 10}>{tick(lo)}E</text>
+          </g>
+        );
+      })}
+    </g>
+    <path class="amap__land" d={outlinePath()} />
+    <g class="amap__cities">
+      {pts.map((p) => {
+        const lx = p.west ? p.x - 22 : p.x + 22;
+        return (
+          <g class:list={['amap__city', { 'is-hot': p.hot, 'has-label': !!p.label }]} data-city={p.slug}>
+            {p.label && <line class="amap__leader" x1={p.x} y1={p.y} x2={p.west ? lx + 4 : lx - 4} y2={p.y} />}
+            <circle class="amap__dot" cx={p.x} cy={p.y} r={p.label ? 4.5 : 3} />
+            <circle class="amap__ring" cx={p.x} cy={p.y} r="13" />
+            {p.label && (
+              <text x={lx} y={p.y + 5} text-anchor={p.west ? 'end' : 'start'}>
+                <tspan class="amap__name">{p.name}</tspan>
+                <tspan class="amap__val" dx="7">{p.label}</tspan>
+              </text>
+            )}
+          </g>
+        );
+      })}
+    </g>
+  </svg>
+  <figcaption class="amap__cap">
+    <span>{title}</span>
+    <a href={OUTLINE_SOURCE.url} rel="noopener">{t.map.source}</a>
+  </figcaption>
+</figure>
+
+<style>
+  .amap { margin: 0; display: grid; gap: 0.6rem; }
+  .amap svg { display: block; width: 100%; height: auto; max-height: min(80vh, 46rem); overflow: visible; }
+  .amap__grid line { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-dasharray: 2 6; }
+  .amap__grid text { font: 400 13px var(--font-mono); fill: var(--ink-3); }
+  .amap__land { fill: var(--paper-2); stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  .amap__city circle { fill: var(--ink); }
+  .amap__city .amap__ring { fill: none; stroke: var(--copper); stroke-width: 1.5; vector-effect: non-scaling-stroke; display: none; }
+  .amap__city.is-hot .amap__ring { display: inline; }
+  .amap__city.is-hot .amap__dot { fill: var(--copper); stroke: var(--ink); stroke-width: 1.5; vector-effect: non-scaling-stroke; transform: scale(1.6); transform-box: fill-box; transform-origin: center; }
+  .amap__leader { stroke: var(--ink-2); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .amap__city text { font: 500 17px var(--font-mono); fill: var(--ink); font-variant-numeric: tabular-nums; paint-order: stroke; stroke: var(--paper); stroke-width: 5px; stroke-linejoin: round; }
+  .amap__val { fill: var(--ink-2); font-weight: 400; }
+  .amap__city.is-hot .amap__val { fill: var(--copper-deep); font-weight: 600; }
+  .amap__city.is-hot .amap__name { font-weight: 700; }
+  @media (max-width: 640px) {
+    .amap__city text { font-size: 25px; stroke-width: 6px; }
+    .amap__city:not(.is-hot) .amap__val { display: none; }
+    .amap__grid text { font-size: 20px; }
+  }
+  .amap__cap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.25rem 1rem; font: 400 0.75rem var(--font-mono); color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 0.5rem; }
+  .amap__cap a { color: inherit; display: inline-flex; align-items: center; min-height: 24px; }
+</style>

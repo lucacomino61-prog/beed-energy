@@ -1,0 +1,20 @@
+---
+import QuoteThread from '../../../views/QuoteThread.astro';
+import NotFound from '../../../views/NotFound.astro';
+import { handleReply, type FormResult } from '../../../lib/pages-forms';
+import { quoteByCode } from '../../../lib/pages-db';
+
+const code = String(Astro.params.code ?? '');
+const token = Astro.url.searchParams.get('k');
+let state: FormResult | null = null;
+if (Astro.request.method === 'POST') {
+  state = await handleReply(Astro, 'en', code, token);
+  if (state.redirect) return Astro.redirect(state.redirect, 303);
+  Astro.response.status = state.status;
+}
+const quote = quoteByCode(code, token);
+if (!quote) Astro.response.status = 404;
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+Astro.response.headers.set('Cache-Control', 'no-store');
+---
+{quote ? <QuoteThread lang="en" quote={quote} state={state} /> : <NotFound lang="en" />}

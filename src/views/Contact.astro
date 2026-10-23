@@ -1,0 +1,114 @@
+---
+// Contact: the form (POST to this page → contact_messages, PRG to ?dergua=1), the contact details
+// from settings 'contact' (null → "coming soon") and the registered company line.
+import Site from '../layouts/Site.astro';
+import '../styles/pages.css';
+import { href, other, type Lang } from '../lib/i18n';
+import { contactSettings } from '../lib/pages-db';
+import type { FormResult } from '../lib/pages-forms';
+import { TOPIC_KEYS, tp } from '../i18n/pages';
+
+interface Props { lang: Lang; state: FormResult | null }
+const { lang, state } = Astro.props;
+const w = tp(lang);
+const t = w.contact;
+const f = w.form;
+const c = contactSettings();
+const sent = Astro.url.searchParams.get('dergua') === '1' && !state;
+const pre = Astro.url.searchParams.get('tema');
+const v: Record<string, string> = { name: '', email: '', phone: '', topic: pre && (TOPIC_KEYS as string[]).includes(pre) ? pre : 'buying', body: '', ...(state?.values ?? {}) };
+const err = state?.errors ?? {};
+const order = ['name', 'topic', 'email', 'phone', 'body'];
+const first = order.find((k) => err[k]);
+const labels: Record<string, string> = { name: f.name, topic: t.topic, email: f.email, phone: f.phone, body: t.body };
+const a = (k: string, hint = false) => ({
+  'aria-invalid': err[k] ? ('true' as const) : undefined,
+  'aria-describedby': [hint ? `k-${k}-h` : '', err[k] ? `k-${k}-err` : ''].join(' ').trim() || undefined,
+  autofocus: first === k || undefined,
+});
+const hours = lang === 'sq' ? c.hours_sq : c.hours_en;
+const alternate = href(other(lang), 'contact');
+const jsonld = { '@context': 'https://schema.org', '@type': 'ContactPage', name: t.h1, inLanguage: lang };
+---
+<Site lang={lang} title={t.title} description={t.description} alternate={alternate} current="contact" jsonld={[jsonld]}>
+  <header class="wrap sheet-head pg-head">
+    <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
+      <ol class="crumbs"><li><a href={href(lang, 'home')}>{w.crumbsHome}</a></li><li aria-current="page">{t.h1}</li></ol>
+    </nav>
+    <p class="eyebrow">{t.eyebrow}</p>
+    <h1 class="poster poster--s pg-poster">{t.h1}</h1>
+    <div class="pg-head__row rule-double">
+      <p class="lede">{t.lede} <a href={href(lang, 'quote')}>{t.quoteLink}</a>.</p>
+    </div>
+  </header>
+
+  <div class="wrap pg-formwrap ct">
+    <section aria-labelledby="ct-form-h">
+      <h2 class="title" id="ct-form-h">{t.form}</h2>
+      {sent ? (
+        <div class="notice notice--ok pg-thanks" role="status">
+          <h3 class="pg-thanks__t">{t.thanksTitle}</h3>
+          <p>{t.thanks}</p>
+          <a class="btn btn--ghost" href={href(lang, 'contact')}>{t.again}</a>
+        </div>
+      ) : (
+        <form class="pg-form" method="post" action={href(lang, 'contact')} novalidate>
+          {state?.tooMany && <p class="form-errors" role="alert">{f.tooMany}</p>}
+          {first && (
+            <div class="form-errors" role="alert">
+              <p>{f.errorsTitle(Object.keys(err).length)}</p>
+              <ul>{order.filter((k) => err[k]).map((k) => <li><a href={`#k-${k}`}>{labels[k]}: {err[k]}</a></li>)}</ul>
+            </div>
+          )}
+          <div class="hp" aria-hidden="true"><label for="k-website">{f.hp}</label><input id="k-website" name="website" tabindex="-1" autocomplete="off" /></div>
+          <div class="pg-form__grid">
+            <div class="field">
+              <label for="k-name">{f.name}</label>
+              <input class="input" id="k-name" name="name" autocomplete="name" required value={v.name} {...a('name')} />
+              {err.name && <p class="error" id="k-name-err">{err.name}</p>}
+            </div>
+            <div class="field">
+              <label for="k-topic">{t.topic}</label>
+              <select class="select" id="k-topic" name="topic" {...a('topic')}>
+                {TOPIC_KEYS.map((k) => <option value={k} selected={v.topic === k}>{w.topics[k]}</option>)}
+              </select>
+              {err.topic && <p class="error" id="k-topic-err">{err.topic}</p>}
+            </div>
+            <div class="field">
+              <label for="k-email">{f.email}</label>
+              <input class="input" id="k-email" name="email" type="email" autocomplete="email" spellcheck="false" value={v.email} {...a('email', true)} />
+              <p class="hint" id="k-email-h">{t.contactHint}</p>
+              {err.email && <p class="error" id="k-email-err">{err.email}</p>}
+            </div>
+            <div class="field">
+              <label for="k-phone">{f.phone}</label>
+              <input class="input" id="k-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" value={v.phone} {...a('phone', true)} />
+              <p class="hint" id="k-phone-h">{f.phoneHint}</p>
+              {err.phone && <p class="error" id="k-phone-err">{err.phone}</p>}
+            </div>
+            <div class="field pg-form__wide">
+              <label for="k-body">{t.body}</label>
+              <textarea class="textarea" id="k-body" name="body" rows="6" required {...a('body')}>{v.body}</textarea>
+              {err.body && <p class="error" id="k-body-err">{err.body}</p>}
+            </div>
+          </div>
+          <div class="row pg-form__go">
+            <button class="btn btn--copper" type="submit">{t.submit} <span class="arrow" aria-hidden="true">→</span></button>
+            <p class="small muted"><a href={href(lang, 'privacy')}>{w.quote.privacyLink}</a></p>
+          </div>
+        </form>
+      )}
+    </section>
+    <aside class="ct-side" aria-labelledby="ct-d-h">
+      <h2 class="eyebrow" id="ct-d-h">{t.details}</h2>
+      <dl class="sd__legal">
+        <div><dt>{t.email}</dt><dd>{c.email ? <a href={`mailto:${c.email}`}>{c.email}</a> : <span class="muted">{t.soon}</span>}</dd></div>
+        <div><dt>{t.phone}</dt><dd>{c.phone ? <a href={`tel:${c.phone.replace(/\s/g, '')}`}>{c.phone}</a> : <span class="muted">{t.soon}</span>}</dd></div>
+        <div><dt>{t.address}</dt><dd>{c.address ?? <span class="muted">{t.soon}</span>}</dd></div>
+        <div><dt>{t.hours}</dt><dd>{hours ?? <span class="muted">{t.soon}</span>}</dd></div>
+      </dl>
+      <h2 class="eyebrow">{t.company}</h2>
+      <p class="mono small">{t.companyLine}</p>
+    </aside>
+  </div>
+</Site>

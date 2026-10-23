@@ -1,0 +1,102 @@
+---
+// The private thread of one quote request (opened only with ?k=token): the request, the sellers'
+// answers (written from the admin) and the buyer's replies (POST to this page, PRG back to #m-id).
+import Site from '../layouts/Site.astro';
+import '../styles/pages.css';
+import { date, href, other, type Lang } from '../lib/i18n';
+import { lek } from '../lib/money';
+import { quoteItems, quoteMessages, type QuoteRow } from '../lib/pages-db';
+import type { FormResult } from '../lib/pages-forms';
+import { tp } from '../i18n/pages';
+
+interface Props { lang: Lang; quote: QuoteRow; state: FormResult | null }
+const { lang, quote: q, state } = Astro.props;
+const w = tp(lang);
+const t = w.thread;
+const f = w.form;
+const msgs = quoteMessages(q.id);
+const items = quoteItems(q);
+const sent = Astro.url.searchParams.get('dergua') === '1';
+const replied = Astro.url.searchParams.get('shkruar') === '1' && !state;
+const err = state?.errors ?? {};
+const self = href(lang, 'quoteThread', { code: q.code }, { k: q.token });
+const alternate = href(other(lang), 'quoteThread', { code: q.code }, { k: q.token });
+const project = (w.projects as Record<string, string>)[q.project_type] ?? q.project_type;
+const city = (lang === 'sq' ? q.city_sq : q.city_en) ?? '—';
+const who = (m: (typeof msgs)[number]) => (m.author_role === 'buyer' ? t.you : m.author_role === 'admin' ? t.admin : m.seller_name ?? t.sellerAnon);
+---
+<Site lang={lang} title={t.title(q.code)} description={t.description} alternate={alternate} current="quote" noindex>
+  <header class="wrap sheet-head pg-head">
+    <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
+      <ol class="crumbs"><li><a href={href(lang, 'home')}>{w.crumbsHome}</a></li><li><a href={href(lang, 'quote')}>{w.quote.h1}</a></li><li aria-current="page">{q.code}</li></ol>
+    </nav>
+    <p class="eyebrow">{t.eyebrow} · <span class="tag">{t.status[q.status] ?? q.status}</span></p>
+    <h1 class="title title--xl pg-title mono-title">{q.code}</h1>
+    {sent && (
+      <div class="notice notice--ok th-sent" role="status">
+        <p>{t.sent}</p>
+        <button class="btn btn--s btn--ghost" type="button" data-copy-link={self} data-copied={t.copied} hidden>{t.copy}</button>
+        <p class="small muted" aria-live="polite" data-copy-status></p>
+      </div>
+    )}
+    <div class="pg-head__row rule-double">
+      <dl class="titleblock pg-tb th-tb">
+        <div><dt>{t.project}</dt><dd>{project}</dd></div>
+        <div><dt>{t.city}</dt><dd>{city}</dd></div>
+        <div><dt>{t.budget}</dt><dd>{q.budget_all ? lek(q.budget_all, lang) : t.noBudget}</dd></div>
+        <div><dt>{t.created}</dt><dd>{date(q.created_at, lang, true)}</dd></div>
+      </dl>
+    </div>
+  </header>
+
+  <div class="wrap th">
+    <section class="th-req" aria-labelledby="th-req-h">
+      <h2 class="eyebrow" id="th-req-h">{t.details}</h2>
+      <p class="th-req__body">{q.details}</p>
+      {items.length > 0 && (
+        <>
+          <h3 class="eyebrow">{t.items}</h3>
+          <ul class="th-items">{items.map((it) => <li><a href={href(lang, 'product', { slug: it.slug })}>{it.brand} {it.model}</a> <span class="mono">× {it.qty}</span></li>)}</ul>
+        </>
+      )}
+      <h3 class="eyebrow">{t.contact}</h3>
+      <p class="mono small">{q.name} · {q.phone}{q.email ? ` · ${q.email}` : ''}{q.company ? ` · ${q.company}` : ''}{q.nipt ? ` · ${q.nipt}` : ''}</p>
+    </section>
+
+    <section class="th-thread" aria-labelledby="th-msgs-h">
+      <h2 class="title" id="th-msgs-h">{t.messages}</h2>
+      {msgs.length === 0 ? (
+        <p class="empty th-empty">{t.empty}</p>
+      ) : (
+        <ol class="th-list">
+          {msgs.map((m) => (
+            <li class:list={['th-msg', `th-msg--${m.author_role}`]} id={`m-${m.id}`}>
+              <p class="th-msg__who">
+                <strong>{who(m)}</strong>
+                {m.seller_demo ? <span class="tag tag--demo">{t.sample}</span> : null}
+                <time class="mono small muted" datetime={m.created_at.replace(' ', 'T') + 'Z'}>{date(m.created_at, lang, true)}</time>
+              </p>
+              <p class="th-msg__body">{m.body}</p>
+              {m.price_all ? <p class="th-msg__offer"><span class="eyebrow">{t.offer}</span> <span class="price price--big">{lek(m.price_all, lang)}</span></p> : null}
+            </li>
+          ))}
+        </ol>
+      )}
+      {replied && <p class="notice notice--ok" role="status">{t.replied}</p>}
+      <form class="pg-form th-reply" method="post" action={self} novalidate>
+        <div class="hp" aria-hidden="true"><label for="r-website">{f.hp}</label><input id="r-website" name="website" tabindex="-1" autocomplete="off" /></div>
+        {state?.tooMany && <p class="form-errors" role="alert">{f.tooMany}</p>}
+        <div class="field">
+          <label for="r-body">{t.reply}</label>
+          <textarea class="textarea" id="r-body" name="body" rows="4" required aria-invalid={err.body ? 'true' : undefined} aria-describedby={['r-body-h', err.body ? 'r-body-err' : ''].join(' ').trim()} autofocus={err.body ? true : undefined}>{state?.values.body ?? ''}</textarea>
+          <p class="hint" id="r-body-h">{t.replyHint}</p>
+          {err.body && <p class="error" id="r-body-err">{err.body}</p>}
+        </div>
+        <button class="btn" type="submit">{t.send} <span class="arrow" aria-hidden="true">→</span></button>
+      </form>
+    </section>
+  </div>
+  <script>
+    import '../scripts/quote';
+  </script>
+</Site>

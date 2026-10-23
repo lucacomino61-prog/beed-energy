@@ -1,0 +1,8 @@
+---
+import NotFound from '../views/NotFound.astro';
+import { langFromPath } from '../lib/i18n';
+
+Astro.response.status = 404;
+const lang = langFromPath(Astro.url.pathname);
+---
+<NotFound lang={lang} />

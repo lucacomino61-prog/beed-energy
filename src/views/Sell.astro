@@ -1,0 +1,197 @@
+---
+// Sell with us: who it is for, how it works, the plans from settings 'plans', the proposed verification
+// criteria and the application form (POST to this page → seller_applications, PRG to ?dergua=1).
+import Site from '../layouts/Site.astro';
+import '../styles/pages.css';
+import { href, other, type Lang } from '../lib/i18n';
+import { lek, num } from '../lib/money';
+import { allCities, categoryOptions, plans } from '../lib/pages-db';
+import type { FormResult } from '../lib/pages-forms';
+import { KIND_KEYS, tp } from '../i18n/pages';
+
+interface Props { lang: Lang; state: FormResult | null }
+const { lang, state } = Astro.props;
+const w = tp(lang);
+const t = w.sell;
+const f = w.form;
+const ps = plans();
+const cats = categoryOptions();
+const cities = allCities();
+const sent = Astro.url.searchParams.get('dergua') === '1' && !state;
+const pre = Astro.url.searchParams.get('plani');
+const v: Record<string, string> = { company: '', nipt: '', kind: 'supplier', contact_name: '', phone: '', email: '', city: '', categories: '', plan: pre && ps.some((p) => p.key === pre) ? pre : '', message: '', ...(state?.values ?? {}) };
+const err = state?.errors ?? {};
+const order = ['company', 'nipt', 'kind', 'contact_name', 'phone', 'email', 'city'];
+const first = order.find((k) => err[k]);
+const chosen = new Set(v.categories.split(',').filter(Boolean));
+const a = (k: string, hint = false) => ({
+  'aria-invalid': err[k] ? ('true' as const) : undefined,
+  'aria-describedby': [hint ? `a-${k}-h` : '', err[k] ? `a-${k}-err` : ''].join(' ').trim() || undefined,
+  autofocus: first === k || undefined,
+});
+const alternate = href(other(lang), 'sell');
+const labels: Record<string, string> = { company: t.company, nipt: f.nipt, kind: t.kind, contact_name: t.contactName, phone: f.phone, email: f.email, city: f.city };
+---
+<Site lang={lang} title={t.title} description={t.description} alternate={alternate} current="sell">
+  <header class="wrap sheet-head pg-head">
+    <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
+      <ol class="crumbs"><li><a href={href(lang, 'home')}>{w.crumbsHome}</a></li><li aria-current="page">{t.h1}</li></ol>
+    </nav>
+    <p class="eyebrow">{t.eyebrow}</p>
+    <h1 class="poster poster--s pg-poster">{t.h1}</h1>
+    <div class="pg-head__row rule-double">
+      <p class="lede">{t.lede}</p>
+      <a class="btn btn--copper" href="#aplikimi">{t.formTitle} <span class="arrow" aria-hidden="true">↓</span></a>
+    </div>
+  </header>
+
+  <section class="wrap section sw-who" aria-labelledby="sw-who-h">
+    <h2 class="eyebrow" id="sw-who-h">{t.whoTitle}</h2>
+    <ol class="sw-cards">
+      {t.who.map((c, i) => (
+        <li class="sw-card">
+          <span class="key">{String(i + 1).padStart(2, '0')}</span>
+          <h3 class="sw-card__t">{c.t}</h3>
+          <p>{c.d}</p>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <section class="on-ink sw-how" aria-labelledby="sw-how-h">
+    <div class="wrap section">
+      <h2 class="title" id="sw-how-h">{t.howTitle}</h2>
+      <ol class="sw-steps">
+        {t.how.map((s, i) => (
+          <li>
+            <span class="key sw-steps__n">{String(i + 1).padStart(2, '0')}</span>
+            <h3>{s.t}</h3>
+            <p>{s.d}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <section class="wrap section sw-plans" aria-labelledby="sw-plans-h">
+    <div class="row between sw-plans__head">
+      <h2 class="title" id="sw-plans-h">{t.plansTitle}</h2>
+      <p class="muted">{t.plansLede}</p>
+    </div>
+    <ul class="sw-plan-list">
+      {ps.map((p) => (
+        <li class="sw-plan">
+          <h3 class="sw-plan__name">{p.name}</h3>
+          <p class="sw-plan__price">{p.monthly_all === null ? <span>{t.onRequest}</span> : <><span class="price">{lek(p.monthly_all, lang)}</span> <span class="small muted">{t.perMonth}</span></>}</p>
+          {p.commission_pct !== null && <p class="mono sw-plan__com">{t.commission(num(p.commission_pct, 0, lang))}</p>}
+          <ul class="sw-plan__feat">{(lang === 'sq' ? p.features_sq : p.features_en).map((x) => <li>{x}</li>)}</ul>
+          <a class="btn btn--ghost btn--block" href={`${href(lang, 'sell', {}, { plani: p.key })}#aplikimi`}>{t.choosePlan}</a>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section class="wrap section sw-verify rule" aria-labelledby="sw-verify-h">
+    <div>
+      <h2 class="title" id="sw-verify-h">{t.verifyTitle}</h2>
+      <p class="tag tag--copper sw-verify__tag">{t.verifyProposed}</p>
+    </div>
+    <div>
+      <ol class="sw-verify__list">{t.verify.map((x) => <li>{x}</li>)}</ol>
+      <p class="muted">{t.verifyNote}</p>
+    </div>
+  </section>
+
+  <section class="wrap section pg-formwrap" id="aplikimi" aria-labelledby="sw-form-h" tabindex="-1">
+    <div class="pg-formwrap__intro">
+      <h2 class="title" id="sw-form-h">{t.formTitle}</h2>
+      <p class="muted">{t.formLede}</p>
+    </div>
+    {sent ? (
+      <div class="notice notice--ok pg-thanks" role="status">
+        <h3 class="pg-thanks__t">{t.thanksTitle}</h3>
+        <p>{t.thanks}</p>
+        <a class="btn" href={href(lang, 'shop')}>{t.toShop} <span class="arrow" aria-hidden="true">→</span></a>
+      </div>
+    ) : (
+      <form class="pg-form" method="post" action={`${href(lang, 'sell')}#aplikimi`} novalidate>
+        {state?.tooMany && <p class="form-errors" role="alert">{f.tooMany}</p>}
+        {first && (
+          <div class="form-errors" role="alert">
+            <p>{f.errorsTitle(Object.keys(err).length)}</p>
+            <ul>{order.filter((k) => err[k]).map((k) => <li><a href={`#a-${k}`}>{labels[k]}: {err[k]}</a></li>)}</ul>
+          </div>
+        )}
+        <div class="hp" aria-hidden="true"><label for="a-website">{f.hp}</label><input id="a-website" name="website" tabindex="-1" autocomplete="off" /></div>
+        <div class="pg-form__grid">
+          <div class="field">
+            <label for="a-company">{t.company}</label>
+            <input class="input" id="a-company" name="company" autocomplete="organization" required value={v.company} {...a('company')} />
+            {err.company && <p class="error" id="a-company-err">{err.company}</p>}
+          </div>
+          <div class="field">
+            <label for="a-nipt">{f.nipt} <span class="muted small">({f.optional})</span></label>
+            <input class="input mono" id="a-nipt" name="nipt" autocomplete="off" maxlength="12" spellcheck="false" value={v.nipt} {...a('nipt', true)} />
+            <p class="hint" id="a-nipt-h">{f.niptHint}</p>
+            {err.nipt && <p class="error" id="a-nipt-err">{err.nipt}</p>}
+          </div>
+          <div class="field">
+            <label for="a-kind">{t.kind}</label>
+            <select class="select" id="a-kind" name="kind" required {...a('kind')}>
+              {KIND_KEYS.map((k) => <option value={k} selected={v.kind === k}>{w.kinds[k]}</option>)}
+            </select>
+            {err.kind && <p class="error" id="a-kind-err">{err.kind}</p>}
+          </div>
+          <div class="field">
+            <label for="a-city">{f.city} <span class="muted small">({f.optional})</span></label>
+            <select class="select" id="a-city" name="city" {...a('city')}>
+              <option value="">{f.choose}</option>
+              {cities.map((c) => <option value={c.slug} selected={v.city === c.slug}>{lang === 'sq' ? c.name_sq : c.name_en}</option>)}
+            </select>
+            {err.city && <p class="error" id="a-city-err">{err.city}</p>}
+          </div>
+          <div class="field">
+            <label for="a-contact_name">{t.contactName}</label>
+            <input class="input" id="a-contact_name" name="contact_name" autocomplete="name" required value={v.contact_name} {...a('contact_name')} />
+            {err.contact_name && <p class="error" id="a-contact_name-err">{err.contact_name}</p>}
+          </div>
+          <div class="field">
+            <label for="a-phone">{f.phone}</label>
+            <input class="input" id="a-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" required value={v.phone} {...a('phone', true)} />
+            <p class="hint" id="a-phone-h">{f.phoneHint}</p>
+            {err.phone && <p class="error" id="a-phone-err">{err.phone}</p>}
+          </div>
+          <div class="field pg-form__wide">
+            <label for="a-email">{f.email}</label>
+            <input class="input" id="a-email" name="email" type="email" autocomplete="email" spellcheck="false" required value={v.email} {...a('email')} />
+            {err.email && <p class="error" id="a-email-err">{err.email}</p>}
+          </div>
+          <fieldset class="field pg-form__wide">
+            <legend class="label">{t.categories} <span class="muted small">({f.optional})</span></legend>
+            <p class="hint">{t.categoriesHint}</p>
+            <div class="pg-checks">
+              {cats.map((c) => (
+                <label class="check"><input type="checkbox" name="categories" value={c.slug_en} checked={chosen.has(c.slug_en)} /> <span>{lang === 'sq' ? c.name_sq : c.name_en}</span></label>
+              ))}
+            </div>
+          </fieldset>
+          <fieldset class="field pg-form__wide">
+            <legend class="label">{t.plan}</legend>
+            <div class="seg seg--wrap">
+              {ps.map((p) => <label class="seg__opt"><input type="radio" name="plan" value={p.key} checked={v.plan === p.key} /> <span>{p.name}</span></label>)}
+              <label class="seg__opt"><input type="radio" name="plan" value="" checked={!v.plan} /> <span>{t.noPlan}</span></label>
+            </div>
+          </fieldset>
+          <div class="field pg-form__wide">
+            <label for="a-message">{t.message} <span class="muted small">({f.optional})</span></label>
+            <textarea class="textarea" id="a-message" name="message" rows="4">{v.message}</textarea>
+          </div>
+        </div>
+        <div class="row pg-form__go">
+          <button class="btn btn--copper" type="submit">{t.submit} <span class="arrow" aria-hidden="true">→</span></button>
+          <p class="small muted"><a href={href(lang, 'privacy')}>{w.quote.privacyLink}</a></p>
+        </div>
+      </form>
+    )}
+  </section>
+</Site>

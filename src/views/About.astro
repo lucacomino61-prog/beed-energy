@@ -1,0 +1,106 @@
+---
+// About: the company (registry facts only), mission, problem, offer, who benefits, revenue model,
+// the Balkan plan and "Albania in numbers" with a source on every figure.
+import Site from '../layouts/Site.astro';
+import '../styles/pages.css';
+import { href, other, type Lang } from '../lib/i18n';
+import { STORY_NUMBERS, tp } from '../i18n/pages';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const w = tp(lang);
+const t = w.about;
+const alternate = href(other(lang), 'about');
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'AboutPage',
+  name: t.h1,
+  inLanguage: lang,
+  mainEntity: {
+    '@type': 'Organization',
+    name: 'BeeD Energy',
+    legalName: 'BeeD Consulting sh.p.k.',
+    taxID: 'M41722050A',
+    foundingDate: '2024-05-17',
+    address: { '@type': 'PostalAddress', addressLocality: 'Tiranë', addressCountry: 'AL' },
+  },
+};
+---
+<Site lang={lang} title={t.title} description={t.description} alternate={alternate} current="about" jsonld={[jsonld]}>
+  <header class="wrap sheet-head pg-head">
+    <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
+      <ol class="crumbs"><li><a href={href(lang, 'home')}>{w.crumbsHome}</a></li><li aria-current="page">{t.h1}</li></ol>
+    </nav>
+    <p class="eyebrow">{t.eyebrow}</p>
+    <h1 class="poster poster--s pg-poster">{t.h1}</h1>
+    <div class="pg-head__row rule-double">
+      <p class="lede">{t.lede}</p>
+    </div>
+  </header>
+
+  <section class="wrap ab-company" aria-labelledby="ab-co-h">
+    <h2 class="eyebrow" id="ab-co-h">{t.company}</h2>
+    <dl class="titleblock ab-tb">
+      {t.facts.map((x) => <div><dt>{x.k}</dt><dd>{x.v}</dd></div>)}
+    </dl>
+    <p class="small muted">{t.registry}</p>
+  </section>
+
+  <section class="wrap section ab-mission" aria-labelledby="ab-m-h">
+    <h2 class="eyebrow" id="ab-m-h">{t.missionTitle}</h2>
+    <p class="ab-mission__text">{t.mission}</p>
+  </section>
+
+  <section class="wrap section ab-two rule" aria-label={`${t.problemTitle} · ${t.offerTitle}`}>
+    <div>
+      <h2 class="title">{t.problemTitle}</h2>
+      <div class="prose">{t.problem.map((p) => <p>{p}</p>)}</div>
+    </div>
+    <div>
+      <h2 class="title">{t.offerTitle}</h2>
+      <ol class="ab-list">{t.offer.map((x, i) => <li><span class="key">{String(i + 1).padStart(2, '0')}</span> {x}</li>)}</ol>
+    </div>
+  </section>
+
+  <section class="wrap section ab-two rule" aria-label={`${t.whoTitle} · ${t.modelTitle}`}>
+    <div>
+      <h2 class="title">{t.whoTitle}</h2>
+      <ul class="ab-list">{t.who.map((x, i) => <li><span class="key">{String(i + 1).padStart(2, '0')}</span> {x}</li>)}</ul>
+    </div>
+    <div>
+      <h2 class="title">{t.modelTitle}</h2>
+      <dl class="ab-model">{t.model.map((m) => <div><dt>{m.t}</dt><dd>{m.d}</dd></div>)}</dl>
+      <p class="muted">{t.model2}</p>
+    </div>
+  </section>
+
+  <section class="on-ink ab-numbers" aria-labelledby="ab-n-h">
+    <div class="wrap section">
+      <div class="ab-numbers__head">
+        <h2 class="title title--xl" id="ab-n-h">{t.numbersTitle}</h2>
+        <p class="lede">{t.numbersLede}</p>
+      </div>
+      <ol class="ab-n">
+        {STORY_NUMBERS.map((n, i) => (
+          <li class="ab-n__item">
+            <span class="key ab-n__k">{String(i + 1).padStart(2, '0')}</span>
+            <p class="ab-n__big">{n.big[lang]}</p>
+            <p class="ab-n__txt">{lang === 'sq' ? n.sq : n.en}</p>
+            <p class="ab-n__src"><span>{t.source}:</span> <a href={n.url} rel="noopener">{lang === 'sq' ? n.src : n.srcEn}</a></p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <section class="wrap section ab-balkan" aria-labelledby="ab-b-h">
+    <div>
+      <h2 class="title" id="ab-b-h">{t.balkanTitle}</h2>
+      <p class="lede">{t.balkan}</p>
+    </div>
+    <div class="row">
+      <a class="btn" href={href(lang, 'shop')}>{t.cta} <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn btn--ghost" href={href(lang, 'sell')}>{t.cta2}</a>
+    </div>
+  </section>
+</Site>

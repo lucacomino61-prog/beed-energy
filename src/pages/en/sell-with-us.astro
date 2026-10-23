@@ -1,0 +1,13 @@
+---
+import Sell from '../../views/Sell.astro';
+import { handleApplication } from '../../lib/pages-forms';
+import type { FormResult } from '../../lib/pages-forms';
+import { plans } from '../../lib/pages-db';
+let state: FormResult | null = null;
+if (Astro.request.method === 'POST') {
+  state = await handleApplication(Astro, 'en', plans().map((p) => p.key));
+  if (state.redirect) return Astro.redirect(state.redirect, 303);
+  Astro.response.status = state.status;
+}
+---
+<Sell lang="en" state={state} />

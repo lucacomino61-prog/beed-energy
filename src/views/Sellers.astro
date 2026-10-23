@@ -1,0 +1,94 @@
+---
+// Sellers list: every active seller with type, city, verification, rating and live offer count,
+// a type filter in the URL (?lloji=installer) and the line map of where they are.
+import Site from '../layouts/Site.astro';
+import AlbaniaMap from '../components/AlbaniaMap.astro';
+import '../styles/pages.css';
+import { href, other, type Lang } from '../lib/i18n';
+import { num } from '../lib/money';
+import { activeSellers, sellerKindCounts } from '../lib/pages-db';
+import { KIND_KEYS, tp } from '../i18n/pages';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const w = tp(lang);
+const t = w.sellers;
+const kindParam = Astro.url.searchParams.get('lloji');
+const kind = kindParam && (KIND_KEYS as string[]).includes(kindParam) ? kindParam : null;
+const all = activeSellers();
+const list = kind ? all.filter((s) => s.kind === kind) : all;
+const counts = sellerKindCounts();
+const perCity: Record<string, number> = {};
+for (const s of all) if (s.city_slug) perCity[s.city_slug] = (perCity[s.city_slug] ?? 0) + 1;
+const labels = Object.fromEntries(Object.entries(perCity).map(([k, n]) => [k, `× ${n}`]));
+const alternate = href(other(lang), 'sellers', {}, { lloji: kind });
+const city = (s: (typeof list)[number]) => (lang === 'sq' ? s.city_sq : s.city_en) ?? '—';
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: t.h1,
+  numberOfItems: list.length,
+  itemListElement: list.map((s, i) => ({ '@type': 'ListItem', position: i + 1, url: new URL(href(lang, 'seller', { slug: s.slug }), Astro.url).href, name: s.name })),
+};
+---
+<Site lang={lang} title={t.title} description={t.description} alternate={alternate} current="sellers" jsonld={[jsonld]}>
+  <header class="wrap sheet-head pg-head">
+    <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
+      <ol class="crumbs"><li><a href={href(lang, 'home')}>{w.crumbsHome}</a></li><li aria-current="page">{t.h1}</li></ol>
+    </nav>
+    <p class="eyebrow">{t.eyebrow}</p>
+    <h1 class="title title--xl pg-title">{t.h1}</h1>
+    <div class="pg-head__row rule-double">
+      <p class="lede">{t.lede}</p>
+      <dl class="titleblock pg-tb">
+        <div><dt>{lang === 'sq' ? 'Shitës' : 'Sellers'}</dt><dd>{all.length}</dd></div>
+        <div><dt>{t.verified}</dt><dd>{all.filter((s) => s.verified).length}</dd></div>
+        <div><dt>{lang === 'sq' ? 'Oferta' : 'Offers'}</dt><dd>{num(all.reduce((a, s) => a + s.offer_count, 0), 0, lang)}</dd></div>
+        <div><dt>{lang === 'sq' ? 'Qytete' : 'Cities'}</dt><dd>{Object.keys(perCity).length}</dd></div>
+      </dl>
+    </div>
+  </header>
+
+  <div class="wrap sl">
+    <div class="sl__main">
+      <nav class="chips" aria-label={t.filter}>
+        <a class="chip" href={href(lang, 'sellers')} aria-current={!kind ? 'page' : undefined}>{t.all} <span class="mono">{all.length}</span></a>
+        {KIND_KEYS.map((k) => (
+          <a class="chip" href={href(lang, 'sellers', {}, { lloji: k })} aria-current={kind === k ? 'page' : undefined}>{w.kinds[k]} <span class="mono">{counts[k] ?? 0}</span></a>
+        ))}
+      </nav>
+      <p class="sl__count mono small" role="status">{t.count(list.length)}</p>
+
+      {list.length === 0 ? (
+        <div class="empty">
+          <p>{t.empty}</p>
+          <a class="btn" href={href(lang, 'sell')}>{t.emptyCta} <span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+      ) : (
+        <ol class="sl__list">
+          {list.map((s, i) => (
+            <li class="sl__row">
+              <span class="key sl__n" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+              <div class="sl__who">
+                <h2 class="sl__name"><a href={href(lang, 'seller', { slug: s.slug })}>{s.name}</a></h2>
+                <p class="sl__meta">{w.kinds[s.kind]} · {city(s)}</p>
+              </div>
+              <div class="sl__tags">
+                {s.verified ? <span class="tag tag--ok"><span aria-hidden="true">✓</span> {t.verified}</span> : <span class="tag">{t.unverified}</span>}
+                {s.is_demo ? <span class="tag tag--demo">{t.sample}</span> : null}
+              </div>
+              <p class="sl__rating mono small">{s.rating !== null && s.rating_count > 0 ? t.rating(num(s.rating, 1, lang), s.rating_count) : t.noRating}</p>
+              <p class="sl__offers mono">{t.offers(s.offer_count)}</p>
+            </li>
+          ))}
+        </ol>
+      )}
+      <p class="sl__cta"><a class="link-arrow" href={href(lang, 'sell')}><span>{t.sellCta}</span> <span class="arrow" aria-hidden="true">→</span></a></p>
+    </div>
+    <aside class="sl__map" aria-labelledby="sl-map-h">
+      <h2 class="eyebrow" id="sl-map-h">{t.mapTitle}</h2>
+      <AlbaniaMap lang={lang} id="sellers-map" title={t.mapTitle} desc={t.mapDesc} labels={labels} highlight={Object.keys(perCity)} />
+      <p class="small muted">{t.mapDesc}</p>
+    </aside>
+  </div>
+</Site>

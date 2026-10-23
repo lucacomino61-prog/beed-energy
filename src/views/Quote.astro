@@ -1,0 +1,148 @@
+---
+// Request a quote: POST to this page → quote_requests (code RFQ-YYMM-00012 + random token),
+// then a 303 to the private thread /oferta/[code]?k=token. ?produkt=slug links the request to a product.
+import Site from '../layouts/Site.astro';
+import '../styles/pages.css';
+import { href, other, type Lang } from '../lib/i18n';
+import { allCities, productForQuote } from '../lib/pages-db';
+import type { FormResult } from '../lib/pages-forms';
+import { PROJECT_KEYS, tp } from '../i18n/pages';
+
+interface Props { lang: Lang; state: FormResult | null }
+const { lang, state } = Astro.props;
+const w = tp(lang);
+const t = w.quote;
+const f = w.form;
+const cities = allCities();
+const sp = Astro.url.searchParams;
+const preProject = sp.get('projekt');
+const v: Record<string, string> = {
+  project: preProject && (PROJECT_KEYS as string[]).includes(preProject) ? preProject : '',
+  city: sp.get('qyteti') ?? '',
+  name: '', phone: '', email: '', business: '', company: '', nipt: '', details: '', budget: '',
+  produkt: sp.get('produkt') ?? '',
+  qty: sp.get('sasia') ?? '1',
+  ...(state?.values ?? {}),
+};
+const product = v.produkt ? productForQuote(v.produkt) : undefined;
+const err = state?.errors ?? {};
+const order = ['project', 'city', 'name', 'phone', 'email', 'company', 'nipt', 'details', 'budget'];
+const first = order.find((k) => err[k]);
+const labels: Record<string, string> = { project: t.project, city: f.city, name: f.name, phone: f.phone, email: f.email, company: f.company, nipt: f.nipt, details: t.details, budget: t.budget };
+const a = (k: string, hint = false) => ({
+  'aria-invalid': err[k] ? ('true' as const) : undefined,
+  'aria-describedby': [hint ? `q-${k}-h` : '', err[k] ? `q-${k}-err` : ''].join(' ').trim() || undefined,
+  autofocus: first === k || undefined,
+});
+const alternate = href(other(lang), 'quote', {}, { produkt: product?.slug, projekt: v.project || undefined });
+---
+<Site lang={lang} title={t.title} description={t.description} alternate={alternate} current="quote">
+  <header class="wrap sheet-head pg-head">
+    <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
+      <ol class="crumbs"><li><a href={href(lang, 'home')}>{w.crumbsHome}</a></li><li aria-current="page">{t.h1}</li></ol>
+    </nav>
+    <p class="eyebrow">{t.eyebrow}</p>
+    <h1 class="title title--xl pg-title">{t.h1}</h1>
+    <div class="pg-head__row rule-double">
+      <p class="lede">{t.lede}</p>
+      <ol class="qt-steps">{t.steps.map((s, i) => <li><span class="key">{String(i + 1).padStart(2, '0')}</span> {s}</li>)}</ol>
+    </div>
+  </header>
+
+  <div class="wrap pg-formwrap qt">
+    <form class="pg-form" method="post" action={href(lang, 'quote')} novalidate>
+      {state?.tooMany && <p class="form-errors" role="alert">{f.tooMany}</p>}
+      {first && (
+        <div class="form-errors" role="alert">
+          <p>{f.errorsTitle(Object.keys(err).length)}</p>
+          <ul>{order.filter((k) => err[k]).map((k) => <li><a href={`#q-${k}`}>{labels[k]}: {err[k]}</a></li>)}</ul>
+        </div>
+      )}
+      <div class="hp" aria-hidden="true"><label for="q-website">{f.hp}</label><input id="q-website" name="website" tabindex="-1" autocomplete="off" /></div>
+      {product && (
+        <div class="notice qt-product">
+          <p class="eyebrow">{t.product}</p>
+          <p><a href={href(lang, 'product', { slug: product.slug })}><strong>{product.brand} {product.model}</strong></a> · {lang === 'sq' ? product.name_sq : product.name_en}</p>
+          <p class="small muted">{t.productNote}</p>
+          <input type="hidden" name="produkt" value={product.slug} />
+          <input type="hidden" name="qty" value={v.qty} />
+        </div>
+      )}
+      <div class="pg-form__grid">
+        <div class="field">
+          <label for="q-project">{t.project}</label>
+          <select class="select" id="q-project" name="project" required {...a('project')}>
+            <option value="">{f.choose}</option>
+            {PROJECT_KEYS.map((k) => <option value={k} selected={v.project === k}>{w.projects[k]}</option>)}
+          </select>
+          {err.project && <p class="error" id="q-project-err">{err.project}</p>}
+        </div>
+        <div class="field">
+          <label for="q-city">{f.city}</label>
+          <select class="select" id="q-city" name="city" required {...a('city')}>
+            <option value="">{f.choose}</option>
+            {cities.map((c) => <option value={c.slug} selected={v.city === c.slug}>{lang === 'sq' ? c.name_sq : c.name_en}</option>)}
+          </select>
+          {err.city && <p class="error" id="q-city-err">{err.city}</p>}
+        </div>
+        <div class="field pg-form__wide">
+          <label for="q-details">{t.details}</label>
+          <textarea class="textarea" id="q-details" name="details" rows="6" required {...a('details', true)}>{v.details}</textarea>
+          <p class="hint" id="q-details-h">{t.detailsHint}</p>
+          {err.details && <p class="error" id="q-details-err">{err.details}</p>}
+        </div>
+        <div class="field">
+          <label for="q-budget">{t.budget} <span class="muted small">({f.optional})</span></label>
+          <div class="unit-input">
+            <input class="input" id="q-budget" name="budget" inputmode="numeric" autocomplete="off" value={v.budget} {...a('budget')} />
+            <span class="unit-input__u" aria-hidden="true">lekë</span>
+          </div>
+          {err.budget && <p class="error" id="q-budget-err">{err.budget}</p>}
+        </div>
+        <div class="field">
+          <label for="q-name">{f.name}</label>
+          <input class="input" id="q-name" name="name" autocomplete="name" required value={v.name} {...a('name')} />
+          {err.name && <p class="error" id="q-name-err">{err.name}</p>}
+        </div>
+        <div class="field">
+          <label for="q-phone">{f.phone}</label>
+          <input class="input" id="q-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required value={v.phone} {...a('phone', true)} />
+          <p class="hint" id="q-phone-h">{f.phoneHint}</p>
+          {err.phone && <p class="error" id="q-phone-err">{err.phone}</p>}
+        </div>
+        <div class="field">
+          <label for="q-email">{f.email} <span class="muted small">({f.optional})</span></label>
+          <input class="input" id="q-email" name="email" type="email" autocomplete="email" spellcheck="false" value={v.email} {...a('email')} />
+          {err.email && <p class="error" id="q-email-err">{err.email}</p>}
+        </div>
+        <details class="pg-form__wide qt-biz" open={!!(v.business || v.company || v.nipt || err.company || err.nipt) || undefined}>
+          <summary>{t.business}</summary>
+          <p class="hint">{t.businessHint}</p>
+          <label class="check"><input type="checkbox" name="business" value="1" checked={!!v.business} /> <span>{t.business}</span></label>
+          <div class="pg-form__grid">
+            <div class="field">
+              <label for="q-company">{f.company}</label>
+              <input class="input" id="q-company" name="company" autocomplete="organization" value={v.company} {...a('company')} />
+              {err.company && <p class="error" id="q-company-err">{err.company}</p>}
+            </div>
+            <div class="field">
+              <label for="q-nipt">{f.nipt}</label>
+              <input class="input mono" id="q-nipt" name="nipt" autocomplete="off" spellcheck="false" maxlength="12" value={v.nipt} {...a('nipt', true)} />
+              <p class="hint" id="q-nipt-h">{f.niptHint}</p>
+              {err.nipt && <p class="error" id="q-nipt-err">{err.nipt}</p>}
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="row pg-form__go">
+        <button class="btn btn--copper" type="submit">{t.submit} <span class="arrow" aria-hidden="true">→</span></button>
+        <p class="small muted">{t.privacy} <a href={href(lang, 'privacy')}>{t.privacyLink}</a></p>
+      </div>
+    </form>
+    <aside class="qt-side" aria-labelledby="qt-side-h">
+      <h2 class="eyebrow" id="qt-side-h">{t.side}</h2>
+      <ol class="qt-side__list">{t.sideList.map((s) => <li>{s}</li>)}</ol>
+      <p><a class="link-arrow" href={href(lang, 'calculator')}><span>{w.calc.h1}</span> <span class="arrow" aria-hidden="true">→</span></a></p>
+    </aside>
+  </div>
+</Site>

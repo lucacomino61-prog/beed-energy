@@ -1,0 +1,13 @@
+---
+import Quote from '../../views/Quote.astro';
+import { handleQuote } from '../../lib/pages-forms';
+import type { FormResult } from '../../lib/pages-forms';
+
+let state: FormResult | null = null;
+if (Astro.request.method === 'POST') {
+  state = await handleQuote(Astro, 'en');
+  if (state.redirect) return Astro.redirect(state.redirect, 303);
+  Astro.response.status = state.status;
+}
+---
+<Quote lang="en" state={state} />
