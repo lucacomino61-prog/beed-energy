@@ -1,0 +1,24 @@
+---
+// Development check page for the product drawings. Not linked; 404 outside dev.
+import { drawProduct } from '../../lib/drawing';
+if (!import.meta.env.DEV) return new Response(null, { status: 404 });
+const items: [string, number | null, number | null, number | null, Record<string, unknown>][] = [
+  ['solar-panels', 1134, 1722, 30, { cell_count: 108 }],
+  ['solar-panels', 1134, 2382, 30, { cell_count: 132 }],
+  ['inverters', 525, 470, 146.5, {}],
+  ['batteries', 670, 1310, 150, {}],
+  ['ev-chargers', 166, 163, 82, {}],
+  ['heat-pumps', 1100, 870, 460, {}],
+  ['air-conditioners', 798, 295, 229, {}],
+  ['solar-water-heaters', 1060, 2100, 650, {}],
+  ['insulation', 1200, 600, 100, {}],
+  ['windows', 1230, 1480, 82, {}],
+  ['cement-and-masonry', 400, 650, 120, { bag_kg: 50, strength_class: 'CEM II 42.5R' }],
+  ['energy-monitoring', 72, 94, 66, {}],
+  ['led-lighting', 1500, 70, 60, {}],
+  ['mounting-systems', null, null, null, {}],
+];
+---
+<html lang="en"><head><meta charset="utf-8"><title>Drawings</title>
+<style>body{font-family:system-ui;background:#f2efe6;color:#1a1714;display:grid;grid-template-columns:repeat(4,1fr);gap:24px;padding:24px}figure{margin:0;border:1px solid #1a171433;padding:12px;height:300px;display:grid;place-items:center}svg{max-width:100%;max-height:250px}.drawing__dim{font-family:ui-monospace,monospace}</style></head>
+<body>{items.map(([c, w, h, d, s]) => <figure><Fragment set:html={drawProduct({ category: c, w, h, d, specs: s, title: c })} /><figcaption>{c}</figcaption></figure>)}</body></html>
