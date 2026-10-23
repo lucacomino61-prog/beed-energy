@@ -8,7 +8,8 @@ import { href, other, type Lang } from '../lib/i18n';
 import { lek } from '../lib/money';
 import { paymentMode } from '../lib/payments';
 import { tco } from '../i18n/checkout';
-import { cities, cityName, cityParam, codLimit, demoOffers, groupBySeller, productName, seenKey, sellerInfo } from '../lib/checkout-view';
+import { jsonForScript } from '../lib/html';
+import { cities, cityName, cityParam, codLimit, demoOffers, groupBySeller, pickupAvailable, productName, seenKey, sellerInfo } from '../lib/checkout-view';
 import type { CheckoutState } from '../lib/checkout-flow';
 import type { CheckoutValues } from '../lib/checkout';
 
@@ -24,7 +25,8 @@ const groups = groupBySeller(q);
 const sellers = sellerInfo(groups.map((g) => g.sellerId));
 const demo = demoOffers(q.lines.map((l) => l.offerId));
 const limit = codLimit();
-const mode = paymentMode();
+const mode = paymentMode(); // 'off' in production without POK keys: no card option at all
+const pickupOn = pickupAvailable(); // settings → delivery → pickup from the seller
 const alternate = href(other(lang), 'checkout', {}, city ? { [cityParam(other(lang))]: city.slug } : undefined);
 const fee = (n: number) => (n === 0 ? t.sum.free : lek(n, lang));
 
@@ -65,6 +67,7 @@ const clientWords = {
 
   <div class="wrap co-body">
     {state.formError === 'rate' && <p class="notice notice--bad co-alert" role="alert">{t.co.rate}</p>}
+    {state.formError === 'stale' && <p class="notice notice--bad co-alert" role="alert">{t.co.stale}</p>}
     {state.changes.length > 0 && (
       <div class="notice notice--bad co-alert" role="alert" tabindex="-1" autofocus={!first ? true : undefined}>
         <h2 class="co-alert__h">{t.co.changed.title}</h2>
@@ -132,6 +135,8 @@ const clientWords = {
           <input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off" />
         </div>
         <input type="hidden" name="seen" value={seenKey(q)} />
+        <input type="hidden" name="seen_total" value={q.total} data-seen-total />
+        <input type="hidden" name="nonce" value={state.nonce} />
         <input type="hidden" name="source" value={Astro.url.searchParams.get('burimi') ?? 'web'} />
 
         <section class="co-sec" aria-labelledby="s1">
@@ -188,20 +193,23 @@ const clientWords = {
 
         <section class="co-sec" aria-labelledby="s2">
           <h2 class="co-sec__h" id="s2"><span class="key">02</span> {t.co.s2}</h2>
-          <fieldset class="co-fieldset" id="f-delivery">
+          <fieldset class="co-fieldset" id="f-delivery" aria-describedby={errors.delivery ? 'delivery-err' : undefined}>
             <legend class="label co-legend">{t.co.method}</legend>
-            <div class="choice-row choice-row--2">
+            {errors.delivery && <p class="error co-err-block" id="delivery-err">{errors.delivery}</p>}
+            <div class:list={['choice-row', pickupOn && 'choice-row--2']}>
               <label class="choice">
-                <input type="radio" name="delivery" value="courier" checked={v.delivery === 'courier'} data-delivery />
+                <input type="radio" name="delivery" value="courier" checked={v.delivery === 'courier' || !pickupOn} data-delivery />
                 <span><strong>{t.delivery.courier}</strong><span class="hint small muted">{t.co.courierHint}</span></span>
               </label>
-              <label class="choice">
-                <input type="radio" name="delivery" value="pickup" checked={v.delivery === 'pickup'} data-delivery />
-                <span><strong>{t.delivery.pickup}</strong><span class="hint small muted">{t.co.pickupHint}</span></span>
-              </label>
+              {pickupOn && (
+                <label class="choice">
+                  <input type="radio" name="delivery" value="pickup" checked={v.delivery === 'pickup'} data-delivery />
+                  <span><strong>{t.delivery.pickup}</strong><span class="hint small muted">{t.co.pickupHint}</span></span>
+                </label>
+              )}
             </div>
           </fieldset>
-          <div class="co-pickup small" data-pickup>
+          {pickupOn && <div class="co-pickup small" data-pickup>
             <p class="eyebrow">{t.co.pickupFrom}</p>
             <ul class="co-list">
               {groups.map((g) => {
@@ -210,7 +218,7 @@ const clientWords = {
                 return <li>{s?.name ?? g.lines[0].sellerName}{c && <span class="muted"> · {c}</span>}</li>;
               })}
             </ul>
-          </div>
+          </div>}
           <div class="co-fields">
             <div class="field">
               <label for="f-city">{t.co.city}</label>
@@ -247,14 +255,16 @@ const clientWords = {
                 <input type="radio" name="payment" value="bank" checked={v.payment === 'bank' || (v.payment === 'cod' && !q.codAllowed)} autofocus={first === 'payment' && !q.codAllowed ? true : undefined} />
                 <span><strong>{t.method.bank}</strong><span class="hint small muted">{t.co.bankHint}</span></span>
               </label>
-              <label class="choice">
-                <input type="radio" name="payment" value="card" checked={v.payment === 'card'} />
-                <span>
-                  <strong>{t.method.card}</strong>
-                  <span class="hint small muted">{t.co.cardHint}</span>
-                  {mode === 'test' && <span class="tag tag--ink co-testtag">{t.co.cardTest}</span>}
-                </span>
-              </label>
+              {mode !== 'off' && (
+                <label class="choice">
+                  <input type="radio" name="payment" value="card" checked={v.payment === 'card'} />
+                  <span>
+                    <strong>{t.method.card}</strong>
+                    <span class="hint small muted">{t.co.cardHint}</span>
+                    {mode === 'test' && <span class="tag tag--ink co-testtag">{t.co.cardTest}</span>}
+                  </span>
+                </label>
+              )}
             </div>
           </fieldset>
         </section>
@@ -294,7 +304,7 @@ const clientWords = {
       </form>
     </div>
   </div>
-  <script type="application/json" id="checkout-words" set:html={JSON.stringify(clientWords)} />
+  <script type="application/json" id="checkout-words" set:html={jsonForScript(clientWords)} />
   <script>
     import '../scripts/checkout';
   </script>

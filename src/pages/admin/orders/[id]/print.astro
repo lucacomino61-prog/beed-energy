@@ -6,6 +6,7 @@ import { adminCtx, idParam, orderDetail, forbiddenPage } from '../../../../lib/a
 import { Forbidden } from '../../../../lib/admin';
 import { lek } from '../../../../lib/money';
 import { date } from '../../../../lib/i18n';
+import { parcelFees } from '../../../../lib/checkout-view';
 
 const c = adminCtx(Astro);
 if ('redirect' in c) return Astro.redirect(c.redirect, 303);
@@ -20,14 +21,21 @@ try {
   throw e;
 }
 if (!o) return Astro.rewrite('/404');
-const parcels = new Map<number, { name: string; items: any[] }>();
+const parcels = new Map<number, { name: string; sellerId: number | null; items: any[] }>();
 for (const it of o.items) {
   const k = it.seller_id ?? 0;
-  if (!parcels.has(k)) parcels.set(k, { name: it.seller_name, items: [] });
+  if (!parcels.has(k)) parcels.set(k, { name: it.seller_name, sellerId: it.seller_id, items: [] });
   parcels.get(k)!.items.push(it);
 }
 const city = lang === 'sq' ? o.city_sq : o.city_en;
 const n = parcels.size;
+// The courier collects the parcel's goods plus the delivery fee charged for that parcel at checkout.
+const feeOf = parcelFees(o.id, o.delivery_all);
+const due = (p: { sellerId: number | null; items: any[] }) => {
+  const sub = p.items.reduce((s, it) => s + it.line_total_all, 0);
+  const f = feeOf(p.sellerId).fee;
+  return { sub, fee: f, total: sub + (f ?? 0) };
+};
 ---
 <Admin lang={lang} t={t} user={user} url={url} title={`${t.slip.title} ${o.code}`} bare hideHead>
   <div class="slip-tools">
@@ -60,7 +68,10 @@ const n = parcels.size;
           <p><strong>{p.name}</strong></p>
           <p>{t.deliveryMethod[o.delivery_method]}</p>
           <p>{t.slip.payment}: {t.payMethod[o.payment_method]} · {t.payStatus[o.payment_status]}</p>
-          {o.payment_method === 'cod' && o.payment_status !== 'paid' && <p><strong>{t.slip.codDue}: {lek(p.items.reduce((s, it) => s + it.line_total_all, 0), lang)}</strong></p>}
+          {o.payment_method === 'cod' && o.payment_status !== 'paid' && (() => {
+            const d = due(p);
+            return <p><strong>{t.slip.codDue}: {lek(d.total, lang)}</strong>{d.fee !== null && d.fee > 0 && <span class="small"> ({lek(d.sub, lang)} + {t.order.parcelFee} {lek(d.fee, lang)})</span>}</p>;
+          })()}
         </div>
       </div>
       <table class="table">

@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { backTo, COMPARE_MAX, readCompare, wantsJson, writeCompare } from '../../lib/basket';
 import { productCardsByIds } from '../../lib/catalog';
 import { get } from '../../lib/db';
+import { secureCookies } from '../../lib/origin';
 
 const payload = (ids: number[]) => ({
   ids,
@@ -32,7 +33,7 @@ export const POST: APIRoute = async ({ request, cookies, url, redirect }) => {
       else ids = [...ids, id];
     }
   }
-  writeCompare(cookies, ids, url.protocol === 'https:');
+  writeCompare(cookies, ids, secureCookies(url));
   if (wantsJson(request)) return Response.json({ ...payload(ids), note });
   return redirect(backTo(request, url, '/'), 303);
 };

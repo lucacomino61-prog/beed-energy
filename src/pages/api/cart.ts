@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { applyCartAction, backTo, cartCount, readCart, wantsJson, writeCart } from '../../lib/basket';
 import { quote } from '../../lib/cart';
 import { href, langFromPath } from '../../lib/i18n';
+import { secureCookies } from '../../lib/origin';
 
 const summary = (lines: ReturnType<typeof readCart>, cityId: number | null) => {
   const q = quote(lines, { cityId });
@@ -61,7 +62,7 @@ export const POST: APIRoute = async ({ request, cookies, url, redirect }) => {
   }
   if (!Number.isFinite(qty)) qty = 1;
   const next = applyCartAction(readCart(cookies), action, offerId, Math.min(9999, qty));
-  writeCart(cookies, next, url.protocol === 'https:');
+  writeCart(cookies, next, secureCookies(url));
   if (wantsJson(request)) return Response.json(summary(next, null));
   // Without scripts: an add goes to the basket, other changes go back where they came from.
   const lang = langFromPath(new URL(request.headers.get('referer') ?? url.href, url).pathname);

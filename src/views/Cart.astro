@@ -9,6 +9,7 @@ import { href, other, type Lang } from '../lib/i18n';
 import { lek } from '../lib/money';
 import { tco } from '../i18n/checkout';
 import { tc } from '../i18n/common';
+import { jsonForScript } from '../lib/html';
 import { cities, cityName, cityParam, demoOffers, freeOver, groupBySeller, lineDrawing, productName, readCity, sellerInfo } from '../lib/checkout-view';
 
 interface Props { lang: Lang }
@@ -252,7 +253,7 @@ const cityName_ = city ? cityName(city, lang) : allCities.find((c) => c.zone ===
       </div>
     </div>
   </template>
-  <script type="application/json" id="basket-words" set:html={JSON.stringify({ ...clientWords, city: cityName_ })} />
+  <script type="application/json" id="basket-words" set:html={jsonForScript({ ...clientWords, city: cityName_ })} />
   <script>
     import '../scripts/cart';
   </script>

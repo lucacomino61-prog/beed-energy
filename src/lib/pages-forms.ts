@@ -2,6 +2,7 @@
 // Each handler reads the posted form, checks the honeypot and the rate limit, validates, writes and
 // returns either a redirect (PRG) or the values + errors to render next to the fields.
 import { get } from './db';
+import { hasAngle } from './html';
 import { clientKey, EMAIL_RE, isBot, rateLimited, str } from './forms';
 import { href, type Lang } from './i18n';
 import { normalisePhone, validNipt } from './orders';
@@ -103,6 +104,7 @@ export async function handleReply(ctx: Ctx, lang: Lang, code: string, token: str
   if (!q) return { status: 404, values, errors: {} };
   const back = href(lang, 'quoteThread', { code }, { k: token });
   if (isBot(form)) return { status: 303, redirect: back, values, errors: {} };
+  if (q.status === 'closed') return { status: 409, values, errors: { body: tp(lang).thread.closed } };
   if (rateLimited(`reply:${addr(ctx)}`, 20)) return { status: 429, values, errors: {}, tooMany: true };
   if (values.body.length < 2) return { status: 422, values, errors: { body: tp(lang).form.err.body } };
   const id = addBuyerMessage(q.id, values.body);
@@ -132,9 +134,11 @@ export async function handleApplication(ctx: Ctx, lang: Lang, planKeys: string[]
 
   const errors: Record<string, string> = {};
   if (values.company.length < 2) errors.company = e.company;
+  else if (hasAngle(values.company)) errors.company = e.angle; // the name reaches seller pages and their JSON-LD
   if (values.nipt && !validNipt(values.nipt)) errors.nipt = e.nipt;
   if (!(KIND_KEYS as string[]).includes(values.kind)) errors.kind = e.kind;
   if (values.contact_name.length < 3 || !/\s/.test(values.contact_name)) errors.contact_name = e.name;
+  else if (hasAngle(values.contact_name)) errors.contact_name = e.angle;
   const phone = normalisePhone(values.phone);
   if (!phone) errors.phone = e.phone;
   if (!EMAIL_RE.test(values.email)) errors.email = e.email;

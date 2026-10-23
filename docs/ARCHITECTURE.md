@@ -38,6 +38,7 @@ Albanian at the root, English under `/en`. Paths are localised and built only th
 - `quote_requests` + `messages` (buyer ↔ seller ↔ admin threads: the brief's "direct communication").
 - `seller_applications`, `contact_messages`, `price_alerts`, `cities` (delivery zone + PVGIS yield), `users` (admin | seller), `sessions`, `settings`, `audit_log`.
 - Anything a seed invents has `is_demo = 1`.
+- `npm run seed` only adds what is missing (rows matched through `seed:*` keys in `meta`, so admin renames and deletions stick); `--force` overwrites settings, categories, templates, products and demo sellers; `--demo` upserts the demo offers.
 
 ## Money
 Whole lekë, VAT (TVSH 20%) included, formatted by hand (`src/lib/money.ts`) because Chrome has no Albanian Intl data. EUR shown as a secondary "≈ €" using the Bank of Albania rate in settings.
@@ -45,10 +46,10 @@ Whole lekë, VAT (TVSH 20%) included, formatted by hand (`src/lib/money.ts`) bec
 ## Basket and checkout
 - Basket = HttpOnly cookie `beed_cart` (`offerId-qty.offerId-qty`), written only by `POST /api/cart` (form post without scripts, JSON with scripts). A line is a product **from a seller**. The compare list is the cookie `beed_cmp` (max 4, one category). Both render in the HTML (header count, basket page, compare tray). The server re-prices everything (`src/lib/cart.ts → quote()`): volume tiers, stock, minimum quantity, seller delivery zones, one parcel fee per seller (+ zone surcharge, free above the seller's threshold), VAT contained, platform commission.
 - `createOrder()` (`src/lib/orders.ts`) runs in one `BEGIN IMMEDIATE` transaction: re-quote, decrement stock with a guarded UPDATE, write order + lines + first event. Order link carries an unguessable token.
-- Payment: cash on delivery (up to a limit), bank transfer, card through POK (`src/lib/payments.ts`; without keys a clearly labelled local test gateway; paid only after re-reading the order at POK).
+- Payment: cash on delivery (up to a limit), bank transfer, card through POK (`src/lib/payments.ts`; without keys: a clearly labelled local test gateway in `npm run dev` or with `PAY_TEST=1`, otherwise card payment is off; every attempt is a row in `payments`; paid only after re-reading the POK order and checking its reference and amount). Unpaid card orders are cancelled after 45 minutes (stock returned). Each parcel's delivery fee is stored in `order_parcels`; a checkout form carries a one-time nonce (double submits land on the first order).
 
 ## Admin
-`/admin` behind a server session (scrypt hash, SHA-256 of the cookie token in `sessions`, CSRF token per session on every form + Astro's origin check). Roles: `admin` sees everything; `seller` sees only their own offers, orders and quote threads. Local dev: `DEV_LOGIN=1` shows a "sign in as developer" button on 127.0.0.1 only.
+`/admin` behind a server session (scrypt hash, SHA-256 of the cookie token in `sessions`, CSRF token per session on every form + Astro's origin check). Roles: `admin` sees everything; `seller` sees only their own offers, orders and quote threads. Local dev: `DEV_LOGIN=1` shows a "sign in as developer" button only in the dev server, on 127.0.0.1, from a loopback client address.
 
 ## Security headers
-Set in `src/middleware.ts`. Referrer-Policy is `strict-origin-when-cross-origin` on purpose: `no-referrer` makes browsers send `Origin: null` on form posts and the origin check would refuse every sign-in.
+Set in `src/middleware.ts`: CSP on HTML (`src/lib/csp.ts`: scripts are files plus one hashed inline snippet; `assetsInlineLimit: 0` keeps the build from inlining scripts), HSTS on https. Behind a proxy set `PUBLIC_ORIGIN` (payment URLs, Secure cookies, `site`) and `TRUST_PROXY=1` (X-Forwarded-For / -Proto). Referrer-Policy is `strict-origin-when-cross-origin` on purpose: `no-referrer` makes browsers send `Origin: null` on form posts and the origin check would refuse every sign-in.

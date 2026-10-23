@@ -48,7 +48,11 @@ function build() {
   triggers.forEach((t) => t.kill());
   triggers = [];
   if (!motionOn() || !house) {
-    // Static: every part shown at its exploded offset by CSS, every chapter readable.
+    // Static: every part shown at its exploded offset by CSS, every chapter readable. Tweens still
+    // running from the last layer change would write their transform back after clearProps: kill first.
+    const els = parts.map((p) => p.el);
+    gsap.killTweensOf(els);
+    els.forEach((el) => el.classList.remove('is-live'));
     parts.forEach((p) => gsap.set(p.el, { clearProps: 'transform' }));
     house?.removeAttribute('data-dim');
     current = -1;

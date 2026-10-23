@@ -39,7 +39,9 @@ if (Astro.request.method === 'POST') {
         body = fstr(f, 'body', 4000);
         price = fstr(f, 'price', 20);
         const p = admin ? null : fnum(f, 'price');
-        if (!body) errors.body = t.quotes.bodyRequired;
+        // A closed request takes no more messages (the buyer cannot answer them either); reopen it first.
+        if (q.status === 'closed') errors._form = t.quotes.closedNote;
+        else if (!body) errors.body = t.quotes.bodyRequired;
         if (p !== null && (Number.isNaN(p) || p <= 0)) errors.price = t.err.positive;
         if (!Object.keys(errors).length) {
           postMessage(user, 'rfq', id, body, p === null ? null : Math.round(p));
@@ -100,7 +102,7 @@ const buyerLink = href(q.lang === 'en' ? 'en' : 'sq', 'quoteThread', { code: q.c
             );
           })}
         </div>
-        {q.status === 'closed' && !admin ? null : (
+        {q.status === 'closed' ? <p class="notice" role="status">{t.quotes.closedNote}</p> : (
           <form class="adm-form box" method="post" style="max-width: 48rem" novalidate>
             <h3 class="adm-h3">{t.quotes.reply}</h3>
             <input type="hidden" name="_csrf" value={user.csrf} />

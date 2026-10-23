@@ -2,15 +2,20 @@
 // Flow: create the order here → the buyer pays on POK's card form (3-D Secure) → POK calls the
 // webhook → we re-read the order from POK, which is the only trusted proof of payment.
 // Keys live only in environment variables (POK_KEY_ID, POK_KEY_SECRET, POK_MERCHANT_ID, POK_ENV).
-// Without keys the site runs a local test gateway that is clearly labelled and never takes money.
+// Without keys: in development (or with PAY_TEST=1) a local test gateway that is clearly labelled and
+// never takes money; anywhere else card payment is simply off, so a missing key can never turn a live
+// shop into one that marks orders paid for free.
 // Amounts are whole lekë: 9000 means 9 000 L.
+import { randomBytes } from 'node:crypto';
 
 const BASE = { production: 'https://api.pokpay.io', staging: 'https://api-staging.pokpay.io' } as const;
 
-export type PaymentMode = 'pok' | 'test';
+export type PaymentMode = 'pok' | 'test' | 'off';
 
 export function paymentMode(): PaymentMode {
-  return process.env.POK_KEY_ID && process.env.POK_KEY_SECRET && process.env.POK_MERCHANT_ID ? 'pok' : 'test';
+  if (process.env.POK_KEY_ID && process.env.POK_KEY_SECRET && process.env.POK_MERCHANT_ID) return 'pok';
+  if (import.meta.env.DEV || process.env.PAY_TEST?.trim() === '1') return 'test';
+  return 'off';
 }
 
 const base = () => (String(process.env.POK_ENV ?? 'production').toLowerCase() === 'staging' ? BASE.staging : BASE.production);
@@ -60,7 +65,10 @@ export async function createCardPayment(order: {
   webhookUrl: string;
   testUrl: string;
 }): Promise<CreatedPayment> {
-  if (paymentMode() === 'test') return { ok: true, redirect: order.testUrl, providerId: `test-${order.code}` };
+  const mode = paymentMode();
+  if (mode === 'off') return { ok: false, reason: 'off' };
+  // Each attempt gets its own id, as a real retry does at POK.
+  if (mode === 'test') return { ok: true, redirect: order.testUrl, providerId: `test-${order.code}-${randomBytes(4).toString('hex')}` };
   const t = await login();
   if (!t) return { ok: false, reason: 'login' };
   const r = await call(`${base()}/merchants/${encodeURIComponent(String(process.env.POK_MERCHANT_ID))}/sdk-orders`, {
@@ -86,13 +94,21 @@ export async function createCardPayment(order: {
   return { ok: true, redirect, providerId: String(o.id) };
 }
 
-/** Re-reads a POK order; true only when POK itself says it is paid (captured or completed). */
-export async function isPaidAtProvider(providerId: string): Promise<boolean> {
-  if (paymentMode() === 'test') return false;
+/**
+ * Re-reads a POK order. True only when POK itself says it is paid (captured or completed) AND it is the
+ * order we expect: our order code as merchantCustomReference and the same amount in lekë. A webhook body
+ * or a return URL is never proof on its own.
+ */
+export async function isPaidAtProvider(providerId: string, expect: { code: string; amount: number }): Promise<boolean> {
+  if (paymentMode() !== 'pok') return false;
   const t = await login();
   if (!t) return false;
   const r = await call(`${base()}/sdk-orders/${encodeURIComponent(providerId)}`, { headers: { Authorization: `Bearer ${t}` } });
   const o = r.data?.data?.sdkOrder ?? r.data?.data ?? null;
-  const s = String(o?.status ?? '').toUpperCase();
-  return r.ok && (s === 'COMPLETED' || s === 'CAPTURED' || s === 'PAID' || o?.isCompleted === true);
+  if (!r.ok || !o) return false;
+  const s = String(o.status ?? '').toUpperCase();
+  const paid = s === 'COMPLETED' || s === 'CAPTURED' || s === 'PAID' || o.isCompleted === true;
+  const ref = String(o.merchantCustomReference ?? '');
+  const amount = Math.round(Number(o.amount));
+  return paid && ref === expect.code && amount === Math.round(expect.amount);
 }

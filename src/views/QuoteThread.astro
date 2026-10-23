@@ -83,6 +83,7 @@ const who = (m: (typeof msgs)[number]) => (m.author_role === 'buyer' ? t.you : m
         </ol>
       )}
       {replied && <p class="notice notice--ok" role="status">{t.replied}</p>}
+      {q.status === 'closed' ? <p class="notice" role="status">{t.closed}</p> : (
       <form class="pg-form th-reply" method="post" action={self} novalidate>
         <div class="hp" aria-hidden="true"><label for="r-website">{f.hp}</label><input id="r-website" name="website" tabindex="-1" autocomplete="off" /></div>
         {state?.tooMany && <p class="form-errors" role="alert">{f.tooMany}</p>}
@@ -94,6 +95,7 @@ const who = (m: (typeof msgs)[number]) => (m.author_role === 'buyer' ? t.you : m
         </div>
         <button class="btn" type="submit">{t.send} <span class="arrow" aria-hidden="true">→</span></button>
       </form>
+      )}
     </section>
   </div>
   <script>

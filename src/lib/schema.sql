@@ -235,6 +235,38 @@ CREATE TABLE IF NOT EXISTS order_events (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- One row per seller parcel, written with the order: the delivery fee the buyer was charged for it.
+-- Packing slips (cash due per courier) and the order pages read these instead of recomputing.
+CREATE TABLE IF NOT EXISTS order_parcels (
+  order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  seller_id INTEGER NOT NULL,
+  seller_name TEXT NOT NULL,
+  subtotal_all INTEGER NOT NULL,
+  fee_all INTEGER NOT NULL,
+  free INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (order_id, seller_id)
+);
+
+-- Every card payment attempt at the provider (a retry makes a new POK order). orders.payment_ref keeps
+-- the latest id for display; the webhook and the retry check look ids up here.
+CREATE TABLE IF NOT EXISTS payments (
+  id INTEGER PRIMARY KEY,
+  order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  provider_id TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'created' CHECK (status IN ('created', 'paid', 'failed')),
+  amount_all INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS payments_order ON payments (order_id, created_at);
+
+-- One-time token of a drawn checkout form: a second post of the same form finds it used and lands on
+-- the order the first post created, instead of creating a second order.
+CREATE TABLE IF NOT EXISTS checkout_nonces (
+  nonce TEXT PRIMARY KEY,
+  order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- Request for quote: a buyer describes a project; sellers answer in the thread.
 CREATE TABLE IF NOT EXISTS quote_requests (
   id INTEGER PRIMARY KEY,

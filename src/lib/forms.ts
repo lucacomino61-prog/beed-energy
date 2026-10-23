@@ -1,5 +1,6 @@
 // Shared helpers for public form posts: a honeypot field, a small per-address rate limit,
 // trimmed string reads and the email check every form uses.
+import { trustProxy } from './origin';
 
 const hits = new Map<string, number[]>();
 
@@ -13,8 +14,16 @@ export function rateLimited(key: string, max = 8, windowMs = 10 * 60 * 1000): bo
   return list.length > max;
 }
 
+/**
+ * The visitor's address for rate limits. X-Forwarded-For is anyone's to write, so it counts only
+ * behind a proxy we run (TRUST_PROXY=1), and then its last entry: the one our proxy appended.
+ */
 export function clientKey(request: Request, clientAddress?: string): string {
-  return clientAddress || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
+  if (trustProxy()) {
+    const fwd = request.headers.get('x-forwarded-for')?.split(',').map((s) => s.trim()).filter(Boolean);
+    if (fwd?.length) return fwd[fwd.length - 1];
+  }
+  return clientAddress || 'local';
 }
 
 /** Bots fill every field; people never see this one ("website", hidden with CSS and aria-hidden). */

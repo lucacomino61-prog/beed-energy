@@ -5,6 +5,7 @@ import { get } from '../../lib/db';
 import { clientKey, isBot, rateLimited, str } from '../../lib/forms';
 import { href } from '../../lib/i18n';
 import { saveAlert, validateAlert, writeAlertFlash } from '../../lib/shop-alerts';
+import { secureCookies } from '../../lib/origin';
 
 export const POST: APIRoute = async ({ request, cookies, url, redirect, clientAddress }) => {
   let form: FormData;
@@ -33,7 +34,7 @@ export const POST: APIRoute = async ({ request, cookies, url, redirect, clientAd
     } catch { /* ignore */ }
   }
   const withOk = (u: string) => `${u}${u.includes('?') ? '&' : '?'}njoftim=ok#njoftim`;
-  const secure = url.protocol === 'https:';
+  const secure = secureCookies(url);
 
   // Bots get the same answer as people and nothing is stored.
   if (isBot(form)) return redirect(withOk(back), 303);

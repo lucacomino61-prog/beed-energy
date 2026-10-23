@@ -27,7 +27,7 @@ export type SolarAssumptions = {
 export const DEFAULT_ASSUMPTIONS: SolarAssumptions = {
   selfUseNoBattery: 0.45,
   selfUseWithBattery: 0.8,
-  degradationPerYear: 0.004,
+  degradationPerYear: 0.005,
   years: 25,
   panelWp: 500,
   batteryKwhPerKwp: 1,

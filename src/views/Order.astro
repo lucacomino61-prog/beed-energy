@@ -17,7 +17,7 @@ const o = state.order;
 const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
 ---
 {!o ? (
-  <Site lang={lang} title={lang === 'sq' ? 'Porosia nuk u gjet në BeeD Energy' : 'Order not found on BeeD Energy'} description={lang === 'sq' ? 'Lidhja e porosisë nuk është e plotë ose ka skaduar. Hapeni lidhjen nga konfirmimi, ose na kontaktoni me kodin e porosisë.' : 'The order link is incomplete or wrong. Open the link from your confirmation, or contact us with the order number.'} alternate={href(other(lang), 'home')} noindex hideTray>
+  <Site lang={lang} title={lang === 'sq' ? 'Porosia nuk u gjet në BeeD Energy' : 'Order not found on BeeD Energy'} description={lang === 'sq' ? 'Lidhja e porosisë nuk është e plotë ose nuk është e saktë. Hapeni lidhjen nga konfirmimi, ose na kontaktoni me kodin e porosisë.' : 'The order link is incomplete or wrong. Open the link from your confirmation, or contact us with the order number.'} alternate={href(other(lang), 'home')} noindex hideTray>
     <div class="wrap sheet-head co-head">
       <h1 class="title title--xl co-title">{notFoundTitle}</h1>
       <p class="lede">{lang === 'sq' ? 'Lidhja e porosisë nuk është e plotë ose nuk është e saktë. Hapeni lidhjen nga konfirmimi, ose na kontaktoni me kodin e porosisë.' : 'The order link is incomplete or wrong. Open the link from your confirmation, or contact us with the order number.'}</p>
@@ -32,6 +32,9 @@ const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
   const isCard = o.payment_method === 'card';
   const isPickup = o.delivery_method === 'pickup';
   const cardFailed = isCard && !paid && (o.payment_status === 'failed' || pagesa === 'deshtoi' || pagesa === 'nisja');
+  const cancelled = o.status === 'cancelled';
+  // No retry on a cancelled order (its stock is back on sale) or while card payment is switched off.
+  const canRetry = isCard && !paid && !cancelled && state.mode !== 'off';
   const payLabel = o.payment_method === 'cod' && !paid ? t.payStatus.cod : t.payStatus[o.payment_status] ?? o.payment_status;
   const bank = bankDetails();
   const cityLabel = lang === 'sq' ? o.city_sq : o.city_en;
@@ -92,8 +95,9 @@ const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
               )}
               {isCard && (
                 <div class="stack-m">
-                  <p class="co-big">{paid ? <Fragment><span aria-hidden="true">✓ </span>{t.order.cardPaid}</Fragment> : cardFailed ? t.order.cardFailed : t.order.cardPending}</p>
-                  {!paid && (
+                  <p class="co-big">{paid ? <Fragment><span aria-hidden="true">✓ </span>{t.order.cardPaid}</Fragment> : cancelled ? t.order.cardCancelled : cardFailed ? t.order.cardFailed : t.order.cardPending}</p>
+                  {!paid && !cancelled && state.mode === 'off' && <p>{t.order.cardOff}</p>}
+                  {canRetry && (
                     <form method="post" action={Astro.url.pathname + `?k=${encodeURIComponent(k)}`}>
                       <input type="hidden" name="action" value="retry" />
                       <button class="btn" type="submit">{t.order.retry} · {lek(o.total_all, lang)}</button>
@@ -126,7 +130,10 @@ const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
                     ))}
                   </ul>
                   <footer class="parcel__foot">
-                    <dl class="parcel__sum"><div><dt>{t.cart.parcelSubtotal}</dt><dd class="price">{lek(p.subtotal, lang)}</dd></div></dl>
+                    <dl class="parcel__sum">
+                      <div><dt>{t.cart.parcelSubtotal}</dt><dd class="price">{lek(p.subtotal, lang)}</dd></div>
+                      {p.fee !== null && <div><dt>{t.sum.delivery}</dt><dd class="price">{fee(p.fee)}</dd></div>}
+                    </dl>
                   </footer>
                 </div>
               ))}

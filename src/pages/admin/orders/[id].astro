@@ -5,6 +5,7 @@ import Admin from '../../../layouts/Admin.astro';
 import Field from '../_parts/Field.astro';
 import St from '../_parts/St.astro';
 import { adminCtx, addOrderNote, fstr, idParam, orderDetail, type Errors, forbiddenPage } from '../../../lib/admin-panel';
+import { parcelFees } from '../../../lib/checkout-view';
 import { Forbidden, isAdmin } from '../../../lib/admin';
 import { csrfOk } from '../../../lib/auth';
 import { audit } from '../../../lib/db';
@@ -38,8 +39,13 @@ if (Astro.request.method === 'POST') {
         const s = fstr(f, 'status', 20) as OrderStatus;
         statusNote = fstr(f, 'note', 500);
         if (!(ORDER_STATUSES as readonly string[]).includes(s)) errors.status = t.err.required;
-        else if (!setOrderStatus(id, s, user.email, statusNote || undefined)) errors.status = t.order.sameStatus;
         else {
+          const r = setOrderStatus(id, s, user.email, statusNote || undefined);
+          if (r === 'same') errors.status = t.order.sameStatus;
+          else if (r === 'cancelled') errors.status = t.order.cancelledLocked; // stock is back on sale: no reopening
+          else if (r === 'missing') return Astro.rewrite('/404');
+        }
+        if (!errors.status) {
           audit(user.id, 'order.status', 'order', id, s);
           return Astro.redirect(`/admin/orders/${id}?ok=status`, 303);
         }
@@ -77,16 +83,19 @@ try {
 }
 if (!o) return Astro.rewrite('/404');
 
-const parcels = new Map<number, { name: string; items: any[] }>();
+const parcels = new Map<number, { name: string; sellerId: number | null; items: any[] }>();
 for (const it of o.items) {
   const k = it.seller_id ?? 0;
-  if (!parcels.has(k)) parcels.set(k, { name: it.seller_name, items: [] });
+  if (!parcels.has(k)) parcels.set(k, { name: it.seller_name, sellerId: it.seller_id, items: [] });
   parcels.get(k)!.items.push(it);
 }
 const mineTotal = o.items.reduce((s: number, it: any) => s + it.line_total_all, 0);
+// Each parcel's delivery fee as charged at checkout (order_parcels), not recomputed from today's settings.
+const feeOf = parcelFees(o.id, o.delivery_all);
+const cancelled = o.status === 'cancelled';
 const city = lang === 'sq' ? o.city_sq : o.city_en;
 const customerLink = href(o.lang === 'en' ? 'en' : 'sq', 'order', { code: o.code }, { k: o.token });
-const canPay = admin && o.payment_status !== 'paid' && o.payment_method !== 'card';
+const canPay = admin && !cancelled && o.payment_status !== 'paid' && o.payment_method !== 'card';
 ---
 <Admin lang={lang} t={t} user={user} url={url} title={t.order.titleOf(o.code)} docTitle={o.code} section="orders" flash={flash}
   sheet={[[t.sheet.status, t.status[o.status] ?? o.status], [t.order.payment, t.payStatus[o.payment_status] ?? o.payment_status], [t.order.created, date(o.created_at, lang, true)]]}>
@@ -119,9 +128,12 @@ const canPay = admin && o.payment_status !== 'paid' && o.payment_method !== 'car
       <section class="adm-sec" aria-labelledby="h-parcels">
         <h2 class="adm-h2" id="h-parcels"><span class="k">02</span>{t.order.parcels}</h2>
         {!admin && <p class="adm-lede">{t.order.sellerOnly}</p>}
-        {[...parcels.values()].map((p, i) => (
+        {[...parcels.values()].map((p, i) => {
+          const sub = p.items.reduce((s, it) => s + it.line_total_all, 0);
+          const pf = feeOf(p.sellerId);
+          return (
           <div class="parcel">
-            <div class="parcel__head"><b>{t.order.parcel(i + 1)} · {p.name}</b><span class="mono small">{lek(p.items.reduce((s, it) => s + it.line_total_all, 0), lang)}</span></div>
+            <div class="parcel__head"><b>{t.order.parcel(i + 1)} · {p.name}</b><span class="mono small">{lek(sub, lang)}{pf.fee !== null && <> + {t.order.parcelFee} {lek(pf.fee, lang)} = {lek(sub + pf.fee, lang)}</>}</span></div>
             <div class="table-scroll" style="border-top: 0">
               <table class="table adm-table">
                 <thead>
@@ -147,7 +159,8 @@ const canPay = admin && o.payment_status !== 'paid' && o.payment_method !== 'car
               </table>
             </div>
           </div>
-        ))}
+          );
+        })}
         <div class="totals">
           {admin ? (
             <>
@@ -187,7 +200,14 @@ const canPay = admin && o.payment_status !== 'paid' && o.payment_method !== 'car
     </div>
 
     <aside class="adm-aside adm-sec" aria-label={t.common.actions}>
-      {admin && (
+      {admin && cancelled && (
+        <div class="box box--ink">
+          <h2>{t.order.changeStatus}</h2>
+          {errors.status && <p class="error" role="alert">{errors.status}</p>}
+          <p>{t.order.cancelledLocked}</p>
+        </div>
+      )}
+      {admin && !cancelled && (
         <form class="box box--ink" method="post">
           <h2>{t.order.changeStatus}</h2>
           <input type="hidden" name="_csrf" value={user.csrf} />

@@ -8,6 +8,7 @@ import { adminCtx, langHref, fstr } from '../../lib/admin-panel';
 import { createSession, devLoginAllowed, verifyPassword } from '../../lib/auth';
 import { audit, get, run } from '../../lib/db';
 import { clientKey, rateLimited } from '../../lib/forms';
+import { secureCookies } from '../../lib/origin';
 
 const c = adminCtx(Astro);
 if ('redirect' in c) return Astro.redirect(c.redirect, 303);
@@ -16,8 +17,14 @@ const user = Astro.locals.user;
 
 const nextRaw = url.searchParams.get('next') ?? '';
 const next = nextRaw.startsWith('/admin') && !nextRaw.startsWith('//') && !nextRaw.startsWith('/admin/login') ? nextRaw : '/admin';
-const dev = devLoginAllowed(url);
-const secure = url.protocol === 'https:';
+let clientAddress: string | null = null;
+try {
+  clientAddress = Astro.clientAddress;
+} catch {
+  clientAddress = null; // no socket address (e.g. prerender): never a developer sign-in
+}
+const dev = devLoginAllowed(url, clientAddress);
+const secure = secureCookies(url);
 let error = '';
 let email = '';
 const signedOut = url.searchParams.get('ok') === 'signedOut';

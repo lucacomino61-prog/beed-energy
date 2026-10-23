@@ -79,8 +79,9 @@ if (Astro.request.method === 'POST') {
           }
           if (!Object.keys(tplErrors).length) {
             try {
-              saveTemplate(user, existing.id, parsed.attrs);
-              return Astro.redirect(`/admin/categories/${existing.id}?ok=template#template`, 303);
+              const moved = saveTemplate(user, existing.id, parsed.attrs);
+              const extra = `${moved.converted ? `&converted=${moved.converted}` : ''}${moved.dropped ? `&dropped=${moved.dropped}` : ''}`;
+              return Astro.redirect(`/admin/categories/${existing.id}?ok=template${extra}#template`, 303);
             } catch (e) {
               if (e instanceof Forbidden) throw e;
               const msg = e instanceof Error ? e.message : '';
@@ -105,13 +106,17 @@ const gone = existing && tplUnsaved ? removedAttrs(existing.id, rows.map((r) => 
 const goneValues = gone.reduce((s, g) => s + g.values, 0);
 const numericKeys = rows.filter((r) => r.type === 'number' && r.key).map((r) => r.key);
 const title = existing ? (lang === 'sq' ? existing.name_sq : existing.name_en) : t.cat.newTitle;
+// After a type change: how many stored values were converted, and how many could not be (deleted).
+const converted = Math.max(0, Math.floor(Number(url.searchParams.get('converted')) || 0));
+const dropped = Math.max(0, Math.floor(Number(url.searchParams.get('dropped')) || 0));
+const flashMsg = flash ? [flash, converted ? t.tpl.converted(converted) : '', dropped ? t.tpl.dropped(dropped) : ''].filter(Boolean).join(' ') : flash;
 const catLabels: Record<string, string> = { slug_sq: t.cat.slug_sq, slug_en: t.cat.slug_en, name_sq: t.cat.name_sq, name_en: t.cat.name_en, group_key: t.cat.group, unit_basis: t.cat.unitBasis, sort: t.cat.sort };
 const tplLabels: Record<string, string> = {};
 rows.forEach((_r, i) => {
   for (const k of ['key', 'label_sq', 'label_en', 'options', 'decimals'] as const) tplLabels[`a${i}_${k}`] = `${t.tpl.row} ${i + 1} · ${(t.tpl as any)[k] ?? k}`;
 });
 ---
-<Admin lang={lang} t={t} user={user} url={url} title={title} section="categories" flash={flash}
+<Admin lang={lang} t={t} user={user} url={url} title={title} section="categories" flash={flashMsg}
   sheet={existing ? [[t.cat.attrs, rows.length], [t.cat.group, t.cat.groups[existing.group_key] ?? existing.group_key]] : []}>
   <div slot="head" class="adm-head-tools">
     {existing && <a class="btn btn--s btn--ghost" href={href(lang, 'category', { slug: lang === 'sq' ? existing.slug_sq : existing.slug_en })}>{t.cat.shop}</a>}

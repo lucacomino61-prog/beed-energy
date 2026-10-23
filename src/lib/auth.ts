@@ -65,10 +65,22 @@ export function endSession(cookies: AstroCookies) {
   cookies.delete(SESSION_COOKIE, { path: '/' });
 }
 
-/** Local development only: lets the "sign in as developer" button work without typing a password. */
-export function devLoginAllowed(url: URL): boolean {
+const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+
+/**
+ * Local development only: lets the "sign in as developer" button work without typing a password.
+ * Needs all four: the dev server (never a production build), DEV_LOGIN=1, a loopback Host and a
+ * loopback client address. The Host header alone is the client's to write; the socket address is not.
+ */
+export function devLoginAllowed(url: URL, clientAddress: string | null): boolean {
   // trim(): `set DEV_LOGIN=1 && npm run dev` in cmd.exe stores "1 " with the trailing space.
-  return process.env.DEV_LOGIN?.trim() === '1' && (url.hostname === '127.0.0.1' || url.hostname === 'localhost');
+  return (
+    import.meta.env.DEV &&
+    process.env.DEV_LOGIN?.trim() === '1' &&
+    (url.hostname === '127.0.0.1' || url.hostname === 'localhost') &&
+    !!clientAddress &&
+    LOOPBACK.has(clientAddress)
+  );
 }
 
 /** Same-site form posts carry the session's CSRF token as well as passing Astro's origin check. */

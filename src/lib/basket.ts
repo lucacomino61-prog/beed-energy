@@ -74,7 +74,8 @@ export function backTo(request: Request, url: URL, fallback: string): string {
   if (ref) {
     try {
       const r = new URL(ref);
-      if (r.origin === url.origin) return r.pathname + r.search + r.hash;
+      // A path like //evil.example or /\evil.example is same-origin here but a new host in a Location header.
+      if (r.origin === url.origin && !/^\/[/\\]/.test(r.pathname)) return r.pathname + r.search + r.hash;
     } catch {
       /* fall through */
     }

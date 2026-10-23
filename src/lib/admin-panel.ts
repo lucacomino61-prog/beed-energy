@@ -6,6 +6,8 @@ import { all, audit, get, run, saveSetting } from './db';
 import type { User } from './auth';
 import { Forbidden, isAdmin, postMessage, requireAdmin, slugify, type AttrInput } from './admin';
 import type { Lang } from './i18n';
+import { hasAngle } from './html';
+import { secureCookies } from './origin';
 import { ta, type AdminWords } from '../i18n/admin';
 
 export const ADMIN_LANG_COOKIE = 'beed_admin_lang';
@@ -41,7 +43,7 @@ export function adminCtx(Astro: AstroGlobal): Ctx | { redirect: string } {
   const url = new URL(Astro.url);
   const want = url.searchParams.get('lang');
   if (want === 'sq' || want === 'en') {
-    Astro.cookies.set(ADMIN_LANG_COOKIE, want, { path: '/', sameSite: 'lax', httpOnly: true, maxAge: 60 * 60 * 24 * 365 });
+    Astro.cookies.set(ADMIN_LANG_COOKIE, want, { path: '/', sameSite: 'lax', httpOnly: true, secure: secureCookies(url), maxAge: 60 * 60 * 24 * 365 });
     url.searchParams.delete('lang');
     return { redirect: url.pathname + (url.search || '') };
   }
@@ -436,6 +438,8 @@ export function readSeller(f: FormData, id: number | null, t: AdminWords) {
     status: fstr(f, 'status', 12),
   };
   if (!v.name) errors.name = t.err.required;
+  else if (hasAngle(v.name)) errors.name = t.err.angle; // the name reaches public pages and their JSON-LD
+  if (hasAngle(v.legal_name)) errors.legal_name = t.err.angle;
   if (!v.slug) errors.slug = t.err.required;
   else if (get('SELECT id FROM sellers WHERE slug = ? AND id != ?', v.slug, id ?? 0)) errors.slug = t.sellers.slugTaken;
   if (!['supplier', 'installer', 'manufacturer', 'contractor'].includes(v.kind)) errors.kind = t.err.required;

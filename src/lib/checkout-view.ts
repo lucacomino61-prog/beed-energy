@@ -88,6 +88,11 @@ export function codLimit(): number {
   return setting<{ codLimit?: number }>('delivery', {}).codLimit ?? 250000;
 }
 
+/** Settings → delivery → "pickup from the seller" switch (on unless turned off). */
+export function pickupAvailable(): boolean {
+  return setting<{ pickupAvailable?: boolean }>('delivery', {}).pickupAvailable !== false;
+}
+
 export type Bank = { beneficiary: string | null; bank: string | null; iban: string | null; swift: string | null };
 export function bankDetails(): Bank | null {
   const b = setting<Partial<Bank> | null>('bank', null);
@@ -95,20 +100,43 @@ export function bankDetails(): Bank | null {
   return { beneficiary: b.beneficiary ?? null, bank: b.bank ?? null, iban: b.iban, swift: b.swift ?? null };
 }
 
-/** Order lines with the product slug for links, grouped by seller. */
+export type ParcelFee = { fee: number | null; free: boolean };
+
+/**
+ * The delivery fee each seller parcel was charged, as stored at checkout (order_parcels). Orders from
+ * before that table have no rows: with one parcel the order's delivery is that parcel's; with several
+ * the split is unknown (null) rather than guessed.
+ */
+export function parcelFees(orderId: number, deliveryAll: number): (sellerId: number | null) => ParcelFee {
+  const rows = all<{ seller_id: number; fee_all: number; free: number }>('SELECT seller_id, fee_all, free FROM order_parcels WHERE order_id = ?', orderId);
+  // Counted over the whole order, also when a seller looks at only its own lines.
+  const parcelCount = rows.length ? rows.length : (get<{ n: number }>('SELECT COUNT(DISTINCT COALESCE(seller_id, 0)) AS n FROM order_items WHERE order_id = ?', orderId)?.n ?? 0);
+  const bySeller = new Map(rows.map((r) => [r.seller_id, { fee: r.fee_all, free: !!r.free }]));
+  return (sellerId) => {
+    const hit = sellerId === null ? undefined : bySeller.get(sellerId);
+    if (hit) return hit;
+    if (!rows.length && parcelCount === 1) return { fee: deliveryAll, free: deliveryAll === 0 };
+    return { fee: null, free: false };
+  };
+}
+
+/** Order lines with the product slug for links, grouped by seller, with each parcel's delivery fee. */
 export function orderParcels(orderId: number) {
   const items = all<any>(
     `SELECT i.*, p.slug, p.name_sq, p.name_en, p.category_id, p.width_mm, p.height_mm, p.depth_mm, p.brand, p.model
        FROM order_items i LEFT JOIN products p ON p.id = i.product_id WHERE i.order_id = ? ORDER BY i.id`,
     orderId,
   );
-  const groups: { seller: string; sellerId: number | null; items: any[]; subtotal: number }[] = [];
+  const groups: { seller: string; sellerId: number | null; items: any[]; subtotal: number; fee: number | null; free: boolean }[] = [];
   for (const it of items) {
     let g = groups.find((x) => x.sellerId === it.seller_id && x.seller === it.seller_name);
-    if (!g) groups.push((g = { seller: it.seller_name, sellerId: it.seller_id, items: [], subtotal: 0 }));
+    if (!g) groups.push((g = { seller: it.seller_name, sellerId: it.seller_id, items: [], subtotal: 0, fee: null, free: false }));
     g.items.push(it);
     g.subtotal += it.line_total_all;
   }
+  const delivery = get<{ delivery_all: number }>('SELECT delivery_all FROM orders WHERE id = ?', orderId)?.delivery_all ?? 0;
+  const feeOf = parcelFees(orderId, delivery);
+  for (const g of groups) Object.assign(g, feeOf(g.sellerId));
   return groups;
 }
 
@@ -117,7 +145,11 @@ export function orderDrawing(it: any): string {
   return drawProduct({ category: categorySlug(it.category_id), w: it.width_mm, h: it.height_mm, d: it.depth_mm, dims: false, title: it.product_name });
 }
 
-/** "offerId:unitPrice:qty" for each line: what the buyer saw when the form was drawn. */
+/**
+ * "offerId:unitPrice:qty" for each line: what the buyer saw when the form was drawn. The total the buyer
+ * saw (delivery for the chosen city included) travels in its own field, seen_total, because checkout.ts
+ * updates it when it re-prices the summary for another city or for pickup.
+ */
 export function seenKey(q: Quote): string {
   return q.lines.map((l) => `${l.offerId}:${l.unitPrice}:${l.qty}`).join(',');
 }
@@ -129,6 +161,11 @@ export function parseSeen(s: string): Map<number, { price: number; qty: number }
     if (Number.isInteger(id) && id > 0 && Number.isFinite(price) && Number.isFinite(qty)) m.set(id, { price, qty });
   }
   return m;
+}
+
+/** The posted seen_total, or null when the form did not carry one. */
+export function parseSeenTotal(s: string): number | null {
+  return /^\d{1,12}$/.test(s.trim()) ? Number(s.trim()) : null;
 }
 
 export function sellerCity(sellerId: number): { sq: string | null; en: string | null } {

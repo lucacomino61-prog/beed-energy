@@ -3,6 +3,8 @@ import { get } from './db';
 import type { CartLineInput } from './cart';
 import { normalisePhone, validNipt, type OrderInput } from './orders';
 import type { Lang } from './i18n';
+import { paymentMode } from './payments';
+import { pickupAvailable } from './checkout-view';
 
 export type CheckoutValues = {
   customerType: 'individual' | 'business';
@@ -33,11 +35,13 @@ const MSG = {
     address: 'Shkruani adresën: rrugën, numrin e pallatit ose të shtëpisë dhe një pikë referimi.',
     terms: 'Pranoni kushtet e blerjes për të vazhduar.',
     payment: 'Zgjidhni mënyrën e pagesës.',
+    cardOff: 'Pagesa me kartë nuk është e disponueshme tani. Zgjidhni pagesën në dorëzim ose transfertën bankare.',
+    pickupOff: 'Tërheqja te shitësi nuk është e disponueshme tani. Zgjidhni dorëzimin në adresë.',
   },
   en: {
     name: 'Enter your full name.',
     phone: 'Enter an Albanian phone number, e.g. 069 123 4567.',
-    email: 'This email address looks incomplete.',
+    email: 'Check the email address, e.g. name@example.al.',
     emailNeeded: 'A business invoice needs an email address.',
     company: 'Enter the company name.',
     nipt: 'A NIPT is one letter, 8 digits and one letter, e.g. L12345678A.',
@@ -45,6 +49,8 @@ const MSG = {
     address: 'Enter the address: street, number, building or landmark.',
     terms: 'Accept the terms of sale to continue.',
     payment: 'Choose a payment method.',
+    cardOff: 'Card payment is not available right now. Choose cash on delivery or bank transfer.',
+    pickupOff: 'Pickup from the seller is not available right now. Choose home delivery.',
   },
 } as const;
 
@@ -85,6 +91,9 @@ export function validateCheckout(v: CheckoutValues, lines: CartLineInput[], lang
   }
   const city = get<{ id: number }>('SELECT id FROM cities WHERE slug = ?', v.city);
   if (!city) errors.city = m.city;
+  // The form hides these when they are off; a hand-made post must not get around that.
+  if (v.payment === 'card' && paymentMode() === 'off') errors.payment = m.cardOff;
+  if (v.delivery === 'pickup' && !pickupAvailable()) errors.delivery = m.pickupOff;
   if (v.delivery === 'courier' && v.address.length < 6) errors.address = m.address;
   if (!v.terms) errors.terms = m.terms;
   if (Object.keys(errors).length || !city || !phone) return { errors };

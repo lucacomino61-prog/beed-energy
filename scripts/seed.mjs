@@ -1,8 +1,13 @@
 // Seeds the local database from the research files.
-//   npm run seed            categories, spec templates, cities (PVGIS), real products from research/*.json
-//   npm run seed -- --demo  also invented demo sellers, offers, price history, a few orders and quote threads
+//   npm run seed                     settings, cities (PVGIS), categories + spec templates, real products: adds what is missing
+//   npm run seed -- --demo           also invented demo sellers and their offers (offers are upserted: prices, stock, tiers, history)
+//   npm run seed -- --force          also overwrites what the admin may have edited: settings, categories, templates,
+//                                    products (and their spec values), demo sellers
+// Without --force a reseed never undoes an admin edit. Rows are matched through the seed keys kept in
+// `meta` (seed:category:<slug_en>, seed:attr:<slug_en>:<key>, seed:product:<slug>, seed:seller:<slug>), so a
+// renamed slug or key is still the same row, and a row the admin deleted is not brought back.
 // Real data: product models, specs, dimensions, datasheet links, PVGIS yields.
-// Invented data (only with --demo, every row is_demo = 1): sellers, their prices, stock, orders.
+// Invented data (only with --demo, every row is_demo = 1): sellers, their prices, stock.
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -12,11 +17,46 @@ import { DEMO_SELLERS } from './catalog/demo-sellers.mjs';
 import { CITY_ZONES } from './catalog/cities.mjs';
 
 const DEMO = process.argv.includes('--demo');
+const FORCE = process.argv.includes('--force');
 const db = open();
 const q = (sql) => db.prepare(sql);
 const json = (p) => JSON.parse(readFileSync(resolve(ROOT, p), 'utf8'));
 
-// Deterministic pseudo-random numbers so a reseed gives the same demo shop.
+// Seed key → row id, so later runs find a row by what the seed called it, whatever the admin renamed.
+const seedId = (key) => {
+  const v = q('SELECT value FROM meta WHERE key = ?').get(key)?.value;
+  return v === undefined ? undefined : Number(v);
+};
+const remember = (key, id) => q('INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(key, String(id));
+const stats = { added: 0, kept: 0, updated: 0, skipped: 0 };
+
+/**
+ * Finds the row a seed key stands for. Returns { id, existed } or null when the row should be left alone:
+ * the admin deleted it (and --force is off), or inserting it would clash with another row.
+ */
+function resolveRow({ key, table, findExisting, clash, insert }) {
+  const mapped = seedId(key);
+  if (mapped !== undefined) {
+    if (q(`SELECT id FROM ${table} WHERE id = ?`).get(mapped)) return { id: mapped, existed: true };
+    if (!FORCE) return null; // deleted in the admin: stays deleted
+  }
+  const found = findExisting();
+  if (found) {
+    remember(key, found.id);
+    return { id: found.id, existed: true };
+  }
+  const why = clash();
+  if (why) {
+    console.warn(`Skipped ${key}: ${why}`);
+    stats.skipped++;
+    return null;
+  }
+  const id = insert();
+  remember(key, id);
+  stats.added++;
+  return { id, existed: false };
+}
+
 let seed = 20261023;
 const rnd = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
 const pickN = (arr, n) => [...arr].sort(() => rnd() - 0.5).slice(0, n);
@@ -26,10 +66,10 @@ try {
   // ---------- settings ----------
   const settings = json('scripts/catalog/settings.json');
   for (const [k, v] of Object.entries(settings)) {
-    q('INSERT INTO settings (key, value_json) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json').run(k, JSON.stringify(v));
+    q(`INSERT INTO settings (key, value_json) VALUES (?, ?) ON CONFLICT(key) DO ${FORCE ? 'UPDATE SET value_json = excluded.value_json' : 'NOTHING'}`).run(k, JSON.stringify(v));
   }
 
-  // ---------- cities with PVGIS yields ----------
+  // ---------- cities with PVGIS yields (not editable in the admin: always refreshed from research) ----------
   const pv = existsSync(resolve(ROOT, 'research/pvgis-albania.json')) ? json('research/pvgis-albania.json') : { cities: [] };
   CITY_ZONES.forEach((c, i) => {
     const y = pv.cities.find((x) => x.slug === c.slug || x.name_sq === c.name_sq);
@@ -45,27 +85,53 @@ try {
   });
 
   // ---------- categories and spec templates ----------
-  const catId = new Map();
+  const catId = new Map(); // research category → id
+  const attrOf = new Map(); // `${research}.${seed key}` → { id, type }
   CATEGORIES.forEach((c, i) => {
-    q(`INSERT INTO categories (slug_sq, slug_en, name_sq, name_en, group_key, intro_sq, intro_en, unit_basis, unit_label_sq, unit_label_en, sort)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(slug_en) DO UPDATE SET slug_sq = excluded.slug_sq, name_sq = excluded.name_sq, name_en = excluded.name_en,
-         group_key = excluded.group_key, intro_sq = excluded.intro_sq, intro_en = excluded.intro_en, unit_basis = excluded.unit_basis,
-         unit_label_sq = excluded.unit_label_sq, unit_label_en = excluded.unit_label_en, sort = excluded.sort`).run(
-      c.slug_sq, c.slug_en, c.name_sq, c.name_en, c.group_key, c.intro_sq, c.intro_en, c.unit_basis ?? null,
-      c.unit_label_sq ?? null, c.unit_label_en ?? null, i,
-    );
-    const id = q('SELECT id FROM categories WHERE slug_en = ?').get(c.slug_en).id;
-    catId.set(c.research, id);
+    const vals = [c.slug_sq, c.slug_en, c.name_sq, c.name_en, c.group_key, c.intro_sq, c.intro_en, c.unit_basis ?? null, c.unit_label_sq ?? null, c.unit_label_en ?? null, i];
+    const row = resolveRow({
+      key: `seed:category:${c.slug_en}`,
+      table: 'categories',
+      findExisting: () => q('SELECT id FROM categories WHERE slug_en = ?').get(c.slug_en),
+      clash: () => (q('SELECT id FROM categories WHERE slug_sq = ?').get(c.slug_sq) ? `slug_sq "${c.slug_sq}" is used by another category` : null),
+      insert: () =>
+        Number(q(`INSERT INTO categories (slug_sq, slug_en, name_sq, name_en, group_key, intro_sq, intro_en, unit_basis, unit_label_sq, unit_label_en, sort)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(...vals).lastInsertRowid),
+    });
+    if (!row) return; // its products are skipped too
+    if (row.existed && FORCE) {
+      const taken = q('SELECT id FROM categories WHERE (slug_sq = ? OR slug_en = ?) AND id != ?').get(c.slug_sq, c.slug_en, row.id);
+      if (taken) console.warn(`Kept category ${c.slug_en} as edited: its seed slugs are used by category ${taken.id}`);
+      else {
+        q(`UPDATE categories SET slug_sq = ?, slug_en = ?, name_sq = ?, name_en = ?, group_key = ?, intro_sq = ?, intro_en = ?, unit_basis = ?,
+             unit_label_sq = ?, unit_label_en = ?, sort = ? WHERE id = ?`).run(...vals, row.id);
+        stats.updated++;
+      }
+    } else if (row.existed) stats.kept++;
+    catId.set(c.research, row.id);
+
     c.attrs.forEach((a, j) => {
-      q(`INSERT INTO spec_attributes (category_id, key, label_sq, label_en, unit, type, options_json, filterable, comparable, highlight, required, better, decimals, sort)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT(category_id, key) DO UPDATE SET label_sq = excluded.label_sq, label_en = excluded.label_en, unit = excluded.unit,
-           type = excluded.type, options_json = excluded.options_json, filterable = excluded.filterable, comparable = excluded.comparable,
-           highlight = excluded.highlight, required = excluded.required, better = excluded.better, decimals = excluded.decimals, sort = excluded.sort`).run(
-        id, a.key, a.label_sq, a.label_en, a.unit, a.type, JSON.stringify(a.options), +a.filterable, +a.comparable, +a.highlight, +a.required,
-        a.better, a.decimals, j,
-      );
+      const avals = [a.key, a.label_sq, a.label_en, a.unit, a.type, JSON.stringify(a.options), +a.filterable, +a.comparable, +a.highlight, +a.required, a.better, a.decimals, j];
+      const ar = resolveRow({
+        key: `seed:attr:${c.slug_en}:${a.key}`,
+        table: 'spec_attributes',
+        findExisting: () => q('SELECT id FROM spec_attributes WHERE category_id = ? AND key = ?').get(row.id, a.key),
+        clash: () => null,
+        insert: () =>
+          Number(q(`INSERT INTO spec_attributes (key, label_sq, label_en, unit, type, options_json, filterable, comparable, highlight, required, better, decimals, sort, category_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(...avals, row.id).lastInsertRowid),
+      });
+      if (!ar) return;
+      if (ar.existed && FORCE) {
+        const taken = q('SELECT id FROM spec_attributes WHERE category_id = ? AND key = ? AND id != ?').get(row.id, a.key, ar.id);
+        if (!taken) {
+          q(`UPDATE spec_attributes SET key = ?, label_sq = ?, label_en = ?, unit = ?, type = ?, options_json = ?, filterable = ?, comparable = ?,
+               highlight = ?, required = ?, better = ?, decimals = ?, sort = ? WHERE id = ?`).run(...avals, ar.id);
+          stats.updated++;
+        }
+      }
+      const cur = q('SELECT id, type FROM spec_attributes WHERE id = ?').get(ar.id);
+      if (cur) attrOf.set(`${c.research}.${a.key}`, cur);
     });
   });
 
@@ -73,6 +139,7 @@ try {
   const files = ['research/products-pv.json', 'research/products-building.json'].filter((f) => existsSync(resolve(ROOT, f)));
   const products = files.flatMap((f) => json(f));
   let added = 0;
+  let kept = 0;
   const unknownKeys = new Map();
   for (const p of products) {
     const cid = catId.get(p.category);
@@ -81,24 +148,32 @@ try {
       continue;
     }
     const d = p.dimensions_mm ?? {};
-    q(`INSERT INTO products (slug, category_id, brand, model, name_sq, name_en, summary_sq, summary_en, width_mm, height_mm, depth_mm,
-                             weight_kg, warranty_years, datasheet_url, sources_json, reference_price_eur, reference_price_source, status, featured)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published', 0)
-       ON CONFLICT(slug) DO UPDATE SET category_id = excluded.category_id, brand = excluded.brand, model = excluded.model,
-         name_sq = excluded.name_sq, name_en = excluded.name_en, summary_sq = excluded.summary_sq, summary_en = excluded.summary_en,
-         width_mm = excluded.width_mm, height_mm = excluded.height_mm, depth_mm = excluded.depth_mm, weight_kg = excluded.weight_kg,
-         warranty_years = excluded.warranty_years, datasheet_url = excluded.datasheet_url, sources_json = excluded.sources_json,
-         reference_price_eur = excluded.reference_price_eur, reference_price_source = excluded.reference_price_source,
-         updated_at = datetime('now')`).run(
-      p.slug, cid, p.brand, p.model, p.name_sq, p.name_en, p.summary_sq ?? '', p.summary_en ?? '',
-      d.w ?? null, d.h ?? null, d.d ?? null, p.weight_kg ?? null, p.warranty_years ?? null, p.datasheet_url ?? null,
-      JSON.stringify(p.sources ?? []), p.reference_price_eur ?? null,
-      p.price_source ? `${p.price_source}${p.price_note ? ' — ' + p.price_note : ''}` : null,
-    );
-    const pid = q('SELECT id FROM products WHERE slug = ?').get(p.slug).id;
-    const attrs = q('SELECT id, key, type FROM spec_attributes WHERE category_id = ?').all(cid);
+    const research = [cid, p.brand, p.model, p.name_sq, p.name_en, p.summary_sq ?? '', p.summary_en ?? '', d.w ?? null, d.h ?? null, d.d ?? null,
+      p.weight_kg ?? null, p.warranty_years ?? null, p.datasheet_url ?? null, JSON.stringify(p.sources ?? []), p.reference_price_eur ?? null,
+      p.price_source ? `${p.price_source}${p.price_note ? ' — ' + p.price_note : ''}` : null];
+    const row = resolveRow({
+      key: `seed:product:${p.slug}`,
+      table: 'products',
+      findExisting: () => q('SELECT id FROM products WHERE slug = ?').get(p.slug),
+      clash: () => null,
+      insert: () =>
+        Number(q(`INSERT INTO products (slug, category_id, brand, model, name_sq, name_en, summary_sq, summary_en, width_mm, height_mm, depth_mm,
+                                        weight_kg, warranty_years, datasheet_url, sources_json, reference_price_eur, reference_price_source, status, featured)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published', 0)`).run(p.slug, ...research).lastInsertRowid),
+    });
+    if (!row) continue;
+    // An existing product keeps the admin's text and spec values unless --force; its slug and status always stay.
+    if (row.existed && !FORCE) {
+      kept++;
+      continue;
+    }
+    if (row.existed) {
+      q(`UPDATE products SET category_id = ?, brand = ?, model = ?, name_sq = ?, name_en = ?, summary_sq = ?, summary_en = ?, width_mm = ?, height_mm = ?,
+           depth_mm = ?, weight_kg = ?, warranty_years = ?, datasheet_url = ?, sources_json = ?, reference_price_eur = ?, reference_price_source = ?,
+           updated_at = datetime('now') WHERE id = ?`).run(...research, row.id);
+    }
     for (const [key, raw] of Object.entries(p.specs ?? {})) {
-      const at = attrs.find((x) => x.key === key);
+      const at = attrOf.get(`${p.category}.${key}`);
       if (!at) {
         unknownKeys.set(`${p.category}.${key}`, raw);
         continue;
@@ -113,14 +188,15 @@ try {
       } else if (at.type === 'bool') vn = raw === true || raw === 'true' || raw === 1 ? 1 : 0;
       else vt = Array.isArray(raw) ? raw.join(', ') : String(raw);
       q(`INSERT INTO product_specs (product_id, attribute_id, value_num, value_text) VALUES (?, ?, ?, ?)
-         ON CONFLICT(product_id, attribute_id) DO UPDATE SET value_num = excluded.value_num, value_text = excluded.value_text`).run(pid, at.id, vn, vt);
+         ON CONFLICT(product_id, attribute_id) DO UPDATE SET value_num = excluded.value_num, value_text = excluded.value_text`).run(row.id, at.id, vn, vt);
     }
     added++;
   }
   if (unknownKeys.size) console.warn('Spec keys with no template attribute (skipped):', [...unknownKeys.keys()].join(', '));
-  console.log(`Products: ${added} from ${files.join(', ') || 'no research files yet'}`);
+  console.log(`Products: ${added} written, ${kept} kept as edited, from ${files.join(', ') || 'no research files yet'}${FORCE ? ' (--force)' : ''}`);
 
   if (DEMO) seedDemo();
+  console.log(`Rows: ${stats.added} added, ${stats.kept} categories kept, ${stats.updated} overwritten, ${stats.skipped} skipped`);
   db.exec('COMMIT');
 } catch (e) {
   db.exec('ROLLBACK');
@@ -131,15 +207,20 @@ function seedDemo() {
   const fx = json('scripts/catalog/settings.json').currency?.eurAll ?? 100;
   const cityId = (slug) => q('SELECT id FROM cities WHERE slug = ?').get(slug)?.id ?? null;
   for (const s of DEMO_SELLERS) {
-    q(`INSERT INTO sellers (slug, name, legal_name, nipt, kind, city_id, address, phone, email, website, about_sq, about_en, verified, plan,
-                            commission_pct, rating, rating_count, delivery_zones, status, is_demo)
-       VALUES (?, ?, ?, NULL, ?, ?, NULL, NULL, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 1)
-       ON CONFLICT(slug) DO UPDATE SET name = excluded.name, kind = excluded.kind, city_id = excluded.city_id, about_sq = excluded.about_sq,
-         about_en = excluded.about_en, verified = excluded.verified, plan = excluded.plan, commission_pct = excluded.commission_pct,
-         rating = excluded.rating, rating_count = excluded.rating_count, delivery_zones = excluded.delivery_zones`).run(
-      s.slug, s.name, s.name, s.kind, cityId(s.city), s.about_sq, s.about_en, s.verified ? 1 : 0, s.plan, s.commission_pct,
-      s.rating, s.rating_count, s.zones,
-    );
+    const vals = [s.name, s.name, s.kind, cityId(s.city), s.about_sq, s.about_en, s.verified ? 1 : 0, s.plan, s.commission_pct, s.rating, s.rating_count, s.zones];
+    const row = resolveRow({
+      key: `seed:seller:${s.slug}`,
+      table: 'sellers',
+      findExisting: () => q('SELECT id FROM sellers WHERE slug = ?').get(s.slug),
+      clash: () => null,
+      insert: () =>
+        Number(q(`INSERT INTO sellers (slug, name, legal_name, kind, city_id, about_sq, about_en, verified, plan, commission_pct, rating, rating_count, delivery_zones, status, is_demo)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 1)`).run(s.slug, ...vals).lastInsertRowid),
+    });
+    if (row?.existed && FORCE) {
+      q(`UPDATE sellers SET name = ?, legal_name = ?, kind = ?, city_id = ?, about_sq = ?, about_en = ?, verified = ?, plan = ?, commission_pct = ?,
+           rating = ?, rating_count = ?, delivery_zones = ? WHERE id = ?`).run(...vals, row.id);
+    }
   }
   const sellers = q('SELECT * FROM sellers WHERE is_demo = 1').all();
   const prods = q('SELECT p.*, c.slug_en AS cat, c.unit_basis FROM products p JOIN categories c ON c.id = p.category_id').all();

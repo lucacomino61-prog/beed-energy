@@ -2,6 +2,7 @@
 // Removing a column without scripts posts to the page itself, which updates the cookie and redirects (PRG).
 import type { AstroCookies } from 'astro';
 import { COMPARE_MAX, readCompare, writeCompare } from './basket';
+import { secureCookies } from './origin';
 
 export function compareIds(url: URL, cookies: AstroCookies): number[] {
   const p = url.searchParams.get('p');
@@ -12,5 +13,5 @@ export function compareIds(url: URL, cookies: AstroCookies): number[] {
 export async function removeFromCompare(request: Request, cookies: AstroCookies, url: URL) {
   const form = await request.formData().catch(() => null);
   const id = Number(form?.get('productId'));
-  if (Number.isInteger(id) && id > 0) writeCompare(cookies, readCompare(cookies).filter((x) => x !== id), url.protocol === 'https:');
+  if (Number.isInteger(id) && id > 0) writeCompare(cookies, readCompare(cookies).filter((x) => x !== id), secureCookies(url));
 }

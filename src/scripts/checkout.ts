@@ -47,6 +47,9 @@ function init(form: HTMLFormElement, w: { free: string; zone: string; noCity: st
     set('total', money(total));
     set('total-toggle', money(total));
     set('vat', money(vatOf(total)));
+    // The server places the order only at the total the buyer saw: this is now that total.
+    const seenTotal = form.querySelector<HTMLInputElement>('[data-seen-total]');
+    if (seenTotal) seenTotal.value = String(total);
     document.querySelectorAll<HTMLElement>('.cosum__parcel[data-seller]').forEach((el) => {
       const f = fees.get(Number(el.dataset.seller));
       const out = el.querySelector('[data-pfee]');

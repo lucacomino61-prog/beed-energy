@@ -68,6 +68,8 @@ export function cleanLines(input: unknown): CartLineInput[] {
 
 export function quote(input: CartLineInput[], opts: { cityId?: number | null; pickup?: boolean } = {}): Quote {
   const delivery = { ...DEFAULT_DELIVERY, ...setting<Partial<DeliverySettings>>('delivery', {}) };
+  // Pickup only counts while the shop offers it (settings → delivery); otherwise every parcel ships.
+  const pickup = !!opts.pickup && delivery.pickupAvailable !== false;
   const zone = opts.cityId ? (get<{ zone: number }>('SELECT zone FROM cities WHERE id = ?', opts.cityId)?.zone ?? 1) : 1;
   const ids = input.map((l) => l.offerId);
   const rows = ids.length
@@ -99,7 +101,7 @@ export function quote(input: CartLineInput[], opts: { cityId?: number | null; pi
     if (!r.active || r.status !== 'published' || r.sellerStatus !== 'active') problem = 'gone';
     else if (l.qty > r.stock_qty) problem = 'stock';
     else if (l.qty < r.min_qty) problem = 'min';
-    else if (!opts.pickup && !zones.includes(String(zone))) problem = 'zone';
+    else if (!pickup && !zones.includes(String(zone))) problem = 'zone';
     lines.push({
       offerId: r.offerId,
       productId: r.productId,
@@ -142,7 +144,7 @@ export function quote(input: CartLineInput[], opts: { cityId?: number | null; pi
     const base = Math.max(0, ...offers.map((r) => r.delivery_fee_all ?? 0));
     const thresholds = offers.map((r) => r.free_delivery_over_all).filter((x) => x !== null && x !== undefined) as number[];
     const freeOver = thresholds.length ? Math.min(...thresholds) : null;
-    p.free = !!opts.pickup || (freeOver !== null && p.subtotal >= freeOver);
+    p.free = pickup || (freeOver !== null && p.subtotal >= freeOver);
     p.fee = p.free ? 0 : base + (delivery.zoneSurcharge[String(zone)] ?? 0);
   }
 

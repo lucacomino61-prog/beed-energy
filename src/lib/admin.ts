@@ -1,6 +1,6 @@
 // Write side of the marketplace for the admin panel. Every change is scoped by the signed-in user:
 // a seller account can only touch its own offers, orders and quote threads.
-import { all, audit, get, run, tx } from './db';
+import { all, audit, get, run, setting, tx } from './db';
 import type { User } from './auth';
 import type { Attr } from './catalog';
 
@@ -96,16 +96,69 @@ export function saveCategory(u: User, id: number | null, v: { slug_sq: string; s
 
 export type AttrInput = Omit<Attr, 'id' | 'category_id'> & { id?: number | null };
 
-/** Replaces a category's spec template: updates kept attributes, adds new ones, deletes removed ones (and their values). */
-export function saveTemplate(u: User, categoryId: number, attrs: AttrInput[]) {
+type SpecType = 'number' | 'text' | 'enum' | 'bool';
+
+/**
+ * Moves an attribute's stored values to its new type: numbers live in value_num, text and enum values in
+ * value_text, booleans as value_num 0/1. A value that cannot be read in the new type is deleted and
+ * counted, so the admin sees how many products need a look.
+ */
+function convertSpecValues(attributeId: number, from: SpecType, to: SpecType): { converted: number; dropped: number } {
+  const isNum = (t: SpecType) => t === 'number' || t === 'bool';
+  if (from === to || (!isNum(from) && !isNum(to))) return { converted: 0, dropped: 0 }; // text ↔ enum: same column
+  let converted = 0;
+  let dropped = 0;
+  const rows = all<{ product_id: number; value_num: number | null; value_text: string | null }>('SELECT product_id, value_num, value_text FROM product_specs WHERE attribute_id = ?', attributeId);
+  for (const r of rows) {
+    let num: number | null = null;
+    let text: string | null = null;
+    if (!isNum(to)) {
+      // number/bool → text: write the number as text (21.5, not 21.500000)
+      if (r.value_num !== null) text = String(r.value_num);
+      else text = r.value_text;
+    } else if (to === 'number') {
+      if (from === 'bool' || r.value_num !== null) num = r.value_num;
+      else {
+        const n = Number(String(r.value_text ?? '').replace(/\s/g, '').replace(',', '.'));
+        num = r.value_text && Number.isFinite(n) ? n : null;
+      }
+    } else {
+      // → bool: numbers by zero / non-zero, words by yes / no in both languages
+      if (r.value_num !== null) num = r.value_num !== 0 ? 1 : 0;
+      else if (/^(1|true|yes|po|on)$/i.test(String(r.value_text ?? '').trim())) num = 1;
+      else if (/^(0|false|no|jo|off)$/i.test(String(r.value_text ?? '').trim())) num = 0;
+    }
+    if (num === null && (text === null || text === '')) {
+      run('DELETE FROM product_specs WHERE product_id = ? AND attribute_id = ?', r.product_id, attributeId);
+      dropped++;
+    } else {
+      run('UPDATE product_specs SET value_num = ?, value_text = ? WHERE product_id = ? AND attribute_id = ?', num, text, r.product_id, attributeId);
+      converted++;
+    }
+  }
+  return { converted, dropped };
+}
+
+/**
+ * Replaces a category's spec template: updates kept attributes, adds new ones, deletes removed ones (and
+ * their values). An attribute whose type changes keeps its values, converted (see convertSpecValues).
+ */
+export function saveTemplate(u: User, categoryId: number, attrs: AttrInput[]): { converted: number; dropped: number } {
   requireAdmin(u);
   const keys = attrs.map((a) => a.key);
   if (new Set(keys).size !== keys.length) throw new Error('duplicate-key');
+  const moved = { converted: 0, dropped: 0 };
   tx(() => {
-    const existing = all<{ id: number; key: string }>('SELECT id, key FROM spec_attributes WHERE category_id = ?', categoryId);
+    const existing = all<{ id: number; key: string; type: SpecType }>('SELECT id, key, type FROM spec_attributes WHERE category_id = ?', categoryId);
     for (const e of existing) if (!attrs.some((a) => a.id === e.id)) run('DELETE FROM spec_attributes WHERE id = ?', e.id);
     attrs.forEach((a, i) => {
       const vals = [a.key, a.label_sq, a.label_en, a.unit, a.type, JSON.stringify(a.options ?? []), +a.filterable, +a.comparable, +a.highlight, +a.required, a.better, a.decimals, i] as const;
+      const prev = a.id ? existing.find((e) => e.id === a.id) : undefined;
+      if (prev && prev.type !== a.type) {
+        const r = convertSpecValues(prev.id, prev.type, a.type as SpecType);
+        moved.converted += r.converted;
+        moved.dropped += r.dropped;
+      }
       if (a.id && existing.some((e) => e.id === a.id)) {
         run(
           `UPDATE spec_attributes SET key = ?, label_sq = ?, label_en = ?, unit = ?, type = ?, options_json = ?, filterable = ?, comparable = ?, highlight = ?, required = ?, better = ?, decimals = ?, sort = ? WHERE id = ?`,
@@ -121,7 +174,8 @@ export function saveTemplate(u: User, categoryId: number, attrs: AttrInput[]) {
       }
     });
   });
-  audit(u.id, 'template.save', 'category', categoryId, `${attrs.length} attributes`);
+  audit(u.id, 'template.save', 'category', categoryId, `${attrs.length} attributes${moved.converted || moved.dropped ? `, ${moved.converted} converted, ${moved.dropped} dropped` : ''}`);
+  return moved;
 }
 
 // ---------- products ----------
@@ -241,6 +295,12 @@ export type OfferInput = {
 
 export function saveOffer(u: User, id: number | null, o: OfferInput, lang: 'sq' | 'en'): { id?: number; errors: FieldErrors } {
   const m = lang === 'sq';
+  if (id) {
+    // An offer is one seller's price for one product: an edit changes the price, never the product
+    // (the price history and order lines hang off this id).
+    const cur = get<{ product_id: number }>('SELECT product_id FROM offers WHERE id = ?', id);
+    if (cur) o.product_id = cur.product_id;
+  }
   if (!isAdmin(u)) {
     o.seller_id = u.seller_id!;
     o.promoted = id ? !!get<{ promoted: number }>('SELECT promoted FROM offers WHERE id = ?', id)?.promoted : false; // promotion is sold by the platform
@@ -351,7 +411,9 @@ export function approveApplication(u: User, appId: number) {
     let i = 2;
     while (get('SELECT id FROM sellers WHERE slug = ?', slug)) slug = `${slugify(a.company)}-${i++}`;
     const plan = ['start', 'pro', 'partner'].includes(a.plan) ? a.plan : 'start';
-    const commission = plan === 'partner' ? 6 : plan === 'pro' ? 7 : 9;
+    // The commission is whatever Settings → plans says today; the old built-in numbers only if a plan is missing there.
+    const fromSettings = setting<{ key: string; commission_pct: number }[]>('plans', []).find((p) => p.key === plan)?.commission_pct;
+    const commission = typeof fromSettings === 'number' && Number.isFinite(fromSettings) ? fromSettings : plan === 'partner' ? 6 : plan === 'pro' ? 7 : 9;
     const id = run(
       `INSERT INTO sellers (slug, name, legal_name, nipt, kind, phone, email, plan, commission_pct, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
       slug, a.company, a.company, a.nipt, a.kind, a.phone, a.email, plan, commission,

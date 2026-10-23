@@ -1,25 +1,30 @@
-// Local test gateway, used only while POK keys are not set. It never touches a card:
-// "Pay" marks the order paid in the local database, "Decline" leaves it unpaid.
+// Local test gateway: only in development or with PAY_TEST=1 (paymentMode() === 'test'), never in a
+// production build without keys. It never touches a card: "Pay" marks the order paid in the local
+// database, "Decline" leaves it unpaid. A cancelled order cannot be paid here either.
 import type { APIRoute } from 'astro';
 import { get, run } from '../../../lib/db';
-import { markPaid } from '../../../lib/orders';
+import { failPayment, latestOpenPayment, markPaid, tokenMatches } from '../../../lib/orders';
 import { paymentMode } from '../../../lib/payments';
 import { href } from '../../../lib/i18n';
 import { lek } from '../../../lib/money';
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+const notFound = () => new Response('Not found', { status: 404, headers: { 'cache-control': 'no-store' } });
 
 function find(code: string, k: string) {
   const o = get<any>('SELECT * FROM orders WHERE code = ?', code);
-  return o && o.token === k && o.payment_method === 'card' ? o : null;
+  return o && tokenMatches(o.token, k) && o.payment_method === 'card' ? o : null;
 }
 
-export const GET: APIRoute = ({ url }) => {
-  if (paymentMode() !== 'test') return new Response('Not found', { status: 404 });
+const back = (o: any, k: string, pagesa?: string) => href(o.lang, 'order', { code: o.code }, pagesa ? { k, pagesa } : { k });
+
+export const GET: APIRoute = ({ url, redirect }) => {
+  if (paymentMode() !== 'test') return notFound();
   const code = url.searchParams.get('code') ?? '';
   const k = url.searchParams.get('k') ?? '';
   const o = find(code, k);
-  if (!o) return new Response('Not found', { status: 404 });
+  if (!o) return notFound();
+  if (o.status === 'cancelled' || o.payment_status === 'paid') return redirect(back(o, k), 303);
   const sq = o.lang === 'sq';
   const html = `<!doctype html><html lang="${o.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex"><title>${sq ? 'Pagesë provë' : 'Test payment'} · ${esc(o.code)}</title>
@@ -39,13 +44,20 @@ button[value=pay]{background:#191714;color:#fff}</style></head><body><main>
 };
 
 export const POST: APIRoute = async ({ request, redirect }) => {
-  if (paymentMode() !== 'test') return new Response('Not found', { status: 404 });
+  if (paymentMode() !== 'test') return notFound();
   const f = await request.formData();
   const code = String(f.get('code') ?? '');
   const k = String(f.get('k') ?? '');
   const o = find(code, k);
-  if (!o) return new Response('Not found', { status: 404 });
-  if (f.get('r') === 'pay' && o.payment_status !== 'paid') markPaid(o.id, `test-${Date.now()}`, 'test-gateway');
-  else if (f.get('r') !== 'pay' && o.payment_status === 'pending') run("UPDATE orders SET payment_status = 'failed', updated_at = datetime('now') WHERE id = ?", o.id);
-  return redirect(href(o.lang, 'order', { code: o.code }, { k, pagesa: f.get('r') === 'pay' ? 'ok' : 'deshtoi' }), 303);
+  if (!o) return notFound();
+  if (o.status === 'cancelled') return redirect(back(o, k), 303);
+  // The attempt this page stands in for: the latest one the checkout or a retry recorded.
+  const attempt = latestOpenPayment(o.id);
+  const pay = f.get('r') === 'pay';
+  if (pay && o.payment_status !== 'paid') markPaid(o.id, attempt?.provider_id ?? `test-${o.code}`, 'test-gateway');
+  else if (!pay && o.payment_status === 'pending') {
+    if (attempt) failPayment(o.id, attempt.provider_id);
+    run("UPDATE orders SET payment_status = 'failed', updated_at = datetime('now') WHERE id = ? AND payment_status = 'pending'", o.id);
+  }
+  return redirect(back(o, k, pay ? 'ok' : 'deshtoi'), 303);
 };
