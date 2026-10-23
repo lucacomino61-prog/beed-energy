@@ -621,7 +621,7 @@ export const pages = {
       mapDesc: 'kWh a year per kWp, from PVGIS. The chosen city is in copper.',
     },
     sellers: {
-      title: 'Sellers: suppliers, installers and construction companies',
+      title: 'Sellers: suppliers, installers, builders',
       description: 'The sellers offering building and energy products on BeeD Energy: type, city, verification, ratings and number of offers.',
       eyebrow: 'Marketplace · Sellers',
       h1: 'Sellers',
@@ -670,7 +670,7 @@ export const pages = {
     },
     sell: {
       title: 'Sell building and energy products online',
-      description: 'Suppliers, installers, manufacturers and construction companies: list offers on the catalogue, take orders and quote requests. Plans, commission and how to apply.',
+      description: 'Suppliers, installers, manufacturers and builders: publish offers, take orders and quote requests. Plans, commission and how to apply.',
       eyebrow: 'For businesses · Sell with us',
       h1: 'Sell with us',
       lede: 'One marketplace for everything a house needs to be built and to make its own energy. You bring the products and prices; we bring the buyers and the comparison.',

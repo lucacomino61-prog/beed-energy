@@ -39,6 +39,9 @@ Last updated 2026-10-23.
 - Distribution tariffs after 30 April 2026: not published on ERE's tariff page as of 2026-10-23.
 - Calculator assumptions: self-use 45% without battery / 80% with battery, degradation 0.5%/yr (Jordan & Kurtz median, research/tariffs-prices.md §4), 25 years, panel 500 Wp — engineering assumptions, shown on the page.
 
+## Calculator kit
+- The kit picks the cheapest in-stock offers from sellers who deliver to the chosen city: panels, an inverter (AC power at least 70% of the array, at most 2.2× or 10 kW, phases as chosen, hybrid when a battery is wanted) and a battery. It does **not** check battery–inverter compatibility (e.g. a 48 V low-voltage battery with a high-voltage hybrid), and it leaves out mounting, cables and installation. An installer must confirm the bill of materials.
+
 ## Product data
 - Specs, dimensions and datasheet links come from manufacturers (research/products-*.json, spot-checked by a fact-checker). Reference prices are public prices found on the date in `reference_price_source`.
 - **Product images are technical drawings generated from datasheet dimensions**, not photos. Real photos need the maker's or seller's licence; the admin can add them.

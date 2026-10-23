@@ -200,16 +200,19 @@ function runLoader(el: HTMLElement) {
   const tl = gsap.timeline({ onComplete: finish });
   gsap.set(words, { yPercent: 100 });
   gsap.set(words[0], { yPercent: 0 });
-  tl.to(counter, { v: 100, duration: 1.3, ease: 'power2.inOut', onUpdate: () => { if (pct) pct.textContent = `${Math.round(counter.v)}%`; } }, 0);
-  tl.to(line, { scaleX: 1, duration: 1.3, ease: 'power2.inOut' }, 0);
+  // Whole intro ≤ 1.4 s: 1.0 s count, then a 0.35 s wipe (DESIGN.md caps the loader at 1.6 s).
+  tl.to(counter, { v: 100, duration: 1.0, ease: 'power2.inOut', onUpdate: () => { if (pct) pct.textContent = `${Math.round(counter.v)}%`; } }, 0);
+  tl.to(line, { scaleX: 1, duration: 1.0, ease: 'power2.inOut' }, 0);
   words.forEach((w, i) => {
     if (i === 0) return;
-    tl.to(words[i - 1], { yPercent: -100, duration: 0.26, ease: 'power3.in' }, 0.22 * i);
-    tl.to(w, { yPercent: 0, duration: 0.3, ease: 'power3.out' }, 0.22 * i + 0.08);
+    tl.to(words[i - 1], { yPercent: -100, duration: 0.2, ease: 'power3.in' }, 0.17 * i);
+    tl.to(w, { yPercent: 0, duration: 0.24, ease: 'power3.out' }, 0.17 * i + 0.06);
   });
-  tl.to(el, { clipPath: 'inset(0 0 100% 0)', duration: 0.45, ease: 'power3.inOut' }, '+=0.1');
-  const timeout = setTimeout(finish, 2500);
-  el.querySelector('[data-loader-skip]')?.addEventListener('click', finish);
+  tl.to(el, { clipPath: 'inset(0 0 100% 0)', duration: 0.35, ease: 'power3.inOut' }, '+=0.05');
+  const timeout = setTimeout(finish, 2200);
+  const skip = el.querySelector<HTMLButtonElement>('[data-loader-skip]');
+  skip?.addEventListener('click', finish);
+  skip?.focus(); // the first Tab must reach Skip, not the page behind the cover
   function finish() {
     clearTimeout(timeout);
     tl.kill();

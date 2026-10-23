@@ -63,14 +63,16 @@ export function kwhForBill(bill: number, t: Tariffs, kind: 'household' | 'busine
 
 export type Kit = { role: 'panel' | 'inverter' | 'battery' | 'mounting'; offerId: number; productSlug: string; name: string; qty: number; unitPrice: number; lineTotal: number };
 
-/** Cheapest in-stock offer in a category whose spec fits, for a priced starter kit. */
-function cheapest(categorySlugEn: string, fits: (specs: Record<string, number | string | null>) => boolean, qty: number): Kit | null {
+/** Cheapest in-stock offer in a category whose spec fits, from a seller who delivers to the buyer's zone. */
+function cheapest(categorySlugEn: string, fits: (specs: Record<string, number | string | null>) => boolean, qty: number, zone: number): Kit | null {
   const rows = all<any>(
     `SELECT o.id AS offer_id, o.price_all, o.stock_qty, p.id AS pid, p.slug, p.brand, p.model
        FROM offers o JOIN products p ON p.id = o.product_id JOIN categories c ON c.id = p.category_id JOIN sellers s ON s.id = o.seller_id
-      WHERE c.slug_en = ? AND p.status = 'published' AND o.active = 1 AND s.status = 'active' AND o.stock_qty >= ?`,
+      WHERE c.slug_en = ? AND p.status = 'published' AND o.active = 1 AND s.status = 'active' AND o.stock_qty >= ?
+        AND (',' || REPLACE(s.delivery_zones, ' ', '') || ',') LIKE ?`,
     categorySlugEn,
     qty,
+    `%,${zone},%`,
   );
   let best: Kit | null = null;
   for (const r of rows) {
@@ -117,12 +119,13 @@ export function sizeSystem(input: {
   const c = get<any>('SELECT * FROM cities WHERE slug = ? AND pv_yield IS NOT NULL', input.citySlug);
   if (!c) return null;
   const a = { ...DEFAULT_ASSUMPTIONS, ...setting<Partial<SolarAssumptions>>('solarAssumptions', {}) };
+  const zone = Number(c.zone) || 1;
   const t = tariffs();
   const yearly = input.kwhMonth * 12;
   const target = yearly * (input.coverage ?? 0.9);
   // Pick the module first (cheapest per Wp in stock near the planned size), then size the array from its real wattage.
   const estimate = Math.max(4, Math.ceil(((target / c.pv_yield) * 1000) / a.panelWp));
-  const probe = cheapest('solar-panels', (s) => typeof s.power_wp === 'number' && s.power_wp >= a.panelWp - 60 && s.power_wp <= a.panelWp + 160, estimate);
+  const probe = cheapest('solar-panels', (s) => typeof s.power_wp === 'number' && s.power_wp >= a.panelWp - 60 && s.power_wp <= a.panelWp + 160, estimate, zone);
   const moduleWp = probe ? Number(get<{ v: number }>(
     `SELECT ps.value_num AS v FROM product_specs ps JOIN spec_attributes sa ON sa.id = ps.attribute_id JOIN products p ON p.id = ps.product_id
       WHERE p.slug = ? AND sa.key = 'power_wp'`, probe.productSlug)?.v ?? a.panelWp) : a.panelWp;
@@ -139,18 +142,26 @@ export function sizeSystem(input: {
   const annualSaving = before === null || after === null ? null : (before - after) * 12 + exported * (t.exportLekPerKwh ?? 0);
 
   const kit: Kit[] = [];
-  const panel = probe ? cheapest('solar-panels', (s) => s.power_wp === moduleWp, panels) ?? probe : null;
+  const panel = probe ? cheapest('solar-panels', (s) => s.power_wp === moduleWp, panels, zone) ?? probe : null;
   if (panel && panel.qty !== panels) Object.assign(panel, { qty: panels, lineTotal: panel.unitPrice * panels });
   if (panel) kit.push({ ...panel, role: 'panel' });
   const inv = cheapest(
     'inverters',
-    (s) => typeof s.rated_ac_power_kw === 'number' && s.rated_ac_power_kw >= kwp * 0.75 && s.rated_ac_power_kw <= kwp * 1.3 && Number(s.phases) === input.phases && (!input.battery || s.hybrid === 1 || s.battery_ready === 1),
+    // AC power at least 70% of the array; oversizing is fine within reason (the smallest three-phase hybrids are 10 kW).
+    (s) =>
+      typeof s.rated_ac_power_kw === 'number' &&
+      s.rated_ac_power_kw >= kwp * 0.7 &&
+      s.rated_ac_power_kw <= Math.max(kwp * 2.2, 10) &&
+      (typeof s.max_pv_power_kwp !== 'number' || s.max_pv_power_kwp >= kwp) &&
+      Number(s.phases) === input.phases &&
+      (!input.battery || s.hybrid === 1 || s.battery_ready === 1),
     1,
+    zone,
   );
   if (inv) kit.push({ ...inv, role: 'inverter' });
   if (input.battery) {
     const want = kwp * a.batteryKwhPerKwp;
-    const bat = cheapest('batteries', (s) => typeof s.usable_capacity_kwh === 'number' && s.usable_capacity_kwh >= want * 0.6 && s.usable_capacity_kwh <= want * 1.8, 1);
+    const bat = cheapest('batteries', (s) => typeof s.usable_capacity_kwh === 'number' && s.usable_capacity_kwh >= want * 0.6 && s.usable_capacity_kwh <= want * 1.8, 1, zone);
     if (bat) kit.push({ ...bat, role: 'battery' });
   }
   const complete = !!panel && !!inv && (!input.battery || kit.some((k) => k.role === 'battery'));

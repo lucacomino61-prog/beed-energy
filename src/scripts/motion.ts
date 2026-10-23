@@ -47,10 +47,14 @@ export function setMotion(on: boolean, persist = true) {
       /* private mode */
     }
   }
-  if (on) startLenis();
-  else stopLenis();
+  if (on) {
+    ScrollTrigger.enable();
+    startLenis();
+  } else stopLenis();
   listeners.forEach((fn) => fn(on));
-  ScrollTrigger.refresh();
+  if (on) ScrollTrigger.refresh();
+  // With motion off nothing scrolls by script: disabling ScrollTrigger also ends its idle rAF check.
+  else ScrollTrigger.disable(false);
 }
 
 export function onMotionChange(fn: (on: boolean) => void) {
@@ -60,5 +64,6 @@ export function onMotionChange(fn: (on: boolean) => void) {
 
 // Touch devices keep native scrolling (Lenis leaves touch alone by default); pointer devices get the smooth wheel.
 if (motionOn()) startLenis();
+else ScrollTrigger.disable(false);
 
 export { gsap, ScrollTrigger };
