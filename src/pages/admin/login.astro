@@ -1,0 +1,115 @@
+---
+// Staff sign-in. Email + password (scrypt), or on 127.0.0.1 with DEV_LOGIN=1 two developer buttons
+// (local admin, first sample seller). ?next= is honoured only for /admin paths.
+import Admin from '../../layouts/Admin.astro';
+import BrandMark from '../../components/BrandMark.astro';
+import Field from './_parts/Field.astro';
+import { adminCtx, langHref, fstr } from '../../lib/admin-panel';
+import { createSession, devLoginAllowed, verifyPassword } from '../../lib/auth';
+import { audit, get, run } from '../../lib/db';
+import { clientKey, rateLimited } from '../../lib/forms';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, url } = c;
+const user = Astro.locals.user;
+
+const nextRaw = url.searchParams.get('next') ?? '';
+const next = nextRaw.startsWith('/admin') && !nextRaw.startsWith('//') && !nextRaw.startsWith('/admin/login') ? nextRaw : '/admin';
+const dev = devLoginAllowed(url);
+const secure = url.protocol === 'https:';
+let error = '';
+let email = '';
+const signedOut = url.searchParams.get('ok') === 'signedOut';
+
+if (Astro.request.method === 'GET' && user) return Astro.redirect(next, 303);
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const op = String(f.get('op') ?? 'password');
+  if (op === 'dev' || op === 'dev-seller') {
+    if (!dev) {
+      Astro.response.status = 403;
+      error = t.forbidden.body;
+    } else if (op === 'dev') {
+      let row = get<{ id: number }>('SELECT id FROM users WHERE email = ?', 'dev@beed.local');
+      if (!row) row = { id: run("INSERT INTO users (email, name, role) VALUES ('dev@beed.local', 'Zhvilluesi lokal', 'admin')").id };
+      createSession(row.id, Astro.cookies, secure);
+      audit(row.id, 'auth.dev-login');
+      return Astro.redirect(next, 303);
+    } else {
+      const s = get<{ id: number; name: string }>('SELECT id, name FROM sellers ORDER BY id LIMIT 1');
+      if (!s) {
+        error = t.login.noSeller;
+      } else {
+        let row = get<{ id: number; seller_id: number | null }>('SELECT id, seller_id FROM users WHERE email = ?', 'seller-dev@beed.local');
+        if (!row) row = { id: run("INSERT INTO users (email, name, role, seller_id) VALUES ('seller-dev@beed.local', ?, 'seller', ?)", `${s.name} (zhvillues)`, s.id).id, seller_id: s.id };
+        else if (row.seller_id !== s.id) run("UPDATE users SET seller_id = ?, role = 'seller' WHERE id = ?", s.id, row.id);
+        createSession(row.id, Astro.cookies, secure);
+        audit(row.id, 'auth.dev-login', 'seller', s.id);
+        return Astro.redirect('/admin', 303);
+      }
+    }
+  } else {
+    let key = 'local';
+    try {
+      key = clientKey(Astro.request, Astro.clientAddress);
+    } catch {
+      key = clientKey(Astro.request);
+    }
+    email = fstr(f, 'email', 160).toLowerCase();
+    const password = String(f.get('password') ?? '');
+    if (rateLimited(`admin-login:${key}`, 10)) {
+      Astro.response.status = 429;
+      error = t.login.limited;
+    } else {
+      const row = get<{ id: number; password_hash: string | null }>('SELECT id, password_hash FROM users WHERE lower(email) = ?', email);
+      if (row && password && verifyPassword(password, row.password_hash)) {
+        createSession(row.id, Astro.cookies, secure);
+        audit(row.id, 'auth.login');
+        return Astro.redirect(next, 303);
+      }
+      Astro.response.status = 401;
+      error = t.login.bad;
+    }
+  }
+}
+const other = lang === 'sq' ? 'en' : 'sq';
+---
+<Admin lang={lang} t={t} user={null} url={url} title={t.login.title} bare hideHead>
+  <div class="login">
+    <section class="login__poster" aria-hidden="true">
+      <p class="rail__brand"><BrandMark size={28} /><span><span translate="no">Bee<b>D</b> Energy</span><small>{t.brandSub}</small></span></p>
+      <p class="login__word">{lang === 'sq' ? 'Paneli' : 'Admin'}<span>A-00</span></p>
+      <p class="login__meta"><span>{t.sheet.no} A-00</span><span>{t.panel}</span><span>127.0.0.1 · noindex</span></p>
+    </section>
+    <section class="login__panel">
+      <p class="adm-eyebrow"><span class="sheetno">A-00</span><span>{t.login.eyebrow}</span><a href={langHref(url, other)} hreflang={other} lang={other} title={t.langOtherLabel} class="rail__lang" style="box-shadow: inset 0 0 0 1px var(--line-strong); margin-left: auto"><span class="visually-hidden">{t.langOtherLabel}: </span>{t.langOther}</a></p>
+      <h1 class="login__title">{t.login.title}</h1>
+      <p class="adm-lede" style="margin-top: 0.75rem">{t.login.lede}</p>
+      {signedOut && <p class="notice notice--ok" role="status" style="margin-bottom: 1rem; max-width: 26rem">{t.login.signedOut}</p>}
+      {error && <div class="form-errors" role="alert" tabindex="-1" data-errors style="max-width: 26rem; margin-bottom: 1rem"><p><strong>{error}</strong></p></div>}
+      <form class="login__form" method="post" action={`/admin/login${next !== '/admin' ? `?next=${encodeURIComponent(next)}` : ''}`}>
+        <input type="hidden" name="op" value="password" />
+        <Field name="email" label={t.login.email} type="email" value={email} autocomplete="username" inputmode="email" spellcheck={false} required />
+        <Field name="password" label={t.login.password} type="password" autocomplete="current-password" required />
+        <button class="btn btn--block" type="submit">{t.login.submit}</button>
+      </form>
+      {dev && (
+        <div class="login__dev">
+          <p class="eyebrow">{t.login.dev}</p>
+          <form method="post" action={`/admin/login${next !== '/admin' ? `?next=${encodeURIComponent(next)}` : ''}`}>
+            <input type="hidden" name="op" value="dev" />
+            <button class="btn btn--ghost btn--block" type="submit">{t.login.devAdmin}</button>
+          </form>
+          <form method="post" action="/admin/login">
+            <input type="hidden" name="op" value="dev-seller" />
+            <button class="btn btn--ghost btn--block" type="submit">{t.login.devSeller}</button>
+          </form>
+          <p class="hint small muted">{t.login.devNote}</p>
+        </div>
+      )}
+      <p style="margin-top: 1.5rem"><a class="link-arrow" href={lang === 'sq' ? '/' : '/en'}><span>{t.login.back}</span></a></p>
+    </section>
+  </div>
+</Admin>

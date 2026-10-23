@@ -1,0 +1,239 @@
+---
+// Order detail: customer, parcels per seller, totals, timeline, status change and "mark paid" (admin),
+// internal notes (admin + this order's sellers), packing slips. Sellers see only their own lines.
+import Admin from '../../../layouts/Admin.astro';
+import Field from '../_parts/Field.astro';
+import St from '../_parts/St.astro';
+import { adminCtx, addOrderNote, fstr, idParam, orderDetail, type Errors, forbiddenPage } from '../../../lib/admin-panel';
+import { Forbidden, isAdmin } from '../../../lib/admin';
+import { csrfOk } from '../../../lib/auth';
+import { audit } from '../../../lib/db';
+import { ORDER_STATUSES, markPaid, setOrderStatus, type OrderStatus } from '../../../lib/orders';
+import { lek } from '../../../lib/money';
+import { date, href } from '../../../lib/i18n';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url, flash } = c;
+const admin = isAdmin(user);
+const id = idParam(Astro.params.id);
+if (!id || id < 0) return Astro.rewrite('/404');
+
+const errors: Errors = {};
+let noteBody = '';
+let ref = '';
+let statusNote = '';
+let csrfBad = false;
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  if (!csrfOk(user, f)) {
+    csrfBad = true;
+    Astro.response.status = 403;
+  } else {
+    const op = fstr(f, 'op', 20);
+    try {
+      if (op === 'status') {
+        if (!admin) throw new Forbidden('status');
+        const s = fstr(f, 'status', 20) as OrderStatus;
+        statusNote = fstr(f, 'note', 500);
+        if (!(ORDER_STATUSES as readonly string[]).includes(s)) errors.status = t.err.required;
+        else if (!setOrderStatus(id, s, user.email, statusNote || undefined)) errors.status = t.order.sameStatus;
+        else {
+          audit(user.id, 'order.status', 'order', id, s);
+          return Astro.redirect(`/admin/orders/${id}?ok=status`, 303);
+        }
+      } else if (op === 'paid') {
+        if (!admin) throw new Forbidden('paid');
+        ref = fstr(f, 'ref', 120);
+        if (!ref) errors.ref = t.order.refRequired;
+        else {
+          markPaid(id, ref, user.email);
+          audit(user.id, 'order.paid', 'order', id, ref);
+          return Astro.redirect(`/admin/orders/${id}?ok=paid`, 303);
+        }
+      } else if (op === 'note') {
+        noteBody = fstr(f, 'body', 4000);
+        if (!noteBody) errors.body = t.order.noteRequired;
+        else {
+          addOrderNote(user, id, noteBody);
+          return Astro.redirect(`/admin/orders/${id}?ok=note#notes`, 303);
+        }
+      }
+    } catch (e) {
+      if (e instanceof Forbidden) return forbiddenPage(Astro);
+      throw e;
+    }
+  }
+  if (Object.keys(errors).length) Astro.response.status = 422;
+}
+
+let o: any;
+try {
+  o = orderDetail(user, id);
+} catch (e) {
+  if (e instanceof Forbidden) return forbiddenPage(Astro);
+  throw e;
+}
+if (!o) return Astro.rewrite('/404');
+
+const parcels = new Map<number, { name: string; items: any[] }>();
+for (const it of o.items) {
+  const k = it.seller_id ?? 0;
+  if (!parcels.has(k)) parcels.set(k, { name: it.seller_name, items: [] });
+  parcels.get(k)!.items.push(it);
+}
+const mineTotal = o.items.reduce((s: number, it: any) => s + it.line_total_all, 0);
+const city = lang === 'sq' ? o.city_sq : o.city_en;
+const customerLink = href(o.lang === 'en' ? 'en' : 'sq', 'order', { code: o.code }, { k: o.token });
+const canPay = admin && o.payment_status !== 'paid' && o.payment_method !== 'card';
+---
+<Admin lang={lang} t={t} user={user} url={url} title={t.order.titleOf(o.code)} docTitle={o.code} section="orders" flash={flash}
+  sheet={[[t.sheet.status, t.status[o.status] ?? o.status], [t.order.payment, t.payStatus[o.payment_status] ?? o.payment_status], [t.order.created, date(o.created_at, lang, true)]]}>
+  <div slot="head" class="adm-head-tools">
+    <St s={o.status} label={t.status[o.status] ?? o.status} />
+    <St s={o.payment_status} label={`${t.payMethod[o.payment_method]} · ${t.payStatus[o.payment_status] ?? o.payment_status}`} />
+    <a class="btn btn--s btn--ghost" href={`/admin/orders/${o.id}/print`}>{t.order.slip}</a>
+    {admin && <a class="btn btn--s btn--ghost" href={customerLink}>{t.order.customerPage}</a>}
+    <a class="btn btn--s btn--ghost" href="/admin/orders">{t.common.back}</a>
+  </div>
+  {csrfBad && <div class="form-errors" role="alert" tabindex="-1" data-errors><p><strong>{t.err.csrf}</strong></p></div>}
+
+  <div class="adm-split">
+    <div>
+      <section class="adm-sec" aria-labelledby="h-cust">
+        <h2 class="adm-h2" id="h-cust"><span class="k">01</span>{t.order.customer}</h2>
+        <dl class="kv box">
+          <dt>{t.order.customer}</dt><dd>{o.name} <span class="muted">· {o.customer_type === 'business' ? t.order.business : t.order.individual}</span></dd>
+          {o.company && <><dt>{t.order.company}</dt><dd>{o.company}</dd></>}
+          {o.nipt && <><dt>{t.order.nipt}</dt><dd class="mono">{o.nipt}</dd></>}
+          <dt>{t.order.phone}</dt><dd><a href={`tel:${o.phone}`} class="mono">{o.phone}</a></dd>
+          {o.email && <><dt>{t.order.email}</dt><dd><a href={`mailto:${o.email}`}>{o.email}</a></dd></>}
+          <dt>{t.order.delivery}</dt><dd>{t.deliveryMethod[o.delivery_method]}</dd>
+          <dt>{t.order.address}</dt><dd>{o.address}{city ? `, ${city}` : ''}</dd>
+          {o.notes && <><dt>{t.order.notes}</dt><dd>{o.notes}</dd></>}
+          {admin && o.source && <><dt>{t.order.source}</dt><dd class="mono">{o.source}</dd></>}
+        </dl>
+      </section>
+
+      <section class="adm-sec" aria-labelledby="h-parcels">
+        <h2 class="adm-h2" id="h-parcels"><span class="k">02</span>{t.order.parcels}</h2>
+        {!admin && <p class="adm-lede">{t.order.sellerOnly}</p>}
+        {[...parcels.values()].map((p, i) => (
+          <div class="parcel">
+            <div class="parcel__head"><b>{t.order.parcel(i + 1)} · {p.name}</b><span class="mono small">{lek(p.items.reduce((s, it) => s + it.line_total_all, 0), lang)}</span></div>
+            <div class="table-scroll" style="border-top: 0">
+              <table class="table adm-table">
+                <thead>
+                  <tr>
+                    <th scope="col">{t.order.product}</th>
+                    <th scope="col" class="num">{t.order.unit}</th>
+                    <th scope="col" class="num">{t.order.qty}</th>
+                    <th scope="col" class="num">{t.order.line}</th>
+                    {admin && <th scope="col" class="num">{t.order.commission}</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {p.items.map((it) => (
+                    <tr>
+                      <th scope="row" style="font-weight: 500">{admin && it.product_id ? <a class="rowlink" href={`/admin/products/${it.product_id}`} translate="no">{it.product_name}</a> : <span translate="no">{it.product_name}</span>}</th>
+                      <td class="num price">{lek(it.unit_price_all, lang)}</td>
+                      <td class="num mono">{it.qty}</td>
+                      <td class="num price">{lek(it.line_total_all, lang)}</td>
+                      {admin && <td class="num mono small">{lek(it.commission_all, lang)} · {String(it.commission_pct).replace('.', lang === 'sq' ? ',' : '.')}%</td>}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
+        <div class="totals">
+          {admin ? (
+            <>
+              <div><span>{t.order.subtotal}</span><span class="price">{lek(o.subtotal_all, lang)}</span></div>
+              <div><span>{t.order.deliveryFee}</span><span class="price">{lek(o.delivery_all, lang)}</span></div>
+              <div class="grand"><span>{t.order.total}</span><span class="price">{lek(o.total_all, lang)}</span></div>
+              <div class="muted small"><span>{t.order.vat}</span><span class="price">{lek(o.vat_all, lang)}</span></div>
+              <div class="muted small"><span>{t.order.commission}</span><span class="price">{lek(o.commission_all, lang)}</span></div>
+            </>
+          ) : (
+            <div class="grand"><span>{t.order.sellerTotal}</span><span class="price">{lek(mineTotal, lang)}</span></div>
+          )}
+        </div>
+      </section>
+
+      <section class="adm-sec" aria-labelledby="h-notes" id="notes">
+        <h2 class="adm-h2" id="h-notes"><span class="k">03</span>{t.order.internal}</h2>
+        <p class="adm-lede">{t.order.internalHint}</p>
+        <div class="thread">
+          {o.internal.length === 0 ? <p class="muted">{t.order.notesEmpty}</p> : o.internal.map((m: any) => {
+            const mine = (admin && m.author_role === 'admin') || (!admin && m.seller_id === user.seller_id);
+            return (
+              <article class:list={['msg', { 'msg--mine': mine }]}>
+                <p class="msg__meta"><b>{m.author_role === 'admin' ? t.quotes.admin : (m.seller_name ?? t.order.seller)}</b><span>{date(m.created_at, lang, true)}</span></p>
+                <p class="msg__body">{m.body}</p>
+              </article>
+            );
+          })}
+        </div>
+        <form class="adm-form" method="post" style="max-width: 44rem">
+          <input type="hidden" name="_csrf" value={user.csrf} />
+          <input type="hidden" name="op" value="note" />
+          <Field name="body" label={t.order.noteBody} value={noteBody} error={errors.body} textarea maxlength={4000} />
+          <p><button class="btn" type="submit">{t.order.addNote}</button></p>
+        </form>
+      </section>
+    </div>
+
+    <aside class="adm-aside adm-sec" aria-label={t.common.actions}>
+      {admin && (
+        <form class="box box--ink" method="post">
+          <h2>{t.order.changeStatus}</h2>
+          <input type="hidden" name="_csrf" value={user.csrf} />
+          <input type="hidden" name="op" value="status" />
+          <div class="field">
+            <label for="f-status">{t.order.newStatus}</label>
+            <select class="select" id="f-status" name="status" aria-invalid={errors.status ? 'true' : undefined} aria-describedby={`f-status-h${errors.status ? ' f-status-e' : ''}`}>
+              {ORDER_STATUSES.map((s) => <option value={s} selected={s === o.status}>{t.status[s]}</option>)}
+            </select>
+            <p class="hint" id="f-status-h">{t.order.cancelWarn}</p>
+            {errors.status && <p class="error" id="f-status-e">{errors.status}</p>}
+          </div>
+          <Field name="note" label={t.order.note} value={statusNote} hint={t.common.optional} maxlength={500} />
+          <button class="btn btn--block" type="submit">{t.order.apply}</button>
+        </form>
+      )}
+
+      <div class="box">
+        <h2>{t.order.payment}</h2>
+        <dl class="kv">
+          <dt>{t.order.method}</dt><dd>{t.payMethod[o.payment_method]}</dd>
+          <dt>{t.sheet.status}</dt><dd><St s={o.payment_status} label={t.payStatus[o.payment_status] ?? o.payment_status} /></dd>
+          {o.payment_ref && <><dt>{t.order.ref}</dt><dd class="mono">{o.payment_ref}</dd></>}
+        </dl>
+        {canPay && (
+          <form method="post" class="adm-form" style="gap: 0.75rem">
+            <input type="hidden" name="_csrf" value={user.csrf} />
+            <input type="hidden" name="op" value="paid" />
+            <Field name="ref" label={t.order.refLabel} value={ref} error={errors.ref} hint={t.order.refHint} maxlength={120} spellcheck={false} />
+            <button class="btn btn--ghost btn--block" type="submit">{t.order.markPaid}</button>
+          </form>
+        )}
+      </div>
+
+      <div class="box">
+        <h2>{t.order.timeline}</h2>
+        <ol class="timeline">
+          {o.events.map((ev: any) => (
+            <li>
+              <span class="when">{date(ev.created_at, lang, true)}{ev.actor ? ` · ${t.order.by} ${t.order.actors[ev.actor] ?? ev.actor}` : ''}</span>
+              <span><b>{t.status[ev.status] ?? ev.status}</b></span>
+              {ev.note && <span class="note">{ev.note}</span>}
+            </li>
+          ))}
+        </ol>
+      </div>
+    </aside>
+  </div>
+</Admin>

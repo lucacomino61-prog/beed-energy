@@ -1,0 +1,245 @@
+---
+// Offer editor: price, stock, delivery, volume tiers, notes, visibility, plus the offer's price history.
+// Sellers edit only their own offers and cannot set "promoted" (saveOffer enforces both).
+import Admin from '../../../layouts/Admin.astro';
+import Field from '../_parts/Field.astro';
+import Errors from '../_parts/Errors.astro';
+import St from '../_parts/St.astro';
+import { adminCtx, fbool, fnum, fstr, idParam, offerForEdit, productOptions, sellersList, type Errors as Errs, forbiddenPage } from '../../../lib/admin-panel';
+import { Forbidden, isAdmin, saveOffer, type OfferInput } from '../../../lib/admin';
+import { csrfOk } from '../../../lib/auth';
+import { lek } from '../../../lib/money';
+import { date, href } from '../../../lib/i18n';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url, flash } = c;
+const admin = isAdmin(user);
+const id = idParam(Astro.params.id);
+if (id !== null && id < 0) return Astro.rewrite('/404');
+let existing: any = null;
+try {
+  existing = id ? offerForEdit(user, id) : null;
+} catch (e) {
+  if (e instanceof Forbidden) return forbiddenPage(Astro);
+  throw e;
+}
+if (id && !existing) return Astro.rewrite('/404');
+
+const s = (n: number | null | undefined) => (n === null || n === undefined ? '' : String(n));
+let v: Record<string, string> = existing
+  ? {
+      product_id: s(existing.product_id), seller_id: s(existing.seller_id), price_all: s(existing.price_all), compare_at_all: s(existing.compare_at_all),
+      stock_qty: s(existing.stock_qty), lead_days: s(existing.lead_days), min_qty: s(existing.min_qty), delivery_fee_all: s(existing.delivery_fee_all),
+      free_delivery_over_all: s(existing.free_delivery_over_all), note_sq: existing.note_sq ?? '', note_en: existing.note_en ?? '',
+    }
+  : { product_id: url.searchParams.get('product') ?? '', seller_id: admin ? (url.searchParams.get('seller') ?? '') : s(user.seller_id), price_all: '', compare_at_all: '', stock_qty: '0', lead_days: '2', min_qty: '1', delivery_fee_all: '0', free_delivery_over_all: '', note_sq: '', note_en: '' };
+let flags = existing ? { installation: !!existing.installation_available, promoted: !!existing.promoted, active: !!existing.active } : { installation: false, promoted: false, active: true };
+let tiers: { min_qty: string; price_all: string }[] = existing ? existing.tiers.map((x: any) => ({ min_qty: s(x.min_qty), price_all: s(x.price_all) })) : [];
+let errors: Errs = {};
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  if (!csrfOk(user, f)) {
+    errors._form = t.err.csrf;
+    Astro.response.status = 403;
+  } else {
+    for (const k of Object.keys(v)) v[k] = fstr(f, k, k.startsWith('note') ? 1000 : 20);
+    flags = { installation: fbool(f, 'installation'), promoted: fbool(f, 'promoted'), active: fbool(f, 'active') };
+    const n = Math.min(20, Math.floor(Number(f.get('tiers')) || 0));
+    tiers = Array.from({ length: n }, (_, i) => ({ min_qty: fstr(f, `t${i}_min`, 12), price_all: fstr(f, `t${i}_price`, 12) }));
+    const int = (k: string, required: boolean, min = 0) => {
+      const x = fnum(f, k);
+      if (x === null) {
+        if (required) errors[k] = t.err.required;
+        return null;
+      }
+      if (Number.isNaN(x) || !Number.isInteger(x) || x < min) {
+        errors[k] = t.err.whole;
+        return null;
+      }
+      return x;
+    };
+    const product_id = Number(v.product_id) || 0;
+    const seller_id = admin ? Number(v.seller_id) || 0 : user.seller_id!;
+    if (!product_id) errors.product_id = t.offers.chooseProduct;
+    if (admin && !seller_id) errors.seller_id = t.offers.chooseSeller;
+    const price = int('price_all', true, 1);
+    const compareAt = int('compare_at_all', false, 1);
+    const stock = int('stock_qty', true, 0);
+    const lead = int('lead_days', true, 0);
+    const minQty = int('min_qty', true, 1);
+    const fee = int('delivery_fee_all', true, 0);
+    const free = int('free_delivery_over_all', false, 0);
+    const tierVals: OfferInput['tiers'] = [];
+    for (const [i, row] of tiers.entries()) {
+      if (!row.min_qty && !row.price_all) continue;
+      const mq = Number(row.min_qty.replace(/\s/g, ''));
+      const pr = Number(row.price_all.replace(/\s/g, '').replace(',', '.'));
+      if (!Number.isInteger(mq) || !Number.isFinite(pr)) errors[`t${i}_min`] = t.err.whole;
+      else tierVals.push({ min_qty: mq, price_all: Math.round(pr) });
+    }
+    if (!Object.keys(errors).length) {
+      const input: OfferInput = {
+        product_id, seller_id, price_all: price!, compare_at_all: compareAt, stock_qty: stock!, lead_days: lead!, min_qty: minQty!,
+        delivery_fee_all: fee!, free_delivery_over_all: free, installation_available: flags.installation, note_sq: v.note_sq, note_en: v.note_en,
+        promoted: admin ? flags.promoted : false, active: flags.active, tiers: tierVals,
+      };
+      try {
+        const r = saveOffer(user, id, input, lang);
+        if (r.id && !Object.keys(r.errors).length) return Astro.redirect(`/admin/offers/${r.id}?ok=${id ? 'saved' : 'created'}`, 303);
+        errors = r.errors;
+        if (errors.tiers) errors.t0_min = errors.tiers;
+        delete errors.tiers;
+      } catch (e) {
+        if (e instanceof Forbidden) return forbiddenPage(Astro);
+        throw e;
+      }
+    }
+    if (Object.keys(errors).length) Astro.response.status = 422;
+  }
+}
+
+const products = existing ? [] : productOptions();
+const sellers = admin && !existing ? sellersList() : [];
+const tierTarget = Math.max(3, tiers.filter((r) => r.min_qty || r.price_all).length + 1);
+while (tiers.length < tierTarget) tiers.push({ min_qty: '', price_all: '' });
+const name = existing ? `${existing.brand} ${existing.model}` : t.offers.newTitle;
+const title = existing ? `${t.offers.editTitle} · ${existing.brand} ${existing.model}` : t.offers.newTitle;
+const hist = existing ? [...existing.history].reverse() : [];
+const hmin = Math.min(...hist.map((h: any) => h.price_all));
+const hmax = Math.max(...hist.map((h: any) => h.price_all));
+const spark = hist.length > 1
+  ? hist.map((h: any, i: number) => `${((i / (hist.length - 1)) * 300).toFixed(1)},${(64 - (hmax === hmin ? 32 : ((h.price_all - hmin) / (hmax - hmin)) * 56) - 4).toFixed(1)}`).join(' ')
+  : '';
+const labels: Record<string, string> = {
+  product_id: t.offers.product, seller_id: t.offers.seller, price_all: t.offers.priceLabel, compare_at_all: t.offers.compareAt, stock_qty: t.offers.stockLabel,
+  lead_days: t.offers.lead, min_qty: t.offers.minQty, delivery_fee_all: t.offers.deliveryFee, free_delivery_over_all: t.offers.freeOver, t0_min: t.offers.tiers,
+};
+---
+<Admin lang={lang} t={t} user={user} url={url} title={title} docTitle={name} section="offers" flash={flash}
+  sheet={existing ? [[t.offers.seller, existing.seller_name], [t.offers.updated, date(existing.updated_at, lang, true)]] : []}>
+  <div slot="head" class="adm-head-tools">
+    {existing && (existing.active ? <St s="active" label={t.offers.active} /> : <St s="archived" label={t.offers.inactive} />)}
+    {existing?.promoted ? <span class="tag tag--copper">{t.offers.promoted}</span> : null}
+    {existing?.is_demo ? <span class="tag tag--demo">{t.common.demo}</span> : null}
+    {existing && <a class="btn btn--s btn--ghost" href={href(lang, 'product', { slug: existing.slug })}>{t.offers.publicPage}</a>}
+    <a class="btn btn--s btn--ghost" href="/admin/offers">{t.common.back}</a>
+  </div>
+
+  {!existing && products.length === 0 ? <p class="adm-empty">{t.offers.noProducts}</p> : (
+  <div class="adm-split">
+    <form class="adm-form" method="post" novalidate>
+      <input type="hidden" name="_csrf" value={user.csrf} />
+      <Errors errors={errors} title={t.err.check} labels={labels} />
+      <fieldset class="adm-fs">
+        <legend><span class="k">01</span>{t.offers.terms}</legend>
+        {existing ? (
+          <>
+            <input type="hidden" name="product_id" value={v.product_id} />
+            <input type="hidden" name="seller_id" value={v.seller_id} />
+            <div class="field"><span class="label">{t.offers.product}</span><p translate="no"><a href={admin ? `/admin/products/${existing.product_id}` : href(lang, 'product', { slug: existing.slug })}>{existing.brand} {existing.model}</a></p></div>
+            <div class="field"><span class="label">{t.offers.seller}</span><p>{existing.seller_name}</p></div>
+          </>
+        ) : (
+          <>
+            <div class="field span-2">
+              <label for="f-product_id">{t.offers.product}</label>
+              <select class="select" id="f-product_id" name="product_id" aria-invalid={errors.product_id ? 'true' : undefined} aria-describedby={errors.product_id ? 'f-product_id-e' : undefined}>
+                <option value="">{t.offers.chooseProduct}</option>
+                {[...new Set(products.map((p) => p.category_id))].map((cid) => {
+                  const group = products.filter((p) => p.category_id === cid);
+                  return <optgroup label={lang === 'sq' ? group[0].cat_sq : group[0].cat_en}>{group.map((p) => <option value={p.id} selected={String(p.id) === v.product_id}>{p.brand} {p.model}{p.status === 'draft' ? ` (${t.pstatus.draft})` : ''}</option>)}</optgroup>;
+                })}
+              </select>
+              {errors.product_id && <p class="error" id="f-product_id-e">{errors.product_id}</p>}
+            </div>
+            {admin && (
+              <div class="field">
+                <label for="f-seller_id">{t.offers.seller}</label>
+                <select class="select" id="f-seller_id" name="seller_id" aria-invalid={errors.seller_id ? 'true' : undefined} aria-describedby={errors.seller_id ? 'f-seller_id-e' : undefined}>
+                  <option value="">{t.offers.chooseSeller}</option>
+                  {sellers.map((x: any) => <option value={x.id} selected={String(x.id) === v.seller_id}>{x.name}{x.status !== 'active' ? ` (${t.sstatus[x.status]})` : ''}</option>)}
+                </select>
+                {errors.seller_id && <p class="error" id="f-seller_id-e">{errors.seller_id}</p>}
+              </div>
+            )}
+          </>
+        )}
+        <Field name="price_all" label={t.offers.priceLabel} value={v.price_all} error={errors.price_all} suffix={t.common.lek} inputmode="numeric" num required reqLabel={t.product.req} />
+        <Field name="compare_at_all" label={t.offers.compareAt} value={v.compare_at_all} error={errors.compare_at_all} hint={t.offers.compareAtHint} suffix={t.common.lek} inputmode="numeric" num />
+        <Field name="stock_qty" label={t.offers.stockLabel} value={v.stock_qty} error={errors.stock_qty} suffix={t.offers.pcs} inputmode="numeric" num />
+        <Field name="min_qty" label={t.offers.minQty} value={v.min_qty} error={errors.min_qty} suffix={t.offers.pcs} inputmode="numeric" num />
+        <div class="tiers" role="group" aria-labelledby="tiers-h">
+          <p class="label" id="tiers-h" style="font-weight: 600; font-size: 0.875rem">{t.offers.tiers}</p>
+          <p class="hint small muted">{t.offers.tiersHint}</p>
+          <input type="hidden" name="tiers" value={tiers.length} />
+          {tiers.map((row, i) => (
+            <div class="tiers__row">
+              <Field id={`f-t${i}_min`} name={`t${i}_min`} label={`${t.offers.tierFrom} (${i + 1})`} value={row.min_qty} error={errors[`t${i}_min`]} suffix={t.offers.pcs} inputmode="numeric" num />
+              <Field id={`f-t${i}_price`} name={`t${i}_price`} label={`${t.offers.tierPrice} (${i + 1})`} value={row.price_all} suffix={t.common.lek} inputmode="numeric" num />
+            </div>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset class="adm-fs">
+        <legend><span class="k">02</span>{t.offers.logistics}</legend>
+        <Field name="lead_days" label={t.offers.lead} value={v.lead_days} error={errors.lead_days} suffix={t.offers.days} inputmode="numeric" num />
+        <Field name="delivery_fee_all" label={t.offers.deliveryFee} value={v.delivery_fee_all} error={errors.delivery_fee_all} hint={t.offers.deliveryHint} suffix={t.common.lek} inputmode="numeric" num />
+        <Field name="free_delivery_over_all" label={t.offers.freeOver} value={v.free_delivery_over_all} error={errors.free_delivery_over_all} hint={t.offers.freeOverHint} suffix={t.common.lek} inputmode="numeric" num />
+        <div class="field">
+          <span class="label" aria-hidden="true">&nbsp;</span>
+          <label class="check check--box"><input type="checkbox" name="installation" value="1" checked={flags.installation} /><span>{t.offers.installation}</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="adm-fs">
+        <legend><span class="k">03</span>{t.offers.notes}</legend>
+        <Field name="note_sq" label={t.offers.note_sq} value={v.note_sq} textarea maxlength={1000} />
+        <Field name="note_en" label={t.offers.note_en} value={v.note_en} textarea maxlength={1000} />
+        <div class="field">
+          <label class="check check--box"><input type="hidden" name="active" value="0" /><input type="checkbox" name="active" value="1" checked={flags.active} /><span>{t.offers.activeLabel}</span></label>
+        </div>
+        {admin ? (
+          <div class="field">
+            <label class="check check--box"><input type="checkbox" name="promoted" value="1" checked={flags.promoted} aria-describedby="f-promoted-h" /><span>{t.offers.promotedLabel}</span></label>
+            <p class="hint" id="f-promoted-h">{t.offers.promotedHint}</p>
+          </div>
+        ) : (
+          <p class="hint">{flags.promoted ? `${t.offers.promoted}. ` : ''}{t.offers.promotedHint}</p>
+        )}
+      </fieldset>
+
+      <div class="adm-savebar">
+        <button class="btn" type="submit">{existing ? t.common.saveChanges : t.offers.create}</button>
+        <a class="btn btn--ghost" href="/admin/offers">{t.common.cancel}</a>
+      </div>
+    </form>
+
+    {existing && (
+      <aside class="adm-aside" aria-labelledby="h-hist">
+        <div class="box">
+          <h2 id="h-hist">{t.offers.history}</h2>
+          {hist.length === 0 ? <p class="muted">{t.offers.historyEmpty}</p> : (
+            <>
+              {spark && (
+                <svg class="spark" viewBox="0 0 300 72" preserveAspectRatio="none" aria-hidden="true">
+                  <line class="base" x1="0" x2="300" y1="68" y2="68" />
+                  <polyline points={spark} fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+                </svg>
+              )}
+              <div class="table-scroll" style="max-height: 22rem; overflow-y: auto">
+                <table class="table adm-table">
+                  <thead><tr><th scope="col">{t.offers.recorded}</th><th scope="col" class="num">{t.offers.price}</th></tr></thead>
+                  <tbody>{existing.history.map((h: any) => <tr><td class="mono small">{date(h.recorded_at, lang)}</td><td class="num price">{lek(h.price_all, lang)}</td></tr>)}</tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      </aside>
+    )}
+  </div>
+  )}
+</Admin>

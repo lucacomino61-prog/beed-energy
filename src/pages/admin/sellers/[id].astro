@@ -1,0 +1,125 @@
+---
+// Seller editor (admin): company details, plan, commission, verified badge, delivery zones, status.
+import Admin from '../../../layouts/Admin.astro';
+import Field from '../_parts/Field.astro';
+import Errors from '../_parts/Errors.astro';
+import St from '../_parts/St.astro';
+import { adminCtx, cities, idParam, readSeller, type Errors as Errs, forbiddenPage } from '../../../lib/admin-panel';
+import { Forbidden, isAdmin, saveSeller } from '../../../lib/admin';
+import { csrfOk } from '../../../lib/auth';
+import { get } from '../../../lib/db';
+import { href } from '../../../lib/i18n';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url, flash } = c;
+if (!isAdmin(user)) return forbiddenPage(Astro);
+const id = idParam(Astro.params.id);
+if (id !== null && id < 0) return Astro.rewrite('/404');
+const existing = id ? get<any>('SELECT * FROM sellers WHERE id = ?', id) : null;
+if (id && !existing) return Astro.rewrite('/404');
+
+let v: any = existing
+  ? { ...existing, verified: !!existing.verified }
+  : { slug: '', name: '', legal_name: '', nipt: '', kind: 'supplier', city_id: null, address: '', phone: '', email: '', website: '', about_sq: '', about_en: '', verified: false, plan: 'start', commission_pct: 9, delivery_zones: '1,2,3', status: 'pending' };
+let errors: Errs = {};
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  if (!csrfOk(user, f)) {
+    errors._form = t.err.csrf;
+    Astro.response.status = 403;
+  } else {
+    const r = readSeller(f, id, t);
+    v = r.v;
+    errors = r.errors;
+    if (!Object.keys(errors).length) {
+      try {
+        const newId = saveSeller(user, id, v);
+        return Astro.redirect(`/admin/sellers/${newId}?ok=${id ? 'saved' : 'created'}`, 303);
+      } catch (e) {
+        if (e instanceof Forbidden) return forbiddenPage(Astro);
+        throw e;
+      }
+    }
+    Astro.response.status = 422;
+  }
+}
+const cityList = cities();
+const zones = String(v.delivery_zones ?? '').split(',');
+const labels: Record<string, string> = { name: t.sellers.name, slug: t.sellers.slug, kind: t.sellers.kind, plan: t.sellers.plan, status: t.sellers.status, commission_pct: t.sellers.commissionLabel, zones: t.sellers.zones, nipt: t.sellers.nipt, email: t.sellers.email, website: t.sellers.website };
+---
+<Admin lang={lang} t={t} user={user} url={url} title={existing ? existing.name : t.sellers.newTitle} section="sellers" flash={flash}
+  sheet={existing ? [[t.sellers.status, t.sstatus[existing.status]], [t.sellers.plan, t.plans[existing.plan]]] : []}>
+  <div slot="head" class="adm-head-tools">
+    {existing && <St s={existing.status} label={t.sstatus[existing.status]} />}
+    {existing?.is_demo ? <span class="tag tag--demo">{t.common.demo}</span> : null}
+    {existing?.status === 'active' && <a class="btn btn--s btn--ghost" href={href(lang, 'seller', { slug: existing.slug })}>{t.sellers.publicPage}</a>}
+    {existing && <a class="btn btn--s btn--ghost" href={`/admin/offers?seller=${existing.id}`}>{t.nav.offers}</a>}
+    <a class="btn btn--s btn--ghost" href="/admin/sellers">{t.common.back}</a>
+  </div>
+  {existing?.is_demo ? <p class="notice" style="margin-bottom: 1.5rem">{t.sellers.demoNote}</p> : null}
+  <form class="adm-form" method="post" novalidate style="max-width: 72rem">
+    <input type="hidden" name="_csrf" value={user.csrf} />
+    <Errors errors={errors} title={t.err.check} labels={labels} />
+    <fieldset class="adm-fs">
+      <legend><span class="k">01</span>{t.sellers.identity}</legend>
+      <Field name="name" label={t.sellers.name} value={v.name} error={errors.name} required reqLabel={t.product.req} maxlength={120} />
+      <Field name="slug" label={t.sellers.slug} value={v.slug} error={errors.slug} hint={t.sellers.slugHint} spellcheck={false} maxlength={80} />
+      <Field name="legal_name" label={t.sellers.legal_name} value={v.legal_name} maxlength={160} />
+      <Field name="nipt" label={t.sellers.nipt} value={v.nipt} error={errors.nipt} hint={t.err.nipt} spellcheck={false} maxlength={10} num />
+      <div class="field">
+        <label for="f-kind">{t.sellers.kind}</label>
+        <select class="select" id="f-kind" name="kind">
+          {['supplier', 'installer', 'manufacturer', 'contractor'].map((k) => <option value={k} selected={k === v.kind}>{t.kinds[k]}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-city_id">{t.sellers.city}</label>
+        <select class="select" id="f-city_id" name="city_id">
+          <option value="">{t.sellers.noCity}</option>
+          {cityList.map((x) => <option value={x.id} selected={x.id === v.city_id}>{lang === 'sq' ? x.name_sq : x.name_en}</option>)}
+        </select>
+      </div>
+      <Field name="address" label={t.sellers.address} value={v.address} maxlength={300} />
+      <Field name="phone" label={t.sellers.phone} value={v.phone} type="tel" inputmode="tel" autocomplete="off" maxlength={40} />
+      <Field name="email" label={t.sellers.email} value={v.email} error={errors.email} type="email" inputmode="email" spellcheck={false} maxlength={160} />
+      <Field name="website" label={t.sellers.website} value={v.website} error={errors.website} type="url" inputmode="url" spellcheck={false} placeholder="https://" maxlength={300} />
+      <Field name="about_sq" label={t.sellers.about_sq} value={v.about_sq} textarea maxlength={3000} />
+      <Field name="about_en" label={t.sellers.about_en} value={v.about_en} textarea maxlength={3000} />
+    </fieldset>
+    <fieldset class="adm-fs">
+      <legend><span class="k">02</span>{t.sellers.terms}</legend>
+      <div class="field">
+        <label for="f-status">{t.sellers.status}</label>
+        <select class="select" id="f-status" name="status">
+          {['pending', 'active', 'suspended'].map((s) => <option value={s} selected={s === v.status}>{t.sstatus[s]}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-plan">{t.sellers.plan}</label>
+        <select class="select" id="f-plan" name="plan">
+          {['start', 'pro', 'partner'].map((p) => <option value={p} selected={p === v.plan}>{t.plans[p]}</option>)}
+        </select>
+      </div>
+      <Field name="commission_pct" label={t.sellers.commissionLabel} value={String(v.commission_pct ?? '').replace('.', lang === 'sq' ? ',' : '.')} error={errors.commission_pct} suffix="%" inputmode="decimal" num />
+      <div class="field">
+        <span class="label" aria-hidden="true">&nbsp;</span>
+        <label class="check check--box"><input type="checkbox" name="verified" value="1" checked={!!v.verified} /><span>{t.sellers.verifiedLabel}</span></label>
+      </div>
+      <div class="field span-all">
+        <fieldset aria-describedby={errors.zones ? 'f-zones-e' : undefined} id="f-zones">
+          <legend>{t.sellers.zones}</legend>
+          <div class="zones">
+            {['1', '2', '3'].map((z) => <label class="check check--box"><input type="checkbox" name="zones" value={z} checked={zones.includes(z)} aria-invalid={errors.zones ? 'true' : undefined} /><span>{t.sellers.zone[z]}</span></label>)}
+          </div>
+        </fieldset>
+        {errors.zones && <p class="error" id="f-zones-e">{errors.zones}</p>}
+      </div>
+    </fieldset>
+    <div class="adm-savebar">
+      <button class="btn" type="submit">{existing ? t.common.saveChanges : t.sellers.create}</button>
+      <a class="btn btn--ghost" href="/admin/sellers">{t.common.cancel}</a>
+    </div>
+  </form>
+</Admin>

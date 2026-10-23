@@ -1,0 +1,54 @@
+---
+// A-04 Categories & spec templates: every category with its product and attribute counts.
+import Admin from '../../../layouts/Admin.astro';
+import St from '../_parts/St.astro';
+import { adminCtx, allCategories, forbiddenPage } from '../../../lib/admin-panel';
+import { isAdmin } from '../../../lib/admin';
+import { href } from '../../../lib/i18n';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url, flash } = c;
+if (!isAdmin(user)) return forbiddenPage(Astro);
+const cats = allCategories();
+const attrs = cats.reduce((s: number, x: any) => s + x.attrs, 0);
+---
+<Admin lang={lang} t={t} user={user} url={url} title={t.cat.title} section="categories" flash={flash} sheet={[[t.sheet.records, cats.length], [t.cat.attrs, attrs]]}>
+  <div slot="head" class="adm-head-tools"><a class="btn" href="/admin/categories/new">{t.common.addNew}</a></div>
+  {cats.length === 0 ? <p class="adm-empty">{t.cat.empty}</p> : (
+    <div class="table-scroll">
+      <table class="table adm-table">
+        <thead>
+          <tr>
+            <th scope="col" class="num">{t.cat.sort}</th>
+            <th scope="col">{t.cat.name}</th>
+            <th scope="col">{t.cat.group}</th>
+            <th scope="col">{t.cat.slugs}</th>
+            <th scope="col" class="num">{t.cat.attrs}</th>
+            <th scope="col" class="num">{t.cat.products}</th>
+            <th scope="col">{t.sheet.status}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {cats.map((x: any) => (
+            <tr>
+              <td class="num mono">{String(x.sort + 1).padStart(2, '0')}</td>
+              <th scope="row" style="font-weight: 400">
+                <a class="rowlink" href={`/admin/categories/${x.id}`}>{lang === 'sq' ? x.name_sq : x.name_en}</a>
+                <span class="sub">{lang === 'sq' ? x.name_en : x.name_sq}</span>
+              </th>
+              <td class="small">{t.cat.groups[x.group_key] ?? x.group_key}</td>
+              <td class="mono small">
+                <a href={href('sq', 'category', { slug: x.slug_sq })}>/{x.slug_sq}</a>
+                <span class="sub"><a href={href('en', 'category', { slug: x.slug_en })}>/en/…/{x.slug_en}</a></span>
+              </td>
+              <td class="num mono"><a href={`/admin/categories/${x.id}#template`}>{x.attrs}</a></td>
+              <td class="num mono"><a href={`/admin/products?category=${x.id}`}>{x.products}</a></td>
+              <td>{x.active ? <St s="active" label={t.cat.active} /> : <St s="archived" label={t.cat.inactive} />}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</Admin>

@@ -1,0 +1,80 @@
+---
+// A-07 Price monitor: biggest spreads between sellers, single-offer products, products with no offer
+// (with the research reference price in EUR when one exists).
+import Admin from '../../layouts/Admin.astro';
+import { adminCtx, forbiddenPage } from '../../lib/admin-panel';
+import { isAdmin, priceMonitor } from '../../lib/admin';
+import { eur, lek, num } from '../../lib/money';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url, flash } = c;
+if (!isAdmin(user)) return forbiddenPage(Astro);
+const m = priceMonitor();
+const maxPct = Math.max(1, ...m.spread.map((r: any) => r.spread_pct ?? 0));
+---
+<Admin lang={lang} t={t} user={user} url={url} title={t.monitor.title} section="monitor" flash={flash}
+  sheet={[[t.monitor.short.spread, m.spread.length], [t.monitor.short.single, m.single.length], [t.monitor.short.none, m.none.length]]}>
+  <section class="adm-sec" aria-labelledby="h-spread">
+    <h2 class="adm-h2" id="h-spread"><span class="k">01</span>{t.monitor.spread}<span class="meta">{m.spread.length}</span></h2>
+    <p class="adm-lede">{t.monitor.spreadHint}</p>
+    {m.spread.length === 0 ? <p class="adm-empty">{t.monitor.empty}</p> : (
+      <div class="table-scroll">
+        <table class="table adm-table">
+          <thead><tr><th scope="col">{t.monitor.product}</th><th scope="col" class="num">{t.monitor.offers}</th><th scope="col" class="num">{t.monitor.low}</th><th scope="col" class="num">{t.monitor.high}</th><th scope="col" class="num">{t.monitor.pct}</th></tr></thead>
+          <tbody>
+            {m.spread.map((r: any) => (
+              <tr>
+                <th scope="row" style="font-weight: 400"><a class="rowlink" href={`/admin/products/${r.id}`} translate="no">{r.brand} {r.model}</a></th>
+                <td class="num mono"><a href={`/admin/offers?q=${encodeURIComponent(r.slug)}`}>{r.offers}</a></td>
+                <td class="num price">{lek(r.low, lang)}</td>
+                <td class="num price">{lek(r.high, lang)}</td>
+                <td class="num">
+                  <span class="row" style="justify-content: flex-end; flex-wrap: nowrap; gap: 0.6rem">
+                    <svg width="80" height="8" aria-hidden="true" style="display: inline-block"><rect x="0" y="3" width="80" height="2" fill="var(--line)" /><rect x="0" y="0" height="8" width={Math.max(2, (80 * r.spread_pct) / maxPct).toFixed(1)} fill="var(--copper)" /></svg>
+                    <span class="mono">{num(r.spread_pct, 1, lang)}%</span>
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </section>
+
+  <div class="adm-cols adm-sec">
+    <section aria-labelledby="h-single">
+      <h2 class="adm-h2" id="h-single"><span class="k">02</span>{t.monitor.single}<span class="meta">{m.single.length}</span></h2>
+      <p class="adm-lede">{t.monitor.singleHint}</p>
+      {m.single.length === 0 ? <p class="adm-empty">{t.monitor.empty}</p> : (
+        <div class="table-scroll">
+          <table class="table adm-table">
+            <thead><tr><th scope="col">{t.monitor.product}</th><th scope="col" class="num">{t.offers.price}</th></tr></thead>
+            <tbody>{m.single.map((r: any) => <tr><th scope="row" style="font-weight: 400"><a class="rowlink" href={`/admin/products/${r.id}`} translate="no">{r.brand} {r.model}</a></th><td class="num price">{lek(r.low, lang)}</td></tr>)}</tbody>
+          </table>
+        </div>
+      )}
+    </section>
+    <section aria-labelledby="h-none" id="none">
+      <h2 class="adm-h2" id="h-none"><span class="k">03</span>{t.monitor.none}<span class="meta">{m.none.length}</span></h2>
+      <p class="adm-lede">{t.monitor.noneHint}</p>
+      {m.none.length === 0 ? <p class="adm-empty">{t.monitor.empty}</p> : (
+        <div class="table-scroll">
+          <table class="table adm-table">
+            <thead><tr><th scope="col">{t.monitor.product}</th><th scope="col" class="num">{t.monitor.ref}</th><th scope="col"><span class="visually-hidden">{t.common.actions}</span></th></tr></thead>
+            <tbody>
+              {m.none.map((r: any) => (
+                <tr>
+                  <th scope="row" style="font-weight: 400"><a class="rowlink" href={`/admin/products/${r.id}`} translate="no">{r.brand} {r.model}</a></th>
+                  <td class="num">{r.reference_price_eur ? <span class="price">{eur(r.reference_price_eur)}</span> : <span class="muted small">{t.monitor.refNone}</span>}</td>
+                  <td><a class="btn btn--s btn--ghost" href={`/admin/offers/new?product=${r.id}`}>{t.product.addOffer}</a></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  </div>
+</Admin>

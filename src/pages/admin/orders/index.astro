@@ -1,0 +1,80 @@
+---
+// A-02 Orders: status chips with counts, search by code or phone, paged list. Sellers see only orders
+// that contain their lines, with their own share.
+import Admin from '../../../layouts/Admin.astro';
+import Pager from '../_parts/Pager.astro';
+import St from '../_parts/St.astro';
+import { adminCtx, ordersList, pageParam, withQuery } from '../../../lib/admin-panel';
+import { isAdmin } from '../../../lib/admin';
+import { ORDER_STATUSES } from '../../../lib/orders';
+import { lek } from '../../../lib/money';
+import { date } from '../../../lib/i18n';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url, flash } = c;
+const admin = isAdmin(user);
+const statusQ = url.searchParams.get('status') ?? '';
+const status = (ORDER_STATUSES as readonly string[]).includes(statusQ) ? statusQ : '';
+const q = (url.searchParams.get('q') ?? '').trim().slice(0, 40);
+const page = pageParam(url);
+const { rows, total, byStatus } = ordersList(user, { status, q, page });
+const all = Object.values(byStatus).reduce((a, b) => a + b, 0);
+---
+<Admin lang={lang} t={t} user={user} url={url} title={t.orders.title} section="orders" flash={flash} sheet={[[t.sheet.records, all]]}>
+  <nav class="chips" aria-label={t.orders.status}>
+    <a href={withQuery('/admin/orders', { q })} aria-current={status === '' ? 'true' : undefined}>{t.common.all}<span class="n">{all}</span></a>
+    {ORDER_STATUSES.map((s) => (
+      <a href={withQuery('/admin/orders', { status: s, q })} aria-current={status === s ? 'true' : undefined}>{t.status[s]}<span class="n">{byStatus[s] ?? 0}</span></a>
+    ))}
+  </nav>
+  <form class="adm-filters" method="get" action="/admin/orders" role="search">
+    {status && <input type="hidden" name="status" value={status} />}
+    <div class="field field--grow">
+      <label for="f-q">{t.orders.search}</label>
+      <input class="input" id="f-q" name="q" type="search" value={q} placeholder={t.orders.searchPh} autocomplete="off" spellcheck="false" />
+    </div>
+    <button class="btn" type="submit">{t.common.search}</button>
+    {(q || status) && <a class="btn btn--ghost" href="/admin/orders">{t.common.reset}</a>}
+  </form>
+
+  {rows.length === 0 ? (
+    <p class="adm-empty">{all === 0 ? t.orders.emptyAll : t.orders.empty}</p>
+  ) : (
+    <div class="table-scroll">
+      <table class="table adm-table">
+        <thead>
+          <tr>
+            <th scope="col">{t.orders.code}</th>
+            <th scope="col">{t.orders.date}</th>
+            <th scope="col">{t.orders.customer}</th>
+            <th scope="col">{t.orders.status}</th>
+            <th scope="col">{t.orders.payment}</th>
+            <th scope="col" class="num">{t.orders.lines}</th>
+            <th scope="col" class="num">{admin ? t.orders.total : t.orders.yourTotal}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((o: any) => (
+            <tr>
+              <th scope="row"><a class="rowlink mono" href={`/admin/orders/${o.id}`}>{o.code}</a></th>
+              <td class="mono small">{date(o.created_at, lang, true)}</td>
+              <td>
+                <span class="strong">{o.name}</span>
+                <span class="sub">{o.phone}{(lang === 'sq' ? o.city_sq : o.city_en) ? ` · ${lang === 'sq' ? o.city_sq : o.city_en}` : ''}</span>
+              </td>
+              <td><St s={o.status} label={t.status[o.status] ?? o.status} /></td>
+              <td>
+                <St s={o.payment_status} label={t.payStatus[o.payment_status] ?? o.payment_status} />
+                <span class="sub">{t.payMethod[o.payment_method]}</span>
+              </td>
+              <td class="num mono">{o.lines}</td>
+              <td class="num price">{lek(admin ? o.total_all : o.part, lang)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+  <Pager t={t} url={url} page={page} total={total} />
+</Admin>

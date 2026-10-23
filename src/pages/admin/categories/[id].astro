@@ -1,0 +1,240 @@
+---
+// Category editor + spec-template editor. Works without scripts: the whole table is submitted on every action;
+// "add", "up", "down" and "remove" re-render the table unsaved, "save" writes it with saveTemplate().
+// Removing an attribute that products already use needs an explicit confirmation (its values are deleted).
+import Admin from '../../../layouts/Admin.astro';
+import Field from '../_parts/Field.astro';
+import Errors from '../_parts/Errors.astro';
+import {
+  adminCtx, attrValueCounts, emptyRow, fbool, fstr, idParam, parseRows, readCategory, removedAttrs, rowsFromDb, rowsFromForm,
+  type CatInput, type Errors as Errs, type TplRow, forbiddenPage,
+} from '../../../lib/admin-panel';
+import { Forbidden, isAdmin, saveCategory, saveTemplate } from '../../../lib/admin';
+import { attributes } from '../../../lib/catalog';
+import { csrfOk } from '../../../lib/auth';
+import { get } from '../../../lib/db';
+import { href } from '../../../lib/i18n';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url, flash } = c;
+if (!isAdmin(user)) return forbiddenPage(Astro);
+const id = idParam(Astro.params.id);
+if (id !== null && id < 0) return Astro.rewrite('/404');
+const existing = id ? get<any>('SELECT * FROM categories WHERE id = ?', id) : null;
+if (id && !existing) return Astro.rewrite('/404');
+
+let cv: CatInput = existing
+  ? { ...existing, active: !!existing.active }
+  : { slug_sq: '', slug_en: '', name_sq: '', name_en: '', group_key: 'energy', intro_sq: '', intro_en: '', unit_basis: null, unit_label_sq: null, unit_label_en: null, sort: 99, active: true };
+let catErrors: Errs = {};
+let rows: TplRow[] = existing ? rowsFromDb(attributes(existing.id)) : [];
+let tplErrors: Errs = {};
+let tplUnsaved = false;
+let needConfirm = false;
+let csrfBad = false;
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  if (!csrfOk(user, f)) {
+    csrfBad = true;
+    Astro.response.status = 403;
+  } else {
+    const op = fstr(f, 'op', 20);
+    try {
+      if (op === 'cat') {
+        const r = readCategory(f, id, t);
+        cv = r.v;
+        catErrors = r.errors;
+        if (!Object.keys(catErrors).length) {
+          const newId = saveCategory(user, id, cv);
+          return Astro.redirect(`/admin/categories/${newId}?ok=${id ? 'saved' : 'created'}`, 303);
+        }
+        Astro.response.status = 422;
+      } else if (existing && f.get('rows') === null) {
+        // A template post always carries its row count; without it the table would be read as empty and wiped.
+        tplErrors._form = t.err.generic;
+        Astro.response.status = 400;
+      } else if (existing) {
+        rows = rowsFromForm(f);
+        const [verb, arg] = op.split(':');
+        const i = Number(arg);
+        if (verb === 'add') {
+          rows.push(emptyRow());
+          tplUnsaved = true;
+        } else if ((verb === 'up' || verb === 'down' || verb === 'remove') && Number.isInteger(i) && i >= 0 && i < rows.length) {
+          if (verb === 'remove') rows.splice(i, 1);
+          else {
+            const j = verb === 'up' ? i - 1 : i + 1;
+            if (j >= 0 && j < rows.length) [rows[i], rows[j]] = [rows[j], rows[i]];
+          }
+          tplUnsaved = true;
+        } else {
+          const parsed = parseRows(rows, t);
+          tplErrors = parsed.errors;
+          const gone = removedAttrs(existing.id, parsed.attrs.map((a) => a.id));
+          if (!Object.keys(tplErrors).length && gone.some((g) => g.values > 0) && !fbool(f, 'confirm_delete')) {
+            needConfirm = true;
+            tplErrors._form = t.tpl.needConfirm;
+          }
+          if (!Object.keys(tplErrors).length) {
+            try {
+              saveTemplate(user, existing.id, parsed.attrs);
+              return Astro.redirect(`/admin/categories/${existing.id}?ok=template#template`, 303);
+            } catch (e) {
+              if (e instanceof Forbidden) throw e;
+              const msg = e instanceof Error ? e.message : '';
+              tplErrors._form = msg.includes('duplicate') || msg.includes('UNIQUE') ? t.tpl.dupKey : t.err.generic;
+            }
+          }
+          if (Object.keys(tplErrors).length) {
+            tplUnsaved = true;
+            Astro.response.status = 422;
+          }
+        }
+      }
+    } catch (e) {
+      if (e instanceof Forbidden) return forbiddenPage(Astro);
+      throw e;
+    }
+  }
+}
+
+const counts = existing ? attrValueCounts(existing.id) : {};
+const gone = existing && tplUnsaved ? removedAttrs(existing.id, rows.map((r) => Number(r.id) || null)) : [];
+const goneValues = gone.reduce((s, g) => s + g.values, 0);
+const numericKeys = rows.filter((r) => r.type === 'number' && r.key).map((r) => r.key);
+const title = existing ? (lang === 'sq' ? existing.name_sq : existing.name_en) : t.cat.newTitle;
+const catLabels: Record<string, string> = { slug_sq: t.cat.slug_sq, slug_en: t.cat.slug_en, name_sq: t.cat.name_sq, name_en: t.cat.name_en, group_key: t.cat.group, unit_basis: t.cat.unitBasis, sort: t.cat.sort };
+const tplLabels: Record<string, string> = {};
+rows.forEach((_r, i) => {
+  for (const k of ['key', 'label_sq', 'label_en', 'options', 'decimals'] as const) tplLabels[`a${i}_${k}`] = `${t.tpl.row} ${i + 1} · ${(t.tpl as any)[k] ?? k}`;
+});
+---
+<Admin lang={lang} t={t} user={user} url={url} title={title} section="categories" flash={flash}
+  sheet={existing ? [[t.cat.attrs, rows.length], [t.cat.group, t.cat.groups[existing.group_key] ?? existing.group_key]] : []}>
+  <div slot="head" class="adm-head-tools">
+    {existing && <a class="btn btn--s btn--ghost" href={href(lang, 'category', { slug: lang === 'sq' ? existing.slug_sq : existing.slug_en })}>{t.cat.shop}</a>}
+    {existing && <a class="btn btn--s btn--ghost" href={`/admin/products?category=${existing.id}`}>{t.nav.products}</a>}
+    <a class="btn btn--s btn--ghost" href="/admin/categories">{t.common.back}</a>
+  </div>
+  {csrfBad && <div class="form-errors" role="alert" tabindex="-1" data-errors><p><strong>{t.err.csrf}</strong></p></div>}
+
+  <section class="adm-sec" aria-labelledby="h-cat">
+    <h2 class="adm-h2" id="h-cat"><span class="k">01</span>{t.cat.fields}</h2>
+    <form class="adm-form" method="post" novalidate>
+      <input type="hidden" name="_csrf" value={user.csrf} />
+      <input type="hidden" name="op" value="cat" />
+      <Errors errors={catErrors} title={t.err.check} labels={catLabels} />
+      <fieldset class="adm-fs">
+        <legend><span class="k">01</span>{t.cat.fields}</legend>
+        <Field name="name_sq" label={t.cat.name_sq} value={cv.name_sq} error={catErrors.name_sq} required reqLabel={t.product.req} maxlength={120} />
+        <Field name="name_en" label={t.cat.name_en} value={cv.name_en} error={catErrors.name_en} required reqLabel={t.product.req} maxlength={120} />
+        <Field name="slug_sq" label={t.cat.slug_sq} value={cv.slug_sq} error={catErrors.slug_sq} hint={t.err.slug} spellcheck={false} maxlength={80} />
+        <Field name="slug_en" label={t.cat.slug_en} value={cv.slug_en} error={catErrors.slug_en} hint={t.err.slug} spellcheck={false} maxlength={80} />
+        <div class="field">
+          <label for="f-group_key">{t.cat.group}</label>
+          <select class="select" id="f-group_key" name="group_key">
+            {['energy', 'efficiency', 'build'].map((g) => <option value={g} selected={g === cv.group_key}>{t.cat.groups[g]}</option>)}
+          </select>
+        </div>
+        <Field name="sort" label={t.cat.sort} value={cv.sort} error={catErrors.sort} inputmode="numeric" num />
+        <Field name="intro_sq" label={t.cat.intro_sq} value={cv.intro_sq} textarea maxlength={2000} />
+        <Field name="intro_en" label={t.cat.intro_en} value={cv.intro_en} textarea maxlength={2000} />
+        <div class="field">
+          <label for="f-unit_basis">{t.cat.unitBasis}</label>
+          <select class="select" id="f-unit_basis" name="unit_basis" aria-invalid={catErrors.unit_basis ? 'true' : undefined} aria-describedby={`f-unit_basis-h${catErrors.unit_basis ? ' f-unit_basis-e' : ''}`}>
+            <option value="">{t.cat.unitBasisNone}</option>
+            {numericKeys.map((k) => <option value={k} selected={k === cv.unit_basis}>{k}</option>)}
+            {cv.unit_basis && !numericKeys.includes(cv.unit_basis) && <option value={cv.unit_basis} selected>{cv.unit_basis}</option>}
+          </select>
+          <p class="hint" id="f-unit_basis-h">{t.cat.unitBasisHint}</p>
+          {catErrors.unit_basis && <p class="error" id="f-unit_basis-e">{catErrors.unit_basis}</p>}
+        </div>
+        <Field name="unit_label_sq" label={t.cat.unitLabel_sq} value={cv.unit_label_sq} placeholder="L/Wp" maxlength={20} />
+        <Field name="unit_label_en" label={t.cat.unitLabel_en} value={cv.unit_label_en} placeholder="ALL/Wp" maxlength={20} />
+        <div class="field">
+          <span class="label" aria-hidden="true">&nbsp;</span>
+          <label class="check check--box"><input type="hidden" name="active" value="0" /><input type="checkbox" name="active" value="1" checked={cv.active} /><span>{t.cat.activeLabel}</span></label>
+        </div>
+      </fieldset>
+      <div><button class="btn" type="submit">{existing ? t.cat.saveCat : t.cat.createCat}</button></div>
+    </form>
+  </section>
+
+  <section class="adm-sec" aria-labelledby="h-tpl" id="template">
+    <h2 class="adm-h2" id="h-tpl"><span class="k">02</span>{t.tpl.title}<span class="meta">{t.common.results(rows.length)}</span></h2>
+    {!existing ? <p class="notice">{t.cat.saveFirst}</p> : (
+      <>
+        <p class="adm-lede">{t.tpl.lede}</p>
+        <p class="notice tpl-warn">{t.tpl.warn}</p>
+        <form class="adm-form" method="post" action={`/admin/categories/${existing.id}#template`} novalidate>
+          <button type="submit" name="op" value="save" class="visually-hidden" tabindex="-1" aria-hidden="true">{t.tpl.save}</button>
+          <input type="hidden" name="_csrf" value={user.csrf} />
+          <input type="hidden" name="rows" value={rows.length} />
+          <Errors errors={tplErrors} title={t.err.check} labels={tplLabels} />
+          {tplUnsaved && !Object.keys(tplErrors).length && <p class="notice" role="status">{t.tpl.unsaved}</p>}
+          {gone.length > 0 && (
+            <div class="notice notice--bad">
+              <p><strong>{t.tpl.removed}</strong></p>
+              <ul class="removed-list">{gone.map((g) => <li><span class="mono">{g.key}</span> · {lang === 'sq' ? g.label_sq : g.label_en} · {t.tpl.valuesOf(g.values)}</li>)}</ul>
+              {goneValues > 0 && <label class="check"><input type="checkbox" name="confirm_delete" value="1" aria-invalid={needConfirm ? 'true' : undefined} /><span>{t.tpl.confirm(goneValues)}</span></label>}
+            </div>
+          )}
+          {rows.length === 0 && <p class="adm-empty">{t.tpl.empty}</p>}
+          <ol class="tpl" style="list-style: none; padding: 0">
+            {rows.map((r, i) => {
+              const p = `a${i}_`;
+              const e = (k: string) => tplErrors[`${p}${k}`];
+              const vals = r.id ? (counts[Number(r.id)] ?? 0) : null;
+              const name = r.key || `${t.tpl.row} ${i + 1}`;
+              return (
+                <li class="tpl-row" data-new={r.id ? undefined : 'true'}>
+                  <input type="hidden" name={`${p}id`} value={r.id} />
+                  <div class="tpl-row__head">
+                    <p class="tpl-row__id"><span class="n">{String(i + 1).padStart(2, '0')}</span><span>{r.key || t.tpl.newRow}</span><span class="vals">{vals === null ? t.tpl.newRow : t.tpl.valuesOf(vals)}</span></p>
+                    <div class="tpl-row__tools">
+                      {i > 0 && <button class="btn btn--ghost" type="submit" name="op" value={`up:${i}`} aria-label={t.tpl.upLabel(name)} title={t.tpl.up}>↑</button>}
+                      {i < rows.length - 1 && <button class="btn btn--ghost" type="submit" name="op" value={`down:${i}`} aria-label={t.tpl.downLabel(name)} title={t.tpl.down}>↓</button>}
+                      <button class="btn btn--ghost" type="submit" name="op" value={`remove:${i}`} aria-label={t.tpl.removeLabel(name)}>{t.tpl.remove}</button>
+                    </div>
+                  </div>
+                  <div class="tpl-row__body">
+                    <Field id={`f-${p}key`} name={`${p}key`} label={t.tpl.key} value={r.key} error={e('key')} placeholder={t.tpl.keyHint} spellcheck={false} maxlength={60} num />
+                    <Field id={`f-${p}label_sq`} name={`${p}label_sq`} label={t.tpl.label_sq} value={r.label_sq} error={e('label_sq')} maxlength={120} />
+                    <Field id={`f-${p}label_en`} name={`${p}label_en`} label={t.tpl.label_en} value={r.label_en} error={e('label_en')} maxlength={120} />
+                    <Field id={`f-${p}unit`} name={`${p}unit`} label={t.tpl.unit} value={r.unit} spellcheck={false} maxlength={20} num />
+                    <div class="field">
+                      <label for={`f-${p}type`}>{t.tpl.type}</label>
+                      <select class="select" id={`f-${p}type`} name={`${p}type`}>
+                        {['number', 'text', 'enum', 'bool'].map((ty) => <option value={ty} selected={ty === r.type}>{t.tpl.types[ty]}</option>)}
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label for={`f-${p}better`}>{t.tpl.better}</label>
+                      <select class="select" id={`f-${p}better`} name={`${p}better`}>
+                        {['none', 'higher', 'lower'].map((b) => <option value={b} selected={b === (r.better || 'none')}>{t.tpl.betterOpts[b]}</option>)}
+                      </select>
+                    </div>
+                    <Field id={`f-${p}decimals`} name={`${p}decimals`} label={t.tpl.decimals} value={r.decimals} error={e('decimals')} inputmode="numeric" num maxlength={1} />
+                    <Field id={`f-${p}options`} name={`${p}options`} label={t.tpl.options} value={r.options} error={e('options')} hint={t.tpl.optionsHint} textarea spellcheck={false} class="wide" />
+                    <div class="tpl-row__flags" role="group" aria-label={`${t.tpl.flags}: ${name}`}>
+                      {(['filterable', 'comparable', 'highlight', 'required'] as const).map((k) => (
+                        <label class="check"><input type="checkbox" name={`${p}${k}`} value="1" checked={r[k]} /><span>{t.tpl[k]}</span></label>
+                      ))}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+          <div class="adm-savebar">
+            <button class="btn" type="submit" name="op" value="save">{t.tpl.save}</button>
+            <button class="btn btn--ghost" type="submit" name="op" value="add">+ {t.tpl.addRow}</button>
+            {tplUnsaved && <span class="muted">{t.tpl.unsaved}</span>}
+          </div>
+        </form>
+      </>
+    )}
+  </section>
+</Admin>

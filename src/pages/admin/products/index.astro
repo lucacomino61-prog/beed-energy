@@ -1,0 +1,90 @@
+---
+// A-03 Products: catalogue list with category/status filters and search. Admins edit; sellers add their offer.
+import Admin from '../../../layouts/Admin.astro';
+import Pager from '../_parts/Pager.astro';
+import St from '../_parts/St.astro';
+import { adminCtx, allCategories, pageParam, productsList } from '../../../lib/admin-panel';
+import { isAdmin } from '../../../lib/admin';
+import { drawProduct } from '../../../lib/drawing';
+import { lek } from '../../../lib/money';
+import { date } from '../../../lib/i18n';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url, flash } = c;
+const admin = isAdmin(user);
+const cats = allCategories();
+const cat = Number(url.searchParams.get('category')) || null;
+const statusQ = url.searchParams.get('status') ?? '';
+const status = ['draft', 'published', 'archived'].includes(statusQ) ? statusQ : '';
+const q = (url.searchParams.get('q') ?? '').trim().slice(0, 60);
+const page = pageParam(url);
+const { rows, total } = productsList({ cat, status, q, page }, admin ? null : user.seller_id);
+const totalAll = cats.reduce((s: number, x: any) => s + x.products, 0);
+---
+<Admin lang={lang} t={t} user={user} url={url} title={t.products.title} section="products" flash={flash} sheet={[[t.sheet.records, totalAll]]}>
+  <div slot="head" class="adm-head-tools">
+    {admin ? <a class="btn" href="/admin/products/new">{t.common.addNew}</a> : <p class="muted">{t.products.sellerNote}</p>}
+  </div>
+  <form class="adm-filters" method="get" action="/admin/products" role="search">
+    <div class="field">
+      <label for="f-category">{t.products.category}</label>
+      <select class="select" id="f-category" name="category">
+        <option value="">{t.common.all}</option>
+        {cats.map((x: any) => <option value={x.id} selected={x.id === cat}>{lang === 'sq' ? x.name_sq : x.name_en} ({x.products})</option>)}
+      </select>
+    </div>
+    <div class="field">
+      <label for="f-status">{t.products.status}</label>
+      <select class="select" id="f-status" name="status">
+        <option value="">{t.common.all}</option>
+        {['published', 'draft', 'archived'].map((s) => <option value={s} selected={s === status}>{t.pstatus[s]}</option>)}
+      </select>
+    </div>
+    <div class="field field--grow">
+      <label for="f-q">{t.products.search}</label>
+      <input class="input" id="f-q" name="q" type="search" value={q} placeholder={t.products.searchPh} autocomplete="off" />
+    </div>
+    <button class="btn" type="submit">{t.common.filter}</button>
+    {(q || status || cat) && <a class="btn btn--ghost" href="/admin/products">{t.common.reset}</a>}
+  </form>
+
+  {rows.length === 0 ? (
+    <p class="adm-empty">{totalAll === 0 ? t.products.emptyAll : t.products.empty}</p>
+  ) : (
+    <div class="table-scroll">
+      <table class="table adm-table">
+        <thead>
+          <tr>
+            <th scope="col"><span class="visually-hidden">{t.product.drawing}</span></th>
+            <th scope="col">{t.products.product}</th>
+            <th scope="col">{t.products.category}</th>
+            <th scope="col">{t.products.status}</th>
+            <th scope="col" class="num">{t.products.offers}</th>
+            <th scope="col" class="num">{t.products.from}</th>
+            <th scope="col">{admin ? t.products.updated : t.products.myOffer}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((p: any) => (
+            <tr>
+              <td style="width: 4.5rem"><div style="width: 56px; height: 44px; color: var(--ink)" aria-hidden="true" set:html={drawProduct({ category: p.cat_slug, w: p.width_mm, h: p.height_mm, d: p.depth_mm, dims: false })} /></td>
+              <th scope="row" style="font-weight: 400">
+                {admin ? <a class="rowlink" href={`/admin/products/${p.id}`} translate="no">{p.brand} {p.model}</a> : <span class="strong" translate="no">{p.brand} {p.model}</span>}
+                <span class="sub">{lang === 'sq' ? p.name_sq : p.name_en}</span>
+              </th>
+              <td class="small">{lang === 'sq' ? p.cat_sq : p.cat_en}</td>
+              <td><St s={p.status} label={t.pstatus[p.status]} />{p.featured ? <span class="sub">{t.products.featured}</span> : null}</td>
+              <td class="num mono">{p.offers}</td>
+              <td class="num price">{p.low ? lek(p.low, lang) : '—'}</td>
+              <td class="small">
+                {admin ? <span class="mono">{date(p.updated_at, lang)}</span> : p.my_offer ? <a href={`/admin/offers/${p.my_offer}`}>{t.products.myOffer}</a> : <a class="btn btn--s btn--ghost" href={`/admin/offers/new?product=${p.id}`}>{t.products.addMyOffer}</a>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+  <Pager t={t} url={url} page={page} total={total} />
+</Admin>

@@ -1,0 +1,22 @@
+---
+// Error summary at the top of a form: focused on load by the admin script, each item links to its field.
+interface Props {
+  errors: Record<string, string>;
+  title: string;
+  labels?: Record<string, string>;
+  idPrefix?: string;
+}
+const { errors, title, labels = {}, idPrefix = 'f-' } = Astro.props;
+const list = Object.entries(errors).filter(([k]) => k !== '_form');
+const general = errors._form;
+---
+{(list.length > 0 || general) && (
+  <div class="form-errors" role="alert" tabindex="-1" data-errors>
+    <p><strong>{general ?? title}</strong></p>
+    {list.length > 0 && (
+      <ul>
+        {list.map(([k, m]) => <li><a href={`#${idPrefix}${k}`}>{labels[k] ? `${labels[k]}: ` : ''}{m}</a></li>)}
+      </ul>
+    )}
+  </div>
+)}

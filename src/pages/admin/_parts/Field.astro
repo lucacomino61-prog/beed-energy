@@ -1,0 +1,46 @@
+---
+// One labelled control with its hint and error (aria-invalid + aria-describedby). Server-rendered; works without scripts.
+interface Props {
+  name: string;
+  label: string;
+  value?: string | number | null;
+  error?: string;
+  hint?: string;
+  type?: 'text' | 'email' | 'url' | 'tel' | 'password' | 'number';
+  textarea?: boolean;
+  tall?: boolean;
+  required?: boolean;
+  reqLabel?: string;
+  inputmode?: 'text' | 'decimal' | 'numeric' | 'email' | 'tel' | 'url' | 'search';
+  suffix?: string;
+  autocomplete?: string;
+  placeholder?: string;
+  class?: string;
+  spellcheck?: boolean;
+  maxlength?: number;
+  num?: boolean;
+  id?: string;
+  data?: Record<string, string>;
+}
+const { name, label, value, error, hint, type = 'text', textarea = false, tall = false, required = false, reqLabel, inputmode, suffix, autocomplete, placeholder, class: cls, spellcheck, maxlength, num = false, id, data = {} } = Astro.props;
+const fid = id ?? `f-${name}`;
+const describedby = [suffix ? `${fid}-u` : '', hint ? `${fid}-h` : '', error ? `${fid}-e` : ''].filter(Boolean).join(' ') || undefined;
+const dataAttrs = Object.fromEntries(Object.entries(data).map(([k, v]) => [`data-${k}`, v]));
+const v = value === null || value === undefined ? '' : String(value);
+---
+<div class:list={['field', cls]}>
+  <label for={fid}>{label}{required && reqLabel && <span class="req">{reqLabel}</span>}</label>
+  {textarea ? (
+    <textarea id={fid} name={name} class:list={['textarea', { 'textarea--tall': tall }]} aria-invalid={error ? 'true' : undefined} aria-describedby={describedby} required={required} placeholder={placeholder} maxlength={maxlength} spellcheck={spellcheck === undefined ? undefined : spellcheck ? 'true' : 'false'} {...dataAttrs}>{v}</textarea>
+  ) : suffix ? (
+    <div class="suffix">
+      <input id={fid} name={name} type={type} class:list={['input', { 'input--num': num }]} value={v} aria-invalid={error ? 'true' : undefined} aria-describedby={describedby} required={required} inputmode={inputmode} autocomplete={autocomplete} placeholder={placeholder} maxlength={maxlength} spellcheck={spellcheck === undefined ? undefined : spellcheck ? 'true' : 'false'} {...dataAttrs} />
+      <span aria-hidden="true">{suffix}</span>
+    </div>
+  ) : (
+    <input id={fid} name={name} type={type} class:list={['input', { 'input--num': num }]} value={v} aria-invalid={error ? 'true' : undefined} aria-describedby={describedby} required={required} inputmode={inputmode} autocomplete={autocomplete} placeholder={placeholder} maxlength={maxlength} spellcheck={spellcheck === undefined ? undefined : spellcheck ? 'true' : 'false'} {...dataAttrs} />
+  )}
+  {suffix && <span class="visually-hidden" id={`${fid}-u`}>{suffix}</span>}
+  {hint && <p class="hint" id={`${fid}-h`}>{hint}</p>}
+  {error && <p class="error" id={`${fid}-e`}>{error}</p>}
+</div>

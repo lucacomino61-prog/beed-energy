@@ -1,0 +1,274 @@
+---
+// Product editor (admin). The spec form is generated from the chosen category's template: numbers with a unit
+// suffix, selects for list values, checkboxes for yes/no, text. Changing the category re-renders the spec form
+// (GET ?category= on a new product, or the "update the spec fields" button, pressed by script on change).
+import Admin from '../../../layouts/Admin.astro';
+import Field from '../_parts/Field.astro';
+import Errors from '../_parts/Errors.astro';
+import St from '../_parts/St.astro';
+import { adminCtx, allCategories, fbool, fnum, fstr, idParam, offersForProductAdmin, productSpecValues, type Errors as Errs, forbiddenPage } from '../../../lib/admin-panel';
+import { Forbidden, isAdmin, saveProduct, type ProductInput } from '../../../lib/admin';
+import { attributes } from '../../../lib/catalog';
+import { csrfOk } from '../../../lib/auth';
+import { get } from '../../../lib/db';
+import { drawProduct } from '../../../lib/drawing';
+import { eur, lek } from '../../../lib/money';
+import { date, href } from '../../../lib/i18n';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url, flash } = c;
+if (!isAdmin(user)) return forbiddenPage(Astro);
+const id = idParam(Astro.params.id);
+if (id !== null && id < 0) return Astro.rewrite('/404');
+const existing = id ? get<any>('SELECT * FROM products WHERE id = ?', id) : null;
+if (id && !existing) return Astro.rewrite('/404');
+
+const FIELDS = ['slug', 'brand', 'model', 'name_sq', 'name_en', 'summary_sq', 'summary_en', 'body_sq', 'body_en', 'width_mm', 'height_mm', 'depth_mm', 'weight_kg', 'warranty_years', 'datasheet_url', 'status'] as const;
+const NUMS = ['width_mm', 'height_mm', 'depth_mm', 'weight_kg', 'warranty_years'] as const;
+const show = (n: number | null | undefined) => (n === null || n === undefined ? '' : String(n).replace('.', lang === 'sq' ? ',' : '.'));
+const v: Record<string, string> = Object.fromEntries(FIELDS.map((k) => [k, existing ? (NUMS.includes(k as any) ? show(existing[k]) : String(existing[k] ?? '')) : '']));
+if (!existing) v.status = 'draft';
+let featured = !!existing?.featured;
+let specs: Record<string, string> = existing ? productSpecValues(existing.id) : {};
+let catId: number | null = Number(url.searchParams.get('category')) || existing?.category_id || null;
+let errors: Errs = {};
+let unsaved = false;
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  if (!csrfOk(user, f)) {
+    errors._form = t.err.csrf;
+    Astro.response.status = 403;
+  } else {
+    for (const k of FIELDS) v[k] = fstr(f, k, k.startsWith('body') ? 20000 : 2000);
+    featured = fbool(f, 'featured');
+    catId = Number(f.get('category_id')) || null;
+    specs = {};
+    for (const key of new Set([...f.keys()].filter((k) => k.startsWith('spec.')))) {
+      const vals = f.getAll(key).map(String);
+      specs[key.slice(5)] = (vals[vals.length - 1] ?? '').trim();
+    }
+    const op = fstr(f, 'op', 10);
+    if (op === 'recat') {
+      unsaved = true;
+    } else {
+      const nums: Record<string, number | null> = {};
+      for (const k of NUMS) {
+        const n = fnum(f, k);
+        if (n !== null && (Number.isNaN(n) || n < 0)) errors[k] = t.err.number;
+        nums[k] = n === null || Number.isNaN(n) ? null : n;
+      }
+      if (!['draft', 'published', 'archived'].includes(v.status)) errors.status = t.err.required;
+      if (!catId) errors.category_id = t.product.chooseCategory;
+      if (!Object.keys(errors).length) {
+        const input: ProductInput = {
+          slug: v.slug, category_id: catId!, brand: v.brand, model: v.model, name_sq: v.name_sq, name_en: v.name_en,
+          summary_sq: v.summary_sq, summary_en: v.summary_en, body_sq: v.body_sq, body_en: v.body_en,
+          width_mm: nums.width_mm, height_mm: nums.height_mm, depth_mm: nums.depth_mm, weight_kg: nums.weight_kg, warranty_years: nums.warranty_years,
+          datasheet_url: v.datasheet_url || null, status: v.status as ProductInput['status'], featured, specs,
+        };
+        try {
+          const r = saveProduct(user, id, input, lang);
+          if (r.id && !Object.keys(r.errors).length) return Astro.redirect(`/admin/products/${r.id}?ok=${id ? 'saved' : 'created'}`, 303);
+          errors = r.errors;
+        } catch (e) {
+          if (e instanceof Forbidden) return forbiddenPage(Astro);
+          throw e;
+        }
+      }
+      if (Object.keys(errors).length) Astro.response.status = 422;
+    }
+  }
+}
+
+const cats = allCategories();
+const cat = catId ? cats.find((x: any) => x.id === catId) : null;
+const attrs = cat ? attributes(cat.id) : [];
+const offers = existing ? offersForProductAdmin(existing.id) : [];
+const num = (s: string) => {
+  const n = Number(String(s).replace(/\s/g, '').replace(',', '.'));
+  return s !== '' && Number.isFinite(n) && n > 0 ? n : null;
+};
+const title = existing ? `${existing.brand} ${existing.model}` : t.product.newTitle;
+const drawing = drawProduct({ category: cat?.slug_en ?? '', w: num(v.width_mm), h: num(v.height_mm), d: num(v.depth_mm), dims: true, title });
+const labels: Record<string, string> = {
+  slug: t.product.slug, brand: t.product.brand, model: t.product.model, name_sq: t.product.name_sq, name_en: t.product.name_en, category_id: t.product.category,
+  width_mm: t.product.width, height_mm: t.product.height, depth_mm: t.product.depth, weight_kg: t.product.weight, warranty_years: t.product.warranty,
+  datasheet_url: t.product.datasheet, status: t.product.status,
+  ...Object.fromEntries(attrs.map((a) => [`spec.${a.key}`, lang === 'sq' ? a.label_sq : a.label_en])),
+};
+const action = existing ? `/admin/products/${existing.id}` : '/admin/products/new';
+---
+<Admin lang={lang} t={t} user={user} url={url} title={title} section="products" flash={flash}
+  sheet={[[t.product.category, cat ? (lang === 'sq' ? cat.name_sq : cat.name_en) : '—'], [t.product.status, t.pstatus[v.status] ?? '—'], ...(existing ? [[t.products.updated, date(existing.updated_at, lang)] as [string, string]] : [])]}>
+  <div slot="head" class="adm-head-tools">
+    {existing && <St s={existing.status} label={t.pstatus[existing.status]} />}
+    {existing?.status === 'published' && <a class="btn btn--s btn--ghost" href={href(lang, 'product', { slug: existing.slug })}>{t.product.viewPublic}</a>}
+    <a class="btn btn--s btn--ghost" href="/admin/products">{t.common.back}</a>
+  </div>
+
+  {!existing && !catId && (
+    <form class="adm-filters" method="get" action="/admin/products/new">
+      <div class="field field--grow">
+        <label for="f-pick">{t.product.category}</label>
+        <select class="select" id="f-pick" name="category" required>
+          <option value="">{t.product.chooseCategory}</option>
+          {cats.map((x: any) => <option value={x.id}>{lang === 'sq' ? x.name_sq : x.name_en}</option>)}
+        </select>
+      </div>
+      <button class="btn" type="submit">{t.common.open}</button>
+    </form>
+  )}
+
+  <div class="adm-split">
+    <form class="adm-form" method="post" action={action} novalidate>
+      <button type="submit" name="op" value="save" class="visually-hidden" tabindex="-1" aria-hidden="true">{t.common.save}</button>
+      <input type="hidden" name="_csrf" value={user.csrf} />
+      <Errors errors={errors} title={t.err.check} labels={labels} />
+      {unsaved && <p class="notice" role="status">{t.product.unsaved}</p>}
+
+      <fieldset class="adm-fs">
+        <legend><span class="k">01</span>{t.product.identity}</legend>
+        <div class="field span-all">
+          <label for="f-category_id">{t.product.category}</label>
+          <div class="row" style="flex-wrap: nowrap; align-items: stretch">
+            <select class="select" id="f-category_id" name="category_id" data-autosubmit="recat-btn" aria-invalid={errors.category_id ? 'true' : undefined} aria-describedby={`f-category_id-h${errors.category_id ? ' f-category_id-e' : ''}`}>
+              <option value="">{t.product.chooseCategory}</option>
+              {cats.map((x: any) => <option value={x.id} selected={x.id === catId}>{lang === 'sq' ? x.name_sq : x.name_en}</option>)}
+            </select>
+            <button class="btn btn--ghost" type="submit" name="op" value="recat" id="recat-btn">{t.product.recat}</button>
+          </div>
+          <p class="hint" id="f-category_id-h">{t.product.recatHint}</p>
+          {errors.category_id && <p class="error" id="f-category_id-e">{errors.category_id}</p>}
+        </div>
+        <Field name="brand" label={t.product.brand} value={v.brand} error={errors.brand} required reqLabel={t.product.req} maxlength={80} />
+        <Field name="model" label={t.product.model} value={v.model} error={errors.model} required reqLabel={t.product.req} maxlength={120} />
+        <Field name="slug" label={t.product.slug} value={v.slug} error={errors.slug} hint={t.product.slugHint} spellcheck={false} maxlength={80} class="span-all" />
+      </fieldset>
+
+      <fieldset class="adm-fs">
+        <legend><span class="k">02</span>{t.product.names}</legend>
+        <Field name="name_sq" label={t.product.name_sq} value={v.name_sq} error={errors.name_sq} required reqLabel={t.product.req} maxlength={200} />
+        <Field name="name_en" label={t.product.name_en} value={v.name_en} error={errors.name_en} required reqLabel={t.product.req} maxlength={200} />
+        <Field name="summary_sq" label={t.product.summary_sq} value={v.summary_sq} textarea maxlength={2000} />
+        <Field name="summary_en" label={t.product.summary_en} value={v.summary_en} textarea maxlength={2000} />
+        <Field name="body_sq" label={t.product.body_sq} value={v.body_sq} textarea tall maxlength={20000} />
+        <Field name="body_en" label={t.product.body_en} value={v.body_en} textarea tall maxlength={20000} />
+      </fieldset>
+
+      <fieldset class="adm-fs">
+        <legend><span class="k">03</span>{t.product.dims}</legend>
+        <Field name="width_mm" label={t.product.width} value={v.width_mm} error={errors.width_mm} suffix="mm" inputmode="decimal" num data={{ dim: 'w' }} />
+        <Field name="height_mm" label={t.product.height} value={v.height_mm} error={errors.height_mm} suffix="mm" inputmode="decimal" num data={{ dim: 'h' }} />
+        <Field name="depth_mm" label={t.product.depth} value={v.depth_mm} error={errors.depth_mm} suffix="mm" inputmode="decimal" num data={{ dim: 'd' }} />
+        <Field name="weight_kg" label={t.product.weight} value={v.weight_kg} error={errors.weight_kg} suffix="kg" inputmode="decimal" num />
+        <Field name="warranty_years" label={t.product.warranty} value={v.warranty_years} error={errors.warranty_years} suffix={t.product.years} inputmode="decimal" num />
+        <Field name="datasheet_url" label={t.product.datasheet} value={v.datasheet_url} error={errors.datasheet_url} type="url" inputmode="url" spellcheck={false} placeholder="https://" class="span-all" />
+      </fieldset>
+
+      <fieldset class="adm-fs" id="specs">
+        <legend><span class="k">04</span>{t.product.specs}</legend>
+        {!cat ? <p class="span-all muted">{t.product.pickFirst}</p> : (
+          <>
+            <p class="span-all muted small">{t.product.specsOf(lang === 'sq' ? cat.name_sq : cat.name_en)} <a href={`/admin/categories/${cat.id}#template`}>{t.product.editTemplate}</a></p>
+            {attrs.length === 0 && <p class="span-all">{t.product.specsEmpty}</p>}
+            {attrs.map((a) => {
+              const name = `spec.${a.key}`;
+              const fid = `f-${name}`;
+              const label = lang === 'sq' ? a.label_sq : a.label_en;
+              const val = specs[a.key] ?? '';
+              const err = errors[name];
+              const desc = [`${fid}-k`, err ? `${fid}-e` : ''].filter(Boolean).join(' ');
+              if (a.type === 'number') {
+                return <Field name={name} label={label} value={val === '' ? '' : val.replace('.', lang === 'sq' ? ',' : '.')} error={err} suffix={a.unit || undefined} inputmode="decimal" num required={a.required} reqLabel={t.product.req} hint={a.key} />;
+              }
+              if (a.type === 'text') return <Field name={name} label={label} value={val} error={err} required={a.required} reqLabel={t.product.req} hint={a.key} maxlength={300} />;
+              if (a.type === 'enum') {
+                return (
+                  <div class="field">
+                    <label for={fid}>{label}{a.required && <span class="req">{t.product.req}</span>}</label>
+                    <select class="select" id={fid} name={name} aria-invalid={err ? 'true' : undefined} aria-describedby={desc}>
+                      <option value="">—</option>
+                      {a.options.map((o) => <option value={o.value} selected={o.value === val}>{o[lang]}{a.unit ? ` ${a.unit}` : ''}</option>)}
+                      {val && !a.options.some((o) => o.value === val) && <option value={val} selected>{val}</option>}
+                    </select>
+                    <p class="hint spec-key" id={`${fid}-k`}>{a.key}</p>
+                    {err && <p class="error" id={`${fid}-e`}>{err}</p>}
+                  </div>
+                );
+              }
+              return (
+                <div class="field">
+                  <input type="hidden" name={name} value="0" />
+                  <label class="check check--box" for={fid}>
+                    <input type="checkbox" id={fid} name={name} value="1" checked={val === '1' || val === 'true'} aria-describedby={desc} />
+                    <span>{label}</span>
+                  </label>
+                  <p class="hint spec-key" id={`${fid}-k`}>{a.key}</p>
+                  {err && <p class="error" id={`${fid}-e`}>{err}</p>}
+                </div>
+              );
+            })}
+          </>
+        )}
+      </fieldset>
+
+      <fieldset class="adm-fs">
+        <legend><span class="k">05</span>{t.product.publish}</legend>
+        <div class="field">
+          <label for="f-status">{t.product.status}</label>
+          <select class="select" id="f-status" name="status">
+            {['draft', 'published', 'archived'].map((s) => <option value={s} selected={s === v.status}>{t.pstatus[s]}</option>)}
+          </select>
+        </div>
+        <div class="field">
+          <span class="label" aria-hidden="true">&nbsp;</span>
+          <label class="check check--box"><input type="checkbox" name="featured" value="1" checked={featured} /><span>{t.product.featured}</span></label>
+        </div>
+      </fieldset>
+
+      <div class="adm-savebar">
+        <button class="btn" type="submit" name="op" value="save">{existing ? t.common.saveChanges : t.product.create}</button>
+        <a class="btn btn--ghost" href="/admin/products">{t.common.cancel}</a>
+        {unsaved && <span class="muted">{t.product.unsaved}</span>}
+      </div>
+    </form>
+
+    <aside class="adm-aside" aria-label={t.product.drawing}>
+      <div>
+        <h2 class="adm-h3">{t.product.drawing}</h2>
+        <div class="drawing-box" data-drawing data-cat={cat?.slug_en ?? ''} data-title={title} set:html={drawing} />
+        <dl class="titleblock drawing-tb">
+          <div><dt>{t.product.width}</dt><dd>{v.width_mm || '—'} mm</dd></div>
+          <div><dt>{t.product.height}</dt><dd>{v.height_mm || '—'} mm</dd></div>
+          <div><dt>{t.product.depth}</dt><dd>{v.depth_mm || '—'} mm</dd></div>
+        </dl>
+        <p class="hint small muted" style="margin-top: 0.5rem">{t.product.drawingHint}</p>
+      </div>
+      {existing?.reference_price_eur && (
+        <div class="box">
+          <h2>{t.product.reference}</h2>
+          <p class="price price--big">{eur(existing.reference_price_eur)}</p>
+          <p class="small muted">{t.product.referenceHint}{existing.reference_price_source ? ` ${existing.reference_price_source}` : ''}</p>
+        </div>
+      )}
+      {existing && (
+        <div class="box">
+          <h2>{t.product.offers}</h2>
+          {offers.length === 0 ? <p class="muted">{t.product.offersEmpty}</p> : (
+            <ul style="list-style: none; padding: 0; display: grid; gap: 0.25rem">
+              {offers.map((o: any) => (
+                <li class="row between" style="min-height: 44px; border-bottom: 1px solid var(--line)">
+                  <a href={`/admin/offers/${o.id}`}>{o.seller_name}</a>
+                  <span class="row" style="gap: 0.5rem">{o.seller_demo ? <span class="tag tag--demo">{t.common.demo}</span> : null}{!o.active && <St s="archived" label={t.offers.inactive} />}<span class="price">{lek(o.price_all, lang)}</span></span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p><a class="btn btn--s btn--ghost" href={`/admin/offers/new?product=${existing.id}`}>{t.product.addOffer}</a></p>
+        </div>
+      )}
+    </aside>
+  </div>
+</Admin>

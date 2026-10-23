@@ -1,0 +1,82 @@
+---
+// A-09 Seller applications from "Sell with us": approve (creates an active seller) or reject.
+import Admin from '../../layouts/Admin.astro';
+import St from './_parts/St.astro';
+import { adminCtx, applications, fstr, rejectApplication, forbiddenPage } from '../../lib/admin-panel';
+import { approveApplication, Forbidden, isAdmin } from '../../lib/admin';
+import { csrfOk } from '../../lib/auth';
+import { date } from '../../lib/i18n';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url, flash } = c;
+if (!isAdmin(user)) return forbiddenPage(Astro);
+let formError = '';
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  if (!csrfOk(user, f)) {
+    formError = t.err.csrf;
+    Astro.response.status = 403;
+  } else {
+    const id = Number(f.get('id'));
+    const op = fstr(f, 'op', 10);
+    try {
+      if (op === 'approve') {
+        const sid = approveApplication(user, id);
+        if (sid) return Astro.redirect(`/admin/sellers/${sid}?ok=approved`, 303);
+      } else if (op === 'reject' && rejectApplication(user, id)) {
+        return Astro.redirect('/admin/applications?ok=rejected', 303);
+      }
+      formError = t.err.generic;
+      Astro.response.status = 409;
+    } catch (e) {
+      if (e instanceof Forbidden) return forbiddenPage(Astro);
+      throw e;
+    }
+  }
+}
+const rows = applications();
+const fresh = rows.filter((a: any) => a.status === 'new').length;
+---
+<Admin lang={lang} t={t} user={user} url={url} title={t.apps.title} section="applications" flash={flash} sheet={[[t.sheet.records, rows.length], [t.astatus.new, fresh]]}>
+  {formError && <div class="form-errors" role="alert" tabindex="-1" data-errors style="margin-bottom: 1rem"><p><strong>{formError}</strong></p></div>}
+  {rows.length === 0 ? <p class="adm-empty">{t.apps.empty}</p> : (
+    <div class="table-scroll">
+      <table class="table adm-table">
+        <thead>
+          <tr>
+            <th scope="col">{t.apps.company}</th>
+            <th scope="col">{t.apps.contact}</th>
+            <th scope="col">{t.apps.plan}</th>
+            <th scope="col">{t.apps.message}</th>
+            <th scope="col">{t.apps.status}</th>
+            <th scope="col"><span class="visually-hidden">{t.common.actions}</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((a: any) => (
+            <tr>
+              <th scope="row" style="font-weight: 400">
+                <span class="strong">{a.company}</span>
+                <span class="sub">{t.kinds[a.kind] ?? a.kind}{a.nipt ? ` · NIPT ${a.nipt}` : ''}{a.city ? ` · ${a.city}` : ''}</span>
+                <span class="sub">{date(a.created_at, lang)}</span>
+              </th>
+              <td class="small">{a.contact_name}<span class="sub"><a href={`tel:${a.phone}`}>{a.phone}</a></span><span class="sub"><a href={`mailto:${a.email}`}>{a.email}</a></span></td>
+              <td class="small">{a.plan ? (t.plans[a.plan] ?? a.plan) : '—'}{a.categories && <span class="sub">{a.categories}</span>}</td>
+              <td class="small" style="max-width: 28rem; overflow-wrap: anywhere">{a.message ?? '—'}</td>
+              <td><St s={a.status} label={t.astatus[a.status] ?? a.status} /></td>
+              <td>
+                {a.status === 'new' && (
+                  <div class="row" style="flex-wrap: nowrap">
+                    <form method="post"><input type="hidden" name="_csrf" value={user.csrf} /><input type="hidden" name="id" value={a.id} /><input type="hidden" name="op" value="approve" /><button class="btn btn--s" type="submit">{t.apps.approve}</button></form>
+                    <form method="post"><input type="hidden" name="_csrf" value={user.csrf} /><input type="hidden" name="id" value={a.id} /><input type="hidden" name="op" value="reject" /><button class="btn btn--s btn--ghost" type="submit" data-confirm={`${t.apps.reject}: ${a.company}?`}>{t.apps.reject}</button></form>
+                  </div>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</Admin>

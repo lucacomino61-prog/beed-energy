@@ -1,0 +1,15 @@
+---
+// 403 for the admin panel: rendered through Astro.rewrite() when a page refuses a role or a Forbidden is thrown.
+import Admin from '../../layouts/Admin.astro';
+import { adminCtx } from '../../lib/admin-panel';
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url } = c;
+Astro.response.status = 403;
+---
+<Admin lang={lang} t={t} user={user} url={url} title={t.forbidden.title}>
+  <div class="adm-stop">
+    <p class="lede">{t.forbidden.body}</p>
+    <p><a class="btn" href="/admin">{t.forbidden.back}</a></p>
+  </div>
+</Admin>

@@ -1,0 +1,59 @@
+---
+// A-05 Sellers: status, plan, commission, verified badge, sample tag, offers.
+import Admin from '../../../layouts/Admin.astro';
+import St from '../_parts/St.astro';
+import { adminCtx, sellersList, forbiddenPage } from '../../../lib/admin-panel';
+import { isAdmin } from '../../../lib/admin';
+import { num } from '../../../lib/money';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url, flash } = c;
+if (!isAdmin(user)) return forbiddenPage(Astro);
+const rows = sellersList();
+const active = rows.filter((s: any) => s.status === 'active').length;
+---
+<Admin lang={lang} t={t} user={user} url={url} title={t.sellers.title} section="sellers" flash={flash} sheet={[[t.sheet.records, rows.length], [t.sstatus.active, active]]}>
+  <div slot="head" class="adm-head-tools">
+    <a class="btn" href="/admin/sellers/new">{t.common.addNew}</a>
+    <a class="btn btn--ghost" href="/admin/applications">{t.nav.applications}</a>
+  </div>
+  {rows.length === 0 ? <p class="adm-empty">{t.sellers.empty}</p> : (
+    <div class="table-scroll">
+      <table class="table adm-table">
+        <thead>
+          <tr>
+            <th scope="col">{t.sellers.name}</th>
+            <th scope="col">{t.sellers.kind}</th>
+            <th scope="col">{t.sellers.city}</th>
+            <th scope="col">{t.sellers.status}</th>
+            <th scope="col">{t.sellers.plan}</th>
+            <th scope="col" class="num">{t.sellers.commission}</th>
+            <th scope="col">{t.sellers.verified}</th>
+            <th scope="col" class="num">{t.sellers.offers}</th>
+            <th scope="col" class="num">{t.sellers.rating}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((s: any) => (
+            <tr>
+              <th scope="row" style="font-weight: 400">
+                <a class="rowlink" href={`/admin/sellers/${s.id}`}>{s.name}</a>
+                {s.is_demo ? <span class="tag tag--demo" style="margin-left: 0.4rem">{t.common.demo}</span> : null}
+                {s.nipt && <span class="sub">NIPT {s.nipt}</span>}
+              </th>
+              <td class="small">{t.kinds[s.kind] ?? s.kind}</td>
+              <td class="small">{(lang === 'sq' ? s.city_sq : s.city_en) ?? '—'}</td>
+              <td><St s={s.status} label={t.sstatus[s.status] ?? s.status} /></td>
+              <td class="mono small">{t.plans[s.plan] ?? s.plan}</td>
+              <td class="num mono">{num(s.commission_pct, Number.isInteger(s.commission_pct) ? 0 : 1, lang)}%</td>
+              <td>{s.verified ? <span class="tag tag--ok">✓ {t.common.yes}</span> : <span class="tag">{t.common.no}</span>}</td>
+              <td class="num mono"><a href={`/admin/offers?seller=${s.id}`}>{s.offers}</a></td>
+              <td class="num mono">{s.rating ? `${num(s.rating, 1, lang)} · ${s.rating_count}` : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</Admin>

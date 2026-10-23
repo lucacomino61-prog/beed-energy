@@ -67,7 +67,8 @@ export function endSession(cookies: AstroCookies) {
 
 /** Local development only: lets the "sign in as developer" button work without typing a password. */
 export function devLoginAllowed(url: URL): boolean {
-  return process.env.DEV_LOGIN === '1' && (url.hostname === '127.0.0.1' || url.hostname === 'localhost');
+  // trim(): `set DEV_LOGIN=1 && npm run dev` in cmd.exe stores "1 " with the trailing space.
+  return process.env.DEV_LOGIN?.trim() === '1' && (url.hostname === '127.0.0.1' || url.hostname === 'localhost');
 }
 
 /** Same-site form posts carry the session's CSRF token as well as passing Astro's origin check. */

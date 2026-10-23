@@ -1,0 +1,244 @@
+---
+// A-11 Settings (admin): delivery, bank details, contact, exchange rate, electricity tariffs (with the ERE source),
+// subscription plans. Each section is its own form and saves one settings key.
+import Admin from '../../layouts/Admin.astro';
+import Field from './_parts/Field.astro';
+import Errors from './_parts/Errors.astro';
+import { adminCtx, fbool, fnum, fstr, saveSettingAs, type Errors as Errs, forbiddenPage } from '../../lib/admin-panel';
+import { Forbidden, isAdmin } from '../../lib/admin';
+import { csrfOk } from '../../lib/auth';
+import { setting } from '../../lib/db';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url, flash } = c;
+if (!isAdmin(user)) return forbiddenPage(Astro);
+
+type Plan = { key: string; name: string; monthly_all: number | null; commission_pct: number; features_sq: string[]; features_en: string[] };
+const delivery = setting<any>('delivery', { zoneSurcharge: { 1: 0, 2: 0, 3: 0 }, pickupAvailable: true, codLimit: 0 });
+const bank = setting<any>('bank', { beneficiary: '', bank: null, iban: null, swift: null });
+const contact = setting<any>('contact', { email: null, phone: null, address: null, hours_sq: null, hours_en: null });
+const currency = setting<any>('currency', { eurAll: 100, source: '', url: '', date: '' });
+const tariffs = setting<any>('tariffs', { household: {}, business: null, businessPeak: null, exportLekPerKwh: null, source: '', url: '' });
+const plans = setting<Plan[]>('plans', []);
+
+const dec = (n: number | null | undefined) => (n === null || n === undefined ? '' : String(n).replace('.', lang === 'sq' ? ',' : '.'));
+// Values shown in each form; on an invalid post they hold what was typed.
+const shown: Record<string, string> = {
+  zone1: dec(delivery.zoneSurcharge?.['1']), zone2: dec(delivery.zoneSurcharge?.['2']), zone3: dec(delivery.zoneSurcharge?.['3']), codLimit: dec(delivery.codLimit),
+  beneficiary: bank.beneficiary ?? '', bankName: bank.bank ?? '', iban: bank.iban ?? '', swift: bank.swift ?? '',
+  c_email: contact.email ?? '', c_phone: contact.phone ?? '', c_address: contact.address ?? '', hours_sq: contact.hours_sq ?? '', hours_en: contact.hours_en ?? '',
+  eurAll: dec(currency.eurAll), cur_source: currency.source ?? '', cur_url: currency.url ?? '', cur_date: currency.date ?? '',
+  threshold: dec(tariffs.household?.thresholdKwh), low: dec(tariffs.household?.lowLekPerKwh), high: dec(tariffs.household?.highLekPerKwh),
+  business: dec(tariffs.business), businessPeak: dec(tariffs.businessPeak), exportLek: dec(tariffs.exportLekPerKwh), tar_source: tariffs.source ?? '', tar_url: tariffs.url ?? '',
+};
+plans.forEach((p, i) => {
+  shown[`p${i}_name`] = p.name;
+  shown[`p${i}_monthly`] = dec(p.monthly_all);
+  shown[`p${i}_commission`] = dec(p.commission_pct);
+  shown[`p${i}_fsq`] = (p.features_sq ?? []).join('\n');
+  shown[`p${i}_fen`] = (p.features_en ?? []).join('\n');
+});
+let pickup = !!delivery.pickupAvailable;
+let exclVat = tariffs.pricesExclVat !== false;
+let errors: Errs = {};
+let section = '';
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  section = fstr(f, 'section', 20);
+  if (!csrfOk(user, f)) {
+    errors._form = t.err.csrf;
+    Astro.response.status = 403;
+  } else {
+    for (const k of f.keys()) if (k in shown) shown[k] = fstr(f, k, 2000);
+    const need = (k: string, min = 0, int = false) => {
+      const n = fnum(f, k);
+      if (n === null) {
+        errors[k] = t.err.required;
+        return 0;
+      }
+      if (Number.isNaN(n) || n < min || (int && !Number.isInteger(n))) {
+        errors[k] = int ? t.err.whole : t.err.number;
+        return 0;
+      }
+      return n;
+    };
+    const opt = (k: string, min = 0) => {
+      const n = fnum(f, k);
+      if (n === null) return null;
+      if (Number.isNaN(n) || n < min) {
+        errors[k] = t.err.number;
+        return null;
+      }
+      return n;
+    };
+    const text = (k: string) => fstr(f, k, 300) || null;
+    let key = '';
+    let value: unknown = null;
+    if (section === 'delivery') {
+      pickup = fbool(f, 'pickup');
+      key = 'delivery';
+      value = { ...delivery, zoneSurcharge: { 1: need('zone1', 0, true), 2: need('zone2', 0, true), 3: need('zone3', 0, true) }, pickupAvailable: pickup, codLimit: need('codLimit', 1, true) };
+    } else if (section === 'bank') {
+      key = 'bank';
+      value = { ...bank, beneficiary: text('beneficiary'), bank: text('bankName'), iban: (text('iban') ?? '').replace(/\s+/g, ' ').toUpperCase() || null, swift: (text('swift') ?? '').toUpperCase() || null };
+    } else if (section === 'contact') {
+      const email = text('c_email');
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) errors.c_email = t.err.email;
+      key = 'contact';
+      value = { ...contact, email, phone: text('c_phone'), address: text('c_address'), hours_sq: text('hours_sq'), hours_en: text('hours_en') };
+    } else if (section === 'currency') {
+      const u = text('cur_url');
+      if (u && !/^https?:\/\//.test(u)) errors.cur_url = t.err.url;
+      const d = text('cur_date');
+      if (d && !/^\d{4}-\d{2}-\d{2}$/.test(d)) errors.cur_date = 'YYYY-MM-DD';
+      key = 'currency';
+      value = { ...currency, eurAll: need('eurAll', 0.0001), source: text('cur_source'), url: u, date: d };
+    } else if (section === 'tariffs') {
+      const u = text('tar_url');
+      if (u && !/^https?:\/\//.test(u)) errors.tar_url = t.err.url;
+      exclVat = fbool(f, 'exclVat');
+      key = 'tariffs';
+      value = {
+        ...tariffs,
+        household: { ...(tariffs.household ?? {}), thresholdKwh: need('threshold', 0), lowLekPerKwh: need('low', 0), highLekPerKwh: need('high', 0) },
+        business: need('business', 0), businessPeak: opt('businessPeak'), exportLekPerKwh: opt('exportLek'), pricesExclVat: exclVat,
+        source: text('tar_source'), url: u,
+      };
+    } else if (section === 'plans') {
+      key = 'plans';
+      value = plans.map((p, i) => {
+        const commission = need(`p${i}_commission`, 0);
+        if (commission > 50) errors[`p${i}_commission`] = t.sellers.commissionErr;
+        const lines = (k: string) => fstr(f, k, 3000).split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+        return { ...p, name: fstr(f, `p${i}_name`, 40) || p.name, monthly_all: opt(`p${i}_monthly`, 0), commission_pct: commission, features_sq: lines(`p${i}_fsq`), features_en: lines(`p${i}_fen`) };
+      });
+    }
+    if (key && !Object.keys(errors).length) {
+      try {
+        saveSettingAs(user, key, value);
+      } catch (e) {
+        if (e instanceof Forbidden) return forbiddenPage(Astro);
+        throw e;
+      }
+      return Astro.redirect(`/admin/settings?ok=saved#s-${section}`, 303);
+    }
+    if (Object.keys(errors).length) Astro.response.status = 422;
+  }
+}
+const errs = (s: string) => (section === s ? errors : {});
+const lbl: Record<string, string> = {
+  zone1: t.settings.zone('1'), zone2: t.settings.zone('2'), zone3: t.settings.zone('3'), codLimit: t.settings.codLimit, c_email: t.settings.email, eurAll: t.settings.rate,
+  cur_url: t.settings.sourceUrl, cur_date: t.settings.date, threshold: t.settings.threshold, low: t.settings.low, high: t.settings.high, business: t.settings.business,
+  businessPeak: t.settings.businessPeak, exportLek: t.settings.export, tar_url: t.settings.sourceUrl,
+};
+plans.forEach((p, i) => {
+  lbl[`p${i}_commission`] = `${p.name} · ${t.settings.commission}`;
+  lbl[`p${i}_monthly`] = `${p.name} · ${t.settings.monthly}`;
+});
+const sections = [
+  ['delivery', t.settings.delivery], ['bank', t.settings.bank], ['contact', t.settings.contact], ['currency', t.settings.currency], ['tariffs', t.settings.tariffs], ['plans', t.settings.plans],
+] as const;
+---
+<Admin lang={lang} t={t} user={user} url={url} title={t.settings.title} section="settings" flash={flash} sheet={[[t.sheet.records, sections.length]]}>
+  <p class="adm-lede">{t.settings.lede}</p>
+  <nav class="chips" aria-label={t.settings.title}>
+    {sections.map(([k, label], i) => <a href={`#s-${k}`}><span class="n">{String(i + 1).padStart(2, '0')}</span>{label}</a>)}
+  </nav>
+  {errors._form && section === '' && <div class="form-errors" role="alert" tabindex="-1" data-errors><p><strong>{errors._form}</strong></p></div>}
+
+  <div class="adm-cols adm-sec">
+    <form class="adm-form" method="post" action="/admin/settings#s-delivery" id="s-delivery" novalidate>
+      <input type="hidden" name="_csrf" value={user.csrf} /><input type="hidden" name="section" value="delivery" />
+      <Errors errors={errs('delivery')} title={t.err.check} labels={lbl} />
+      <fieldset class="adm-fs">
+        <legend><span class="k">01</span>{t.settings.delivery}</legend>
+        {(['1', '2', '3'] as const).map((z) => <Field name={`zone${z}`} label={t.settings.zone(z)} value={shown[`zone${z}`]} error={errs('delivery')[`zone${z}`]} suffix={t.common.lek} inputmode="numeric" num hint={z === '1' ? t.settings.zoneHint : undefined} />)}
+        <Field name="codLimit" label={t.settings.codLimit} value={shown.codLimit} error={errs('delivery').codLimit} hint={t.settings.codHint} suffix={t.common.lek} inputmode="numeric" num />
+        <div class="field span-all"><label class="check check--box"><input type="checkbox" name="pickup" value="1" checked={pickup} /><span>{t.settings.pickup}</span></label></div>
+      </fieldset>
+      <div><button class="btn" type="submit">{t.settings.saveSection}</button></div>
+    </form>
+
+    <form class="adm-form" method="post" action="/admin/settings#s-bank" id="s-bank" novalidate>
+      <input type="hidden" name="_csrf" value={user.csrf} /><input type="hidden" name="section" value="bank" />
+      <fieldset class="adm-fs">
+        <legend><span class="k">02</span>{t.settings.bank}</legend>
+        <p class="span-all hint">{t.settings.bankHint}</p>
+        <Field name="beneficiary" label={t.settings.beneficiary} value={shown.beneficiary} maxlength={160} />
+        <Field name="bankName" label={t.settings.bankName} value={shown.bankName} placeholder={t.settings.notSet} maxlength={160} />
+        <Field name="iban" label={t.settings.iban} value={shown.iban} placeholder={t.settings.notSet} spellcheck={false} num maxlength={40} />
+        <Field name="swift" label={t.settings.swift} value={shown.swift} placeholder={t.settings.notSet} spellcheck={false} num maxlength={12} />
+      </fieldset>
+      <div><button class="btn" type="submit">{t.settings.saveSection}</button></div>
+    </form>
+
+    <form class="adm-form" method="post" action="/admin/settings#s-contact" id="s-contact" novalidate>
+      <input type="hidden" name="_csrf" value={user.csrf} /><input type="hidden" name="section" value="contact" />
+      <Errors errors={errs('contact')} title={t.err.check} labels={lbl} />
+      <fieldset class="adm-fs">
+        <legend><span class="k">03</span>{t.settings.contact}</legend>
+        <Field name="c_email" label={t.settings.email} value={shown.c_email} error={errs('contact').c_email} type="email" inputmode="email" spellcheck={false} placeholder={t.settings.notSet} maxlength={160} />
+        <Field name="c_phone" label={t.settings.phone} value={shown.c_phone} type="tel" inputmode="tel" placeholder={t.settings.notSet} maxlength={40} />
+        <Field name="c_address" label={t.settings.address} value={shown.c_address} placeholder={t.settings.notSet} maxlength={300} class="span-all" />
+        <Field name="hours_sq" label={t.settings.hours_sq} value={shown.hours_sq} placeholder={t.settings.notSet} maxlength={200} />
+        <Field name="hours_en" label={t.settings.hours_en} value={shown.hours_en} placeholder={t.settings.notSet} maxlength={200} />
+      </fieldset>
+      <div><button class="btn" type="submit">{t.settings.saveSection}</button></div>
+    </form>
+
+    <form class="adm-form" method="post" action="/admin/settings#s-currency" id="s-currency" novalidate>
+      <input type="hidden" name="_csrf" value={user.csrf} /><input type="hidden" name="section" value="currency" />
+      <Errors errors={errs('currency')} title={t.err.check} labels={lbl} />
+      <fieldset class="adm-fs">
+        <legend><span class="k">04</span>{t.settings.currency}</legend>
+        <Field name="eurAll" label={t.settings.rate} value={shown.eurAll} error={errs('currency').eurAll} suffix="L / €" inputmode="decimal" num />
+        <Field name="cur_date" label={t.settings.date} value={shown.cur_date} error={errs('currency').cur_date} placeholder="2026-10-22" num maxlength={10} />
+        <Field name="cur_source" label={t.settings.source} value={shown.cur_source} maxlength={200} class="span-all" />
+        <Field name="cur_url" label={t.settings.sourceUrl} value={shown.cur_url} error={errs('currency').cur_url} type="url" inputmode="url" spellcheck={false} maxlength={300} class="span-all" />
+      </fieldset>
+      <div><button class="btn" type="submit">{t.settings.saveSection}</button></div>
+    </form>
+  </div>
+
+  <form class="adm-form adm-sec" method="post" action="/admin/settings#s-tariffs" id="s-tariffs" novalidate>
+    <input type="hidden" name="_csrf" value={user.csrf} /><input type="hidden" name="section" value="tariffs" />
+    <Errors errors={errs('tariffs')} title={t.err.check} labels={lbl} />
+    <fieldset class="adm-fs">
+      <legend><span class="k">05</span>{t.settings.tariffs}</legend>
+      <p class="span-all hint">{t.settings.tariffsHint} {tariffs.url ? <a href={tariffs.url} rel="noopener" target="_blank">{tariffs.source ?? tariffs.url}</a> : (tariffs.source ?? '—')}</p>
+      <p class="span-all eyebrow">{t.settings.household}</p>
+      <Field name="threshold" label={t.settings.threshold} value={shown.threshold} error={errs('tariffs').threshold} suffix={t.settings.kwh} inputmode="decimal" num />
+      <Field name="low" label={t.settings.low} value={shown.low} error={errs('tariffs').low} suffix={t.settings.perKwh} inputmode="decimal" num />
+      <Field name="high" label={t.settings.high} value={shown.high} error={errs('tariffs').high} suffix={t.settings.perKwh} inputmode="decimal" num />
+      <p class="span-all eyebrow">{t.settings.business}</p>
+      <Field name="business" label={t.settings.business} value={shown.business} error={errs('tariffs').business} suffix={t.settings.perKwh} inputmode="decimal" num />
+      <Field name="businessPeak" label={t.settings.businessPeak} value={shown.businessPeak} error={errs('tariffs').businessPeak} suffix={t.settings.perKwh} inputmode="decimal" num />
+      <Field name="exportLek" label={t.settings.export} value={shown.exportLek} error={errs('tariffs').exportLek} hint={t.settings.exportHint} suffix={t.settings.perKwh} inputmode="decimal" num />
+      <div class="field span-all"><label class="check check--box"><input type="checkbox" name="exclVat" value="1" checked={exclVat} /><span>{t.settings.exclVat}</span></label></div>
+      <Field name="tar_source" label={t.settings.source} value={shown.tar_source} maxlength={300} class="span-all" />
+      <Field name="tar_url" label={t.settings.sourceUrl} value={shown.tar_url} error={errs('tariffs').tar_url} type="url" inputmode="url" spellcheck={false} maxlength={400} class="span-all" />
+    </fieldset>
+    <div><button class="btn" type="submit">{t.settings.saveSection}</button></div>
+  </form>
+
+  <form class="adm-form adm-sec" method="post" action="/admin/settings#s-plans" id="s-plans" novalidate>
+    <input type="hidden" name="_csrf" value={user.csrf} /><input type="hidden" name="section" value="plans" />
+    <Errors errors={errs('plans')} title={t.err.check} labels={lbl} />
+    <h2 class="adm-h2"><span class="k">06</span>{t.settings.plans}</h2>
+    <div class="adm-cols" style="gap: 1.25rem">
+      {plans.map((p, i) => (
+        <fieldset class="adm-fs" style="grid-template-columns: 1fr">
+          <legend><span class="k">{p.key}</span>{p.name}</legend>
+          <Field name={`p${i}_name`} label={t.settings.planName} value={shown[`p${i}_name`]} maxlength={40} />
+          <Field name={`p${i}_monthly`} label={t.settings.monthly} value={shown[`p${i}_monthly`]} error={errs('plans')[`p${i}_monthly`]} hint={t.settings.monthlyHint} placeholder={t.settings.onRequest} suffix={t.common.lek} inputmode="numeric" num />
+          <Field name={`p${i}_commission`} label={t.settings.commission} value={shown[`p${i}_commission`]} error={errs('plans')[`p${i}_commission`]} suffix="%" inputmode="decimal" num />
+          <Field name={`p${i}_fsq`} label={t.settings.features_sq} value={shown[`p${i}_fsq`]} textarea maxlength={3000} />
+          <Field name={`p${i}_fen`} label={t.settings.features_en} value={shown[`p${i}_fen`]} textarea maxlength={3000} />
+        </fieldset>
+      ))}
+    </div>
+    <div><button class="btn" type="submit">{t.settings.saveSection}</button></div>
+  </form>
+</Admin>

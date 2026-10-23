@@ -1,0 +1,137 @@
+---
+// A-06 Offers grid: product, seller, price, stock, updated, with an inline quick edit of price and stock per row
+// (a plain form post without scripts, a fetch with scripts). Sellers see and edit only their own offers.
+import Admin from '../../../layouts/Admin.astro';
+import Pager from '../_parts/Pager.astro';
+import St from '../_parts/St.astro';
+import { adminCtx, allCategories, fnum, fstr, offersList, pageParam, sellersList, forbiddenPage } from '../../../lib/admin-panel';
+import { Forbidden, isAdmin, quickOffer } from '../../../lib/admin';
+import { csrfOk } from '../../../lib/auth';
+import { date } from '../../../lib/i18n';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url, flash } = c;
+const admin = isAdmin(user);
+let quickError: { id: number; msg: string } | null = null;
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const oid = Number(f.get('id'));
+  if (!csrfOk(user, f)) {
+    quickError = { id: oid, msg: t.err.csrf };
+    Astro.response.status = 403;
+  } else {
+    const price = fnum(f, 'price');
+    const stock = fnum(f, 'stock');
+    try {
+      const ok = price !== null && stock !== null && !Number.isNaN(price) && !Number.isNaN(stock) && Number.isInteger(stock) && quickOffer(user, oid, Math.round(price), stock);
+      if (ok) {
+        const back = fstr(f, 'back', 300);
+        const target = back.startsWith('/admin/offers') ? back : '/admin/offers';
+        return Astro.redirect(`${target}${target.includes('?') ? '&' : '?'}ok=saved#o${oid}`, 303);
+      }
+      quickError = { id: oid, msg: t.offers.quickErr };
+      Astro.response.status = 422;
+    } catch (e) {
+      if (e instanceof Forbidden) return forbiddenPage(Astro);
+      throw e;
+    }
+  }
+}
+
+const q = (url.searchParams.get('q') ?? '').trim().slice(0, 60);
+const seller = admin ? Number(url.searchParams.get('seller')) || null : null;
+const cat = Number(url.searchParams.get('category')) || null;
+const page = pageParam(url);
+const { rows, total } = offersList(user, { q, seller, cat, page });
+const sellers = admin ? sellersList() : [];
+const cats = allCategories();
+const back = (() => {
+  const u = new URL(url);
+  u.searchParams.delete('ok');
+  return u.pathname + u.search;
+})();
+---
+<Admin lang={lang} t={t} user={user} url={url} title={t.offers.title} section="offers" flash={flash} sheet={[[t.sheet.records, total]]}>
+  <div slot="head" class="adm-head-tools"><a class="btn" href="/admin/offers/new">{t.common.addNew}</a></div>
+  <form class="adm-filters" method="get" action="/admin/offers" role="search">
+    {admin && (
+      <div class="field">
+        <label for="f-seller">{t.offers.seller}</label>
+        <select class="select" id="f-seller" name="seller">
+          <option value="">{t.offers.allSellers}</option>
+          {sellers.map((s: any) => <option value={s.id} selected={s.id === seller}>{s.name}</option>)}
+        </select>
+      </div>
+    )}
+    <div class="field">
+      <label for="f-category">{t.products.category}</label>
+      <select class="select" id="f-category" name="category">
+        <option value="">{t.offers.allCats}</option>
+        {cats.map((x: any) => <option value={x.id} selected={x.id === cat}>{lang === 'sq' ? x.name_sq : x.name_en}</option>)}
+      </select>
+    </div>
+    <div class="field field--grow">
+      <label for="f-q">{t.offers.search}</label>
+      <input class="input" id="f-q" name="q" type="search" value={q} placeholder={t.offers.searchPh} autocomplete="off" />
+    </div>
+    <button class="btn" type="submit">{t.common.filter}</button>
+    {(q || seller || cat) && <a class="btn btn--ghost" href="/admin/offers">{t.common.reset}</a>}
+  </form>
+
+  {rows.length === 0 ? (
+    <p class="adm-empty">{q || seller || cat ? t.offers.empty : t.offers.emptyAll}</p>
+  ) : (
+    <div class="table-scroll">
+      <table class="table adm-table">
+        <thead>
+          <tr>
+            <th scope="col">{t.offers.product}</th>
+            {admin && <th scope="col">{t.offers.seller}</th>}
+            <th scope="col">{t.offers.state}</th>
+            <th scope="col">{t.offers.updated}</th>
+            <th scope="col" class="num">{t.offers.price} · {t.offers.stock}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((o: any) => {
+            const name = `${o.brand} ${o.model}`;
+            const fid = `q${o.id}`;
+            const err = quickError && quickError.id === o.id ? quickError.msg : '';
+            return (
+              <tr id={`o${o.id}`}>
+                <th scope="row" style="font-weight: 400">
+                  <a class="rowlink" href={`/admin/offers/${o.id}`} translate="no">{name}</a>
+                  <span class="sub">{t.offers.full} →</span>
+                </th>
+                {admin && <td class="small">{o.seller_name}{o.is_demo ? <span class="tag tag--demo" style="margin-left: 0.35rem">{t.common.demo}</span> : null}</td>}
+                <td>
+                  {o.active ? <St s="active" label={t.offers.active} /> : <St s="archived" label={t.offers.inactive} />}
+                  {o.promoted ? <span class="sub">{t.offers.promoted}</span> : null}
+                </td>
+                <td class="mono small" data-updated={o.id}>{date(o.updated_at, lang, true)}</td>
+                <td class="num">
+                  <div class="quick">
+                    <label class="visually-hidden" for={`${fid}-p`}>{t.offers.priceOf(name)}</label>
+                    <div class="suffix"><input class="input input--num" id={`${fid}-p`} name="price" form={fid} value={o.price_all} inputmode="numeric" aria-invalid={err ? 'true' : undefined} aria-describedby={err ? `${fid}-s` : undefined} /><span aria-hidden="true">{t.common.lek}</span></div>
+                    <label class="visually-hidden" for={`${fid}-s-in`}>{t.offers.stockOf(name)}</label>
+                    <div class="suffix"><input class="input input--num input--stock" id={`${fid}-s-in`} name="stock" form={fid} value={o.stock_qty} inputmode="numeric" aria-invalid={err ? 'true' : undefined} /><span aria-hidden="true">{t.offers.pcs}</span></div>
+                    <form id={fid} method="post" action="/admin/offers" data-quick={o.id} data-ok={t.offers.quickSaved} data-bad={t.offers.quickErr} class="row" style="gap: 0.4rem; flex-wrap: nowrap">
+                      <input type="hidden" name="_csrf" value={user.csrf} />
+                      <input type="hidden" name="id" value={o.id} />
+                      <input type="hidden" name="back" value={back} />
+                      <button class="btn btn--s" type="submit" aria-label={t.offers.saveRow(name)}>{t.offers.quick}</button>
+                      <span class="quick-status" id={`${fid}-s`} role="status" data-quick-status data-state={err ? 'bad' : undefined}>{err}</span>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  )}
+  <Pager t={t} url={url} page={page} total={total} />
+</Admin>

@@ -1,0 +1,82 @@
+---
+// Packing slip: one A4 sheet per seller parcel (a seller sees only its own), with tick boxes and signatures.
+import Admin from '../../../../layouts/Admin.astro';
+import BrandMark from '../../../../components/BrandMark.astro';
+import { adminCtx, idParam, orderDetail, forbiddenPage } from '../../../../lib/admin-panel';
+import { Forbidden } from '../../../../lib/admin';
+import { lek } from '../../../../lib/money';
+import { date } from '../../../../lib/i18n';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url } = c;
+const id = idParam(Astro.params.id);
+if (!id || id < 0) return Astro.rewrite('/404');
+let o: any;
+try {
+  o = orderDetail(user, id);
+} catch (e) {
+  if (e instanceof Forbidden) return forbiddenPage(Astro);
+  throw e;
+}
+if (!o) return Astro.rewrite('/404');
+const parcels = new Map<number, { name: string; items: any[] }>();
+for (const it of o.items) {
+  const k = it.seller_id ?? 0;
+  if (!parcels.has(k)) parcels.set(k, { name: it.seller_name, items: [] });
+  parcels.get(k)!.items.push(it);
+}
+const city = lang === 'sq' ? o.city_sq : o.city_en;
+const n = parcels.size;
+---
+<Admin lang={lang} t={t} user={user} url={url} title={`${t.slip.title} ${o.code}`} bare hideHead>
+  <div class="slip-tools">
+    <button class="btn" type="button" data-print hidden>{t.common.print}</button>
+    <a class="btn btn--ghost" href={`/admin/orders/${o.id}`}>{t.order.titleOf(o.code)}</a>
+  </div>
+  <h1 class="visually-hidden">{t.slip.title} {o.code}</h1>
+  {[...parcels.values()].map((p, i) => (
+    <article class="slip" aria-label={`${t.slip.title} ${i + 1}/${n}`}>
+      <header class="slip__head">
+        <div>
+          <p class="rail__brand" style="padding: 0; min-height: 0; color: var(--ink)"><BrandMark size={24} /><span translate="no">Bee<b style="color: var(--copper-deep)">D</b> Energy</span></p>
+          <p class="slip__title" style="font-stretch: 66%; font-weight: 800; text-transform: uppercase; font-size: 2.75rem; line-height: 0.9; margin-top: 0.75rem">{t.slip.title}</p>
+        </div>
+        <div class="slip__code">
+          <div>{o.code}</div>
+          <div class="small muted">{t.order.parcel(i + 1)} / {n} · {date(o.created_at, lang)}</div>
+        </div>
+      </header>
+      <div class="slip__cols">
+        <div class="slip__box">
+          <h2>{t.slip.to}</h2>
+          <p><strong>{o.name}</strong>{o.company ? ` · ${o.company}` : ''}</p>
+          <p>{o.address}{city ? `, ${city}` : ''}</p>
+          <p class="mono">{o.phone}</p>
+          {o.nipt && <p class="mono">NIPT {o.nipt}</p>}
+        </div>
+        <div class="slip__box">
+          <h2>{t.slip.from}</h2>
+          <p><strong>{p.name}</strong></p>
+          <p>{t.deliveryMethod[o.delivery_method]}</p>
+          <p>{t.slip.payment}: {t.payMethod[o.payment_method]} · {t.payStatus[o.payment_status]}</p>
+          {o.payment_method === 'cod' && o.payment_status !== 'paid' && <p><strong>{t.slip.codDue}: {lek(p.items.reduce((s, it) => s + it.line_total_all, 0), lang)}</strong></p>}
+        </div>
+      </div>
+      <table class="table">
+        <thead><tr><th scope="col">{t.order.product}</th><th scope="col" class="num">{t.order.qty}</th><th scope="col" class="num">{t.order.unit}</th><th scope="col" class="num">{t.order.line}</th><th scope="col">{t.slip.check}</th></tr></thead>
+        <tbody>
+          {p.items.map((it) => (
+            <tr><th scope="row" style="font-weight: 500" translate="no">{it.product_name}</th><td class="num mono">{it.qty}</td><td class="num price">{lek(it.unit_price_all, lang)}</td><td class="num price">{lek(it.line_total_all, lang)}</td><td><span class="tick" aria-hidden="true"></span></td></tr>
+          ))}
+        </tbody>
+      </table>
+      {o.notes && <p><strong>{t.order.notes}:</strong> {o.notes}</p>}
+      <p class="small muted">{t.slip.note}</p>
+      <div class="slip__sign">
+        <div>{t.slip.packedBy} · {t.slip.signature}</div>
+        <div>{t.slip.receivedBy} · {t.slip.signature}</div>
+      </div>
+    </article>
+  ))}
+</Admin>

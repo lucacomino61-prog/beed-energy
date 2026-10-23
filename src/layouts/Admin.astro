@@ -1,0 +1,130 @@
+---
+// Admin layout: ink rail on the left (top tabs on phones), a drawing-sheet page head with a poster title
+// and a title block, then the page. noindex; no smooth scroll and no motion over forms.
+import '../styles/tokens.css';
+import '../styles/base.css';
+import '../styles/global.css';
+import '../styles/admin.css';
+import BrandMark from '../components/BrandMark.astro';
+import type { Lang } from '../lib/i18n';
+import type { User } from '../lib/auth';
+import type { AdminWords } from '../i18n/admin';
+import { NAV, langHref, navCounts, sellerName, type NavKey } from '../lib/admin-panel';
+
+interface Props {
+  lang: Lang;
+  t: AdminWords;
+  user: User | null;
+  url: URL;
+  title: string; // the <h1>
+  docTitle?: string; // <title>, defaults to the h1
+  section?: NavKey;
+  flash?: string | null;
+  sheet?: [string, string | number][]; // extra title-block cells
+  bare?: boolean; // no rail (login, print)
+  bodyClass?: string;
+  hideHead?: boolean;
+}
+const { lang, t, user, url, title, docTitle, section, flash, sheet = [], bare = false, bodyClass, hideHead = false } = Astro.props;
+const idx = section ? NAV.findIndex((n) => n.key === section) : -1;
+const sheetNo = idx >= 0 ? `A-${String(idx + 1).padStart(2, '0')}` : 'A-00';
+const counts = user ? navCounts(user) : null;
+const countFor = (k: NavKey) => (counts ? (k === 'orders' ? counts.orders : k === 'quotes' ? counts.quotes : k === 'applications' ? counts.applications : k === 'messages' ? counts.messages : 0) : 0);
+const items = user ? NAV.filter((n) => !n.adminOnly || user.role === 'admin') : [];
+const seller = user ? sellerName(user) : null;
+const other: Lang = lang === 'sq' ? 'en' : 'sq';
+const today = new Date().toISOString().slice(0, 10);
+---
+<!doctype html>
+<html lang={lang} data-motion="on">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{`${docTitle ?? title} · ${t.panel} · BeeD Energy`}</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#18150f" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="/fonts/archivo-latin.v1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/geist-mono-latin.v1.woff2" as="font" type="font/woff2" crossorigin />
+    <script is:inline>
+      (function () {
+        var d = document.documentElement;
+        d.classList.add('js');
+        var off = false;
+        try { off = localStorage.getItem('beed-motion') === 'off'; } catch (e) {}
+        if (!off && window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) off = true;
+        d.setAttribute('data-motion', off ? 'off' : 'on');
+      })();
+    </script>
+  </head>
+  <body class:list={['adm-body', bodyClass, { 'adm-body--bare': bare }]}>
+    <a class="skip-link" href="#main">{t.skip}</a>
+    <div class:list={['adm', { 'adm--bare': bare }]}>
+      {!bare && user && (
+        <aside class="rail" aria-label={t.panel}>
+          <div class="rail__top">
+            <a class="rail__brand" href="/admin">
+              <BrandMark size={28} />
+              <span><span translate="no">Bee<b>D</b> Energy</span><small>{t.brandSub}</small></span>
+            </a>
+            <div class="rail__quick">
+              <a class="rail__lang" href={langHref(url, other)} hreflang={other} lang={other} title={t.langOtherLabel}><span class="visually-hidden">{t.langOtherLabel}: </span>{t.langOther}</a>
+            </div>
+          </div>
+          <nav class="rail__nav" aria-label={t.nav.label}>
+            <ol>
+              {items.map((n) => {
+                const k = String(NAV.indexOf(n) + 1).padStart(2, '0');
+                const c = countFor(n.key);
+                return (
+                  <li>
+                    <a class="rail__a" href={n.href} aria-current={section === n.key ? 'page' : undefined}>
+                      <span class="k" aria-hidden="true">{k}</span>
+                      <span class="rail__label">{t.nav[n.key]}</span>
+                      {c > 0 && <span class="rail__n"><span aria-hidden="true">{c}</span><span class="visually-hidden">, {t.nav.waiting(c)}</span></span>}
+                    </a>
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+          <div class="rail__foot">
+            <p class="rail__who">
+              <span>{t.signedInAs}</span>
+              <b>{user.name || user.email}</b>
+              <span>{t.role[user.role]}{seller ? ` · ${seller}` : ''}</span>
+            </p>
+            <div class="rail__actions">
+              <form method="post" action="/admin/logout">
+                <input type="hidden" name="_csrf" value={user.csrf} />
+                <button class="btn btn--s btn--ghost" type="submit">{t.signOut}</button>
+              </form>
+              <a class="btn btn--s btn--ghost" href={lang === 'sq' ? '/' : '/en'}>{t.nav.site}</a>
+            </div>
+          </div>
+        </aside>
+      )}
+      <main id="main" class="adm-main" tabindex="-1">
+        {flash && <p class="notice notice--ok adm-flash" role="status">{flash}</p>}
+        {!hideHead && (
+          <header class="adm-head">
+            <p class="adm-eyebrow"><span class="sheetno">{sheetNo}</span><span>{t.panel}</span>{section && section !== 'dashboard' && <span aria-hidden="true">/ {t.nav[section]}</span>}</p>
+            <h1 class="adm-title">{title}</h1>
+            <dl class="titleblock adm-tb">
+              <div><dt>{t.sheet.no}</dt><dd>{sheetNo}</dd></div>
+              {user && <div><dt>{t.sheet.role}</dt><dd>{t.role[user.role]}</dd></div>}
+              {user && <div><dt>{t.sheet.scope}</dt><dd>{user.role === 'admin' ? t.sheet.scopeAll : (seller ?? '—')}</dd></div>}
+              {sheet.map(([k, v]) => <div><dt>{k}</dt><dd>{v}</dd></div>)}
+              <div><dt>{t.sheet.date}</dt><dd>{today}</dd></div>
+            </dl>
+            <slot name="head" />
+          </header>
+        )}
+        <slot />
+      </main>
+    </div>
+    <script>
+      import '../scripts/admin/admin';
+    </script>
+  </body>
+</html>

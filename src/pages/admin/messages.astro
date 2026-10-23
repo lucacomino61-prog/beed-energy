@@ -1,0 +1,82 @@
+---
+// A-10 Contact messages from the public contact form: mark handled or reopen.
+import Admin from '../../layouts/Admin.astro';
+import St from './_parts/St.astro';
+import { adminCtx, contactMessages, fstr, setHandled, withQuery, forbiddenPage } from '../../lib/admin-panel';
+import { Forbidden, isAdmin } from '../../lib/admin';
+import { csrfOk } from '../../lib/auth';
+import { date } from '../../lib/i18n';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url, flash } = c;
+if (!isAdmin(user)) return forbiddenPage(Astro);
+const stateQ = url.searchParams.get('state') ?? '';
+const state = ['open', 'handled'].includes(stateQ) ? stateQ : '';
+let formError = '';
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  if (!csrfOk(user, f)) {
+    formError = t.err.csrf;
+    Astro.response.status = 403;
+  } else {
+    const handled = fstr(f, 'op', 10) === 'handled';
+    try {
+      setHandled(user, Number(f.get('id')), handled);
+    } catch (e) {
+      if (e instanceof Forbidden) return forbiddenPage(Astro);
+      throw e;
+    }
+    return Astro.redirect(withQuery('/admin/messages', { state, ok: handled ? 'handled' : 'reopened' }), 303);
+  }
+}
+const rows = contactMessages(state);
+const all = state ? contactMessages('') : rows;
+const open = all.filter((m: any) => !m.handled).length;
+---
+<Admin lang={lang} t={t} user={user} url={url} title={t.msgs.title} section="messages" flash={flash} sheet={[[t.sheet.records, all.length], [t.msgs.open, open]]}>
+  {formError && <div class="form-errors" role="alert" tabindex="-1" data-errors style="margin-bottom: 1rem"><p><strong>{formError}</strong></p></div>}
+  <nav class="chips" aria-label={t.msgs.state}>
+    <a href="/admin/messages" aria-current={state === '' ? 'true' : undefined}>{t.common.all}<span class="n">{all.length}</span></a>
+    <a href="/admin/messages?state=open" aria-current={state === 'open' ? 'true' : undefined}>{t.msgs.open}<span class="n">{open}</span></a>
+    <a href="/admin/messages?state=handled" aria-current={state === 'handled' ? 'true' : undefined}>{t.msgs.handled}<span class="n">{all.length - open}</span></a>
+  </nav>
+  {rows.length === 0 ? <p class="adm-empty">{t.msgs.empty}</p> : (
+    <div class="table-scroll">
+      <table class="table adm-table">
+        <thead>
+          <tr>
+            <th scope="col">{t.msgs.from}</th>
+            <th scope="col">{t.msgs.topic}</th>
+            <th scope="col">{t.msgs.message}</th>
+            <th scope="col">{t.msgs.state}</th>
+            <th scope="col"><span class="visually-hidden">{t.common.actions}</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((m: any) => (
+            <tr>
+              <th scope="row" style="font-weight: 400">
+                <span class="strong">{m.name}</span>
+                {m.email && <span class="sub"><a href={`mailto:${m.email}`}>{m.email}</a></span>}
+                {m.phone && <span class="sub"><a href={`tel:${m.phone}`}>{m.phone}</a></span>}
+                <span class="sub">{date(m.created_at, lang, true)} · {m.lang.toUpperCase()}</span>
+              </th>
+              <td class="small">{m.topic ?? '—'}</td>
+              <td style="max-width: 34rem"><p class="msg__body small">{m.body}</p></td>
+              <td>{m.handled ? <St s="handled" label={t.msgs.handled} /> : <St s="open" label={t.msgs.open} />}</td>
+              <td>
+                <form method="post" action={withQuery('/admin/messages', { state })}>
+                  <input type="hidden" name="_csrf" value={user.csrf} />
+                  <input type="hidden" name="id" value={m.id} />
+                  <input type="hidden" name="op" value={m.handled ? 'open' : 'handled'} />
+                  <button class:list={['btn', 'btn--s', { 'btn--ghost': m.handled }]} type="submit">{m.handled ? t.msgs.markOpen : t.msgs.markHandled}</button>
+                </form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</Admin>

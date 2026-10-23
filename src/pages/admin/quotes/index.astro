@@ -1,0 +1,56 @@
+---
+// A-08 Quote requests (RFQ): every buyer request; sellers can open any and answer it in its thread.
+import Admin from '../../../layouts/Admin.astro';
+import St from '../_parts/St.astro';
+import { adminCtx, quotesList, withQuery } from '../../../lib/admin-panel';
+import { lek } from '../../../lib/money';
+import { date } from '../../../lib/i18n';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url, flash } = c;
+const sq = url.searchParams.get('status') ?? '';
+const status = ['open', 'answered', 'won', 'closed'].includes(sq) ? sq : '';
+const rows = quotesList(status);
+const allRows = status ? quotesList('') : rows;
+const by: Record<string, number> = {};
+for (const r of allRows) by[r.status] = (by[r.status] ?? 0) + 1;
+---
+<Admin lang={lang} t={t} user={user} url={url} title={t.quotes.title} section="quotes" flash={flash} sheet={[[t.sheet.records, allRows.length], [t.qstatus.open, by.open ?? 0]]}>
+  <nav class="chips" aria-label={t.quotes.status}>
+    <a href="/admin/quotes" aria-current={status === '' ? 'true' : undefined}>{t.common.all}<span class="n">{allRows.length}</span></a>
+    {['open', 'answered', 'won', 'closed'].map((s) => <a href={withQuery('/admin/quotes', { status: s })} aria-current={status === s ? 'true' : undefined}>{t.qstatus[s]}<span class="n">{by[s] ?? 0}</span></a>)}
+  </nav>
+  {rows.length === 0 ? <p class="adm-empty">{t.quotes.empty}</p> : (
+    <div class="table-scroll">
+      <table class="table adm-table">
+        <thead>
+          <tr>
+            <th scope="col">{t.quotes.code}</th>
+            <th scope="col">{t.quotes.date}</th>
+            <th scope="col">{t.quotes.project}</th>
+            <th scope="col">{t.quotes.city}</th>
+            <th scope="col">{t.quotes.buyer}</th>
+            <th scope="col" class="num">{t.quotes.budget}</th>
+            <th scope="col">{t.quotes.status}</th>
+            <th scope="col" class="num">{t.quotes.replies}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((q: any) => (
+            <tr>
+              <th scope="row"><a class="rowlink mono" href={`/admin/quotes/${q.id}`}>{q.code}</a></th>
+              <td class="mono small">{date(q.created_at, lang)}</td>
+              <td>{q.project_type}</td>
+              <td class="small">{(lang === 'sq' ? q.city_sq : q.city_en) ?? '—'}</td>
+              <td>{q.name}</td>
+              <td class="num price">{q.budget_all ? lek(q.budget_all, lang) : '—'}</td>
+              <td><St s={q.status} label={t.qstatus[q.status] ?? q.status} /></td>
+              <td class="num mono">{q.replies}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</Admin>

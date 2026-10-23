@@ -1,0 +1,6 @@
+---
+// Status tag: the word plus a shape, so state is never colour alone.
+interface Props { s: string; label: string; }
+const { s, label } = Astro.props;
+---
+<span class={`st st--${s}`}>{label}</span>

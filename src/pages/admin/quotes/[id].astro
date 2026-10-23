@@ -1,0 +1,133 @@
+---
+// Quote thread: the buyer's request, the messages (a seller sees the buyer, BeeD and its own replies only),
+// a reply form (sellers may attach a quoted price) and, for admins, the status (close, won, reopen).
+import Admin from '../../../layouts/Admin.astro';
+import Field from '../_parts/Field.astro';
+import Errors from '../_parts/Errors.astro';
+import St from '../_parts/St.astro';
+import { adminCtx, fnum, fstr, idParam, quoteDetail, setQuoteStatus, threadMessages, type Errors as Errs, forbiddenPage } from '../../../lib/admin-panel';
+import { Forbidden, isAdmin, postMessage } from '../../../lib/admin';
+import { csrfOk } from '../../../lib/auth';
+import { lek } from '../../../lib/money';
+import { date, href } from '../../../lib/i18n';
+
+const c = adminCtx(Astro);
+if ('redirect' in c) return Astro.redirect(c.redirect, 303);
+const { lang, t, user, url, flash } = c;
+const admin = isAdmin(user);
+const id = idParam(Astro.params.id);
+if (!id || id < 0) return Astro.rewrite('/404');
+let q = quoteDetail(id);
+if (!q) return Astro.rewrite('/404');
+
+let errors: Errs = {};
+let body = '';
+let price = '';
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  if (!csrfOk(user, f)) {
+    errors._form = t.err.csrf;
+    Astro.response.status = 403;
+  } else {
+    const op = fstr(f, 'op', 10);
+    try {
+      if (op === 'status') {
+        if (!admin) throw new Forbidden('status');
+        if (setQuoteStatus(user, id, fstr(f, 'status', 10))) return Astro.redirect(`/admin/quotes/${id}?ok=status`, 303);
+        errors.status = t.err.required;
+      } else {
+        body = fstr(f, 'body', 4000);
+        price = fstr(f, 'price', 20);
+        const p = admin ? null : fnum(f, 'price');
+        if (!body) errors.body = t.quotes.bodyRequired;
+        if (p !== null && (Number.isNaN(p) || p <= 0)) errors.price = t.err.positive;
+        if (!Object.keys(errors).length) {
+          postMessage(user, 'rfq', id, body, p === null ? null : Math.round(p));
+          return Astro.redirect(`/admin/quotes/${id}?ok=sent#thread`, 303);
+        }
+      }
+    } catch (e) {
+      if (e instanceof Forbidden) return forbiddenPage(Astro);
+      throw e;
+    }
+    Astro.response.status = 422;
+  }
+}
+const msgs = threadMessages(user, 'rfq', id);
+const city = lang === 'sq' ? q.city_sq : q.city_en;
+const buyerLink = href(q.lang === 'en' ? 'en' : 'sq', 'quoteThread', { code: q.code }, { k: q.token });
+---
+<Admin lang={lang} t={t} user={user} url={url} title={t.quotes.titleOf(q.code)} docTitle={q.code} section="quotes" flash={flash}
+  sheet={[[t.quotes.status, t.qstatus[q.status] ?? q.status], [t.quotes.date, date(q.created_at, lang)], [t.quotes.replies, msgs.filter((m: any) => m.author_role !== 'buyer').length]]}>
+  <div slot="head" class="adm-head-tools">
+    <St s={q.status} label={t.qstatus[q.status] ?? q.status} />
+    {admin && <a class="btn btn--s btn--ghost" href={buyerLink}>{t.quotes.buyerPage}</a>}
+    <a class="btn btn--s btn--ghost" href="/admin/quotes">{t.common.back}</a>
+  </div>
+  <div class="adm-split">
+    <div>
+      <section class="adm-sec" aria-labelledby="h-req">
+        <h2 class="adm-h2" id="h-req"><span class="k">01</span>{t.quotes.request}</h2>
+        <dl class="kv box">
+          <dt>{t.quotes.project}</dt><dd>{q.project_type}</dd>
+          <dt>{t.quotes.city}</dt><dd>{city ?? '—'}</dd>
+          <dt>{t.quotes.buyer}</dt><dd>{q.name}{q.company ? ` · ${q.company}` : ''}</dd>
+          <dt>{t.quotes.budget}</dt><dd>{q.budget_all ? <span class="price">{lek(q.budget_all, lang)}</span> : <span class="muted">{t.quotes.noBudget}</span>}</dd>
+          <dt>{t.quotes.details}</dt><dd class="msg__body">{q.details}</dd>
+          {q.items.length > 0 && (
+            <>
+              <dt>{t.quotes.items}</dt>
+              <dd><ul style="padding-left: 1.1rem">{q.items.map((i: any) => <li translate="no">{i.qty} × {i.product ? <a href={href(lang, 'product', { slug: i.product.slug })}>{i.product.brand} {i.product.model}</a> : `#${i.productId}`}</li>)}</ul></dd>
+            </>
+          )}
+          <dt>{t.quotes.contact}</dt>
+          <dd>{admin ? <span><a href={`tel:${q.phone}`} class="mono">{q.phone}</a>{q.email ? <> · <a href={`mailto:${q.email}`}>{q.email}</a></> : null}{q.nipt ? <span class="mono"> · NIPT {q.nipt}</span> : null}</span> : <span class="muted">{t.quotes.contactHidden}</span>}</dd>
+        </dl>
+      </section>
+
+      <section class="adm-sec" aria-labelledby="h-thread" id="thread">
+        <h2 class="adm-h2" id="h-thread"><span class="k">02</span>{t.quotes.thread}</h2>
+        <div class="thread">
+          {msgs.length === 0 ? <p class="muted">{t.quotes.threadEmpty}</p> : msgs.map((m: any) => {
+            const mine = (admin && m.author_role === 'admin') || (!admin && m.author_role === 'seller' && m.seller_id === user.seller_id);
+            const who = m.author_role === 'buyer' ? `${t.quotes.buyerRole} · ${q.name}` : m.author_role === 'admin' ? t.quotes.admin : (mine ? `${t.quotes.you} · ${m.seller_name ?? ''}` : (m.seller_name ?? t.order.seller));
+            return (
+              <article class:list={['msg', { 'msg--mine': mine, 'msg--buyer': m.author_role === 'buyer' }]}>
+                <p class="msg__meta"><b>{who}</b><span>{date(m.created_at, lang, true)}</span></p>
+                {m.price_all ? <p class="msg__price">{t.quotes.quoted}: {lek(m.price_all, lang)}</p> : null}
+                <p class="msg__body">{m.body}</p>
+              </article>
+            );
+          })}
+        </div>
+        {q.status === 'closed' && !admin ? null : (
+          <form class="adm-form box" method="post" style="max-width: 48rem" novalidate>
+            <h3 class="adm-h3">{t.quotes.reply}</h3>
+            <input type="hidden" name="_csrf" value={user.csrf} />
+            <input type="hidden" name="op" value="reply" />
+            <Errors errors={errors} title={t.err.check} labels={{ body: t.quotes.body, price: t.quotes.price }} />
+            <Field name="body" label={t.quotes.body} value={body} error={errors.body} textarea maxlength={4000} />
+            {!admin && <Field name="price" label={t.quotes.price} value={price} error={errors.price} hint={t.quotes.priceHint} suffix={t.common.lek} inputmode="numeric" num />}
+            <p><button class="btn" type="submit">{t.quotes.send}</button></p>
+          </form>
+        )}
+      </section>
+    </div>
+    {admin && (
+      <aside class="adm-aside adm-sec">
+        <form class="box box--ink" method="post">
+          <h2>{t.quotes.setStatus}</h2>
+          <input type="hidden" name="_csrf" value={user.csrf} />
+          <input type="hidden" name="op" value="status" />
+          <div class="field">
+            <label for="f-status">{t.quotes.status}</label>
+            <select class="select" id="f-status" name="status">
+              {['open', 'answered', 'won', 'closed'].map((s) => <option value={s} selected={s === q.status}>{t.qstatus[s]}</option>)}
+            </select>
+          </div>
+          <button class="btn btn--block" type="submit">{t.quotes.applyStatus}</button>
+        </form>
+      </aside>
+    )}
+  </div>
+</Admin>

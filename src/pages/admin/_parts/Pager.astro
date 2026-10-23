@@ -1,0 +1,23 @@
+---
+import type { AdminWords } from '../../../i18n/admin';
+import { PAGE_SIZE } from '../../../lib/admin-panel';
+interface Props { t: AdminWords; url: URL; page: number; total: number; }
+const { t, url, page, total } = Astro.props;
+const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+const at = (p: number) => {
+  const u = new URL(url);
+  u.searchParams.delete('ok');
+  if (p <= 1) u.searchParams.delete('page');
+  else u.searchParams.set('page', String(p));
+  return u.pathname + u.search;
+};
+---
+<nav class="pager" aria-label={t.common.page(page, pages)}>
+  <span>{t.common.results(total)} · {t.common.page(page, pages)}</span>
+  {pages > 1 && (
+    <div>
+      {page > 1 && <a class="btn btn--s btn--ghost" href={at(page - 1)} rel="prev">{t.common.prev}</a>}
+      {page < pages && <a class="btn btn--s btn--ghost" href={at(page + 1)} rel="next">{t.common.next}</a>}
+    </div>
+  )}
+</nav>
