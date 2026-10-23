@@ -1,13 +1,98 @@
 {
-  "currency": { "eurAll": 98.0, "source": "PLACEHOLDER until research/tariffs-prices.md gives the Bank of Albania rate", "date": null },
-  "vat": { "rate": 0.2 },
-  "delivery": { "zoneSurcharge": { "1": 0, "2": 300, "3": 600 }, "pickupAvailable": true, "codLimit": 250000 },
-  "tariffs": { "household": null, "business": null, "source": null },
-  "bank": { "beneficiary": "BeeD Consulting sh.p.k.", "bank": null, "iban": null, "swift": null },
-  "contact": { "email": null, "phone": null, "address": null, "hours_sq": null, "hours_en": null },
+  "currency": {
+    "eurAll": 90.64,
+    "source": "Bank of Albania official rate",
+    "url": "https://www.bankofalbania.org/Tregjet/Kursi_zyrtar_i_kembimit/",
+    "date": "2026-10-22"
+  },
+  "vat": {
+    "rate": 0.2
+  },
+  "delivery": {
+    "zoneSurcharge": {
+      "1": 0,
+      "2": 300,
+      "3": 600
+    },
+    "pickupAvailable": true,
+    "codLimit": 250000
+  },
+  "tariffs": {
+    "household": {
+      "thresholdKwh": 700,
+      "lowLekPerKwh": 8.5,
+      "highLekPerKwh": 9.5,
+      "wholeMonth": true
+    },
+    "business": 14,
+    "businessPeak": 16.1,
+    "exportLekPerKwh": null,
+    "pricesExclVat": true,
+    "vatRate": 0.2,
+    "source": "ERE Decision no. 322, 15.12.2025 (valid 1 Jan - 31 Dec 2026)",
+    "url": "https://ere.gov.al/media/files/2025/12/24/Tarifat_dhe_%C3%87mimet_e_energjis%C3%AB_Elektrike_dhe_Gazit_natyror_p%C3%ABr_VITIN_2026.pdf"
+  },
+  "bank": {
+    "beneficiary": "BeeD Consulting sh.p.k.",
+    "bank": null,
+    "iban": null,
+    "swift": null
+  },
+  "contact": {
+    "email": null,
+    "phone": null,
+    "address": null,
+    "hours_sq": null,
+    "hours_en": null
+  },
   "plans": [
-    { "key": "start", "name": "Start", "monthly_all": null, "commission_pct": 9, "features_sq": ["Deri në 50 oferta", "Profil shitësi", "Porosi dhe mesazhe"], "features_en": ["Up to 50 offers", "Seller profile", "Orders and messages"] },
-    { "key": "pro", "name": "Pro", "monthly_all": null, "commission_pct": 7, "features_sq": ["Oferta pa limit", "Çmime sipas sasisë", "Kërkesa për ofertë nga blerësit"], "features_en": ["Unlimited offers", "Volume prices", "Buyer quote requests"] },
-    { "key": "partner", "name": "Partner", "monthly_all": null, "commission_pct": 6, "features_sq": ["Gjithçka te Pro", "Vendosje e promovuar", "Fushata marketingu dixhital"], "features_en": ["Everything in Pro", "Promoted placement", "Digital marketing campaigns"] }
+    {
+      "key": "start",
+      "name": "Start",
+      "monthly_all": null,
+      "commission_pct": 9,
+      "features_sq": [
+        "Deri në 50 oferta",
+        "Profil shitësi",
+        "Porosi dhe mesazhe"
+      ],
+      "features_en": [
+        "Up to 50 offers",
+        "Seller profile",
+        "Orders and messages"
+      ]
+    },
+    {
+      "key": "pro",
+      "name": "Pro",
+      "monthly_all": null,
+      "commission_pct": 7,
+      "features_sq": [
+        "Oferta pa limit",
+        "Çmime sipas sasisë",
+        "Kërkesa për ofertë nga blerësit"
+      ],
+      "features_en": [
+        "Unlimited offers",
+        "Volume prices",
+        "Buyer quote requests"
+      ]
+    },
+    {
+      "key": "partner",
+      "name": "Partner",
+      "monthly_all": null,
+      "commission_pct": 6,
+      "features_sq": [
+        "Gjithçka te Pro",
+        "Vendosje e promovuar",
+        "Fushata marketingu dixhital"
+      ],
+      "features_en": [
+        "Everything in Pro",
+        "Promoted placement",
+        "Digital marketing campaigns"
+      ]
+    }
   ]
 }

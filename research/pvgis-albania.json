@@ -835,6 +835,31 @@
       ],
       "irradiation_kwh_m2_year": 1575.29,
       "api_url": "derived: mean of east_10 and west_10 api_url results"
+    },
+    {
+      "key": "south_30_building",
+      "label_en": "Pitched roof, 30° south, modules flush / building-integrated (no rear ventilation)",
+      "label_sq": "Çati e pjerrët, 30° nga jugu, panele të integruara në çati",
+      "slope_deg": 30,
+      "azimuth_deg": 0,
+      "mounting": "building-integrated",
+      "yield_kwh_per_kwp_year": 1368.56,
+      "monthly_kwh_per_kwp": [
+        81.25,
+        84.39,
+        111.65,
+        120.1,
+        134.22,
+        141.82,
+        157.91,
+        150.3,
+        123.3,
+        109.33,
+        79.6,
+        74.7
+      ],
+      "irradiation_kwh_m2_year": 1844.52,
+      "api_url": "https://re.jrc.ec.europa.eu/api/v5_3/PVcalc?lat=41.32833&lon=19.81806&peakpower=1&loss=14&angle=30&aspect=0&mountingplace=building&outputformat=json"
     }
   ]
 }

@@ -3,12 +3,16 @@
 import { all, get, setting } from './db';
 import { unitPriceFor, type Offer } from './catalog';
 
-export type TariffBand = { upToKwh: number | null; lekPerKwh: number };
+// ERE 2026 (Decision 322): households pay 8.5 lekë/kWh up to 700 kWh a month, and 9.5 lekë/kWh on the
+// WHOLE month once they pass 700 kWh — a cliff, not a band. Prices exclude VAT; households pay VAT on top.
 export type Tariffs = {
-  household: TariffBand[] | null; // monthly bands, e.g. [{upToKwh: 800, lekPerKwh: 9.5}, {upToKwh: null, lekPerKwh: 14}]
-  business: number | null; // lekë per kWh
-  exportLekPerKwh: number | null; // what surplus fed to the grid earns, if anything
+  household: { thresholdKwh: number; lowLekPerKwh: number; highLekPerKwh: number; wholeMonth: boolean } | null;
+  business: number | null; // lekë per kWh at 0.4 kV, excl. VAT (businesses recover VAT)
+  exportLekPerKwh: number | null; // what surplus fed to the grid earns; not published yet, so 0 by default
+  pricesExclVat: boolean;
+  vatRate: number;
   source: string | null;
+  url?: string;
 };
 
 export type SolarAssumptions = {
@@ -30,31 +34,23 @@ export const DEFAULT_ASSUMPTIONS: SolarAssumptions = {
 };
 
 export function tariffs(): Tariffs {
-  return setting<Tariffs>('tariffs', { household: null, business: null, exportLekPerKwh: null, source: null });
+  return setting<Tariffs>('tariffs', { household: null, business: null, exportLekPerKwh: null, pricesExclVat: true, vatRate: 0.2, source: null });
 }
 
-/** Monthly bill (lekë) from monthly use under the banded household tariff. */
+/** Energy part of a monthly bill in lekë (households with VAT, businesses without). */
 export function billFor(kwhMonth: number, t: Tariffs, kind: 'household' | 'business'): number | null {
   if (kind === 'business') return t.business ? kwhMonth * t.business : null;
-  if (!t.household?.length) return null;
-  let left = kwhMonth;
-  let prev = 0;
-  let bill = 0;
-  for (const band of t.household) {
-    const cap = band.upToKwh === null ? Infinity : band.upToKwh - prev;
-    const used = Math.min(left, cap);
-    bill += used * band.lekPerKwh;
-    left -= used;
-    prev = band.upToKwh ?? prev;
-    if (left <= 0) break;
-  }
-  return bill;
+  const h = t.household;
+  if (!h) return null;
+  const vat = t.pricesExclVat ? 1 + t.vatRate : 1;
+  if (h.wholeMonth) return kwhMonth * (kwhMonth > h.thresholdKwh ? h.highLekPerKwh : h.lowLekPerKwh) * vat;
+  const low = Math.min(kwhMonth, h.thresholdKwh);
+  return (low * h.lowLekPerKwh + Math.max(0, kwhMonth - h.thresholdKwh) * h.highLekPerKwh) * vat;
 }
 
-/** Inverse of billFor: the monthly kWh that produce a given bill. */
+/** Inverse of billFor: the monthly kWh behind a given bill (the cliff makes 7 140–7 980 lekë unreachable; it returns the edge). */
 export function kwhForBill(bill: number, t: Tariffs, kind: 'household' | 'business'): number | null {
-  if (kind === 'business') return t.business ? bill / t.business : null;
-  if (!t.household?.length) return null;
+  if (billFor(1, t, kind) === null) return null;
   let lo = 0;
   let hi = 100000;
   for (let i = 0; i < 60; i++) {
@@ -63,15 +59,6 @@ export function kwhForBill(bill: number, t: Tariffs, kind: 'household' | 'busine
     else hi = mid;
   }
   return (lo + hi) / 2;
-}
-
-/** The price per kWh the next kWh saved is worth, at the top band the household reaches. */
-export function marginalPrice(kwhMonth: number, t: Tariffs, kind: 'household' | 'business'): number | null {
-  if (kind === 'business') return t.business;
-  if (!t.household?.length) return null;
-  const a = billFor(kwhMonth, t, kind)!;
-  const b = billFor(Math.max(0, kwhMonth - 1), t, kind)!;
-  return a - b;
 }
 
 export type Kit = { role: 'panel' | 'inverter' | 'battery' | 'mounting'; offerId: number; productSlug: string; name: string; qty: number; unitPrice: number; lineTotal: number };
@@ -140,8 +127,10 @@ export function sizeSystem(input: {
   const selfUse = input.battery ? a.selfUseWithBattery : a.selfUseNoBattery;
   const used = Math.min(annualKwh * selfUse, yearly);
   const exported = Math.max(0, annualKwh - used);
-  const price = marginalPrice(input.kwhMonth, t, input.kind);
-  const annualSaving = price === null ? null : used * price + exported * (t.exportLekPerKwh ?? 0);
+  // Saving = this year's bill minus the bill on what is still bought from the grid. Works across the 700 kWh cliff.
+  const before = billFor(input.kwhMonth, t, input.kind);
+  const after = billFor(Math.max(0, input.kwhMonth - used / 12), t, input.kind);
+  const annualSaving = before === null || after === null ? null : (before - after) * 12 + exported * (t.exportLekPerKwh ?? 0);
 
   const kit: Kit[] = [];
   const panel = cheapest('solar-panels', (s) => typeof s.power_wp === 'number' && s.power_wp >= a.panelWp - 60 && s.power_wp <= a.panelWp + 160, panels);
