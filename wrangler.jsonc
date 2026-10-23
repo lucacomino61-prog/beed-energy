@@ -14,8 +14,8 @@
     {
       "binding": "DB",
       "database_name": "beed-energy",
-      // Replace with the id `wrangler d1 create beed-energy` prints. Local dev does not need it.
-      "database_id": "PLACEHOLDER_RUN_WRANGLER_D1_CREATE",
+      // From `wrangler d1 create beed-energy` (region EEUR). Local dev keys its own copy by this id too.
+      "database_id": "cb2d74a3-924a-48b8-9e98-e3705ad83155",
       "migrations_dir": "migrations"
     }
   ]

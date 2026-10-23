@@ -47,9 +47,10 @@ const lines = [
 let total = 0;
 
 for (const table of tables) {
-  // sessions are per-login and checkout_nonces guard one submitted form: neither means anything in a
-  // fresh database, and copying them over would only carry stale rows into it.
-  if (table === 'sessions' || table === 'checkout_nonces') continue;
+  // Runtime rows, not catalogue: sessions and checkout_nonces belong to one login or one form, and
+  // users and audit_log hold whoever signed in on this machine (the developer button creates its
+  // user on first use). Staff accounts for a database are made with `admin:password --local|--remote`.
+  if (['sessions', 'checkout_nonces', 'users', 'audit_log'].includes(table)) continue;
   const rows = db.prepare(`SELECT * FROM ${table}`).all();
   if (!rows.length) continue;
   const cols = Object.keys(rows[0]);
