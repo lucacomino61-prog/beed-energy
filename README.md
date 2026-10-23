@@ -40,6 +40,8 @@ npm run d1:load:remote                    # the same seed.sql, into the deployed
 npm run deploy                            # astro build && wrangler deploy
 npm run admin:password -- you@example.com "Your Name" --remote
 ```
+Every push to `main` deploys by itself through `.github/workflows/deploy.yml`: type check, D1 migrations, build, `wrangler deploy`. It needs two repository secrets, `CLOUDFLARE_API_TOKEN` (Workers Scripts, D1 and Workers KV Storage: Edit) and `CLOUDFLARE_ACCOUNT_ID`. The commands above are for the first setup and for deploying by hand.
+
 Card payments stay off until the POK keys are set as secrets: `npx wrangler secret put POK_KEY_ID` (and `POK_KEY_SECRET`, `POK_MERCHANT_ID`; `POK_ENV=staging` for POK's test API). Set `PUBLIC_ORIGIN` to the public address once the site has its own domain.
 
 ### How the database layer differs from node:sqlite
