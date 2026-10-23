@@ -57,7 +57,8 @@ hr { border: 0; border-top: 1px solid var(--line); }
 .grid-12 { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); }
 .section { padding-block: var(--section-gap); }
 .rule { border-top: 1px solid var(--line); }
-.rule-double { border-top: 3px solid var(--ink); box-shadow: 0 4px 0 -3px var(--paper), 0 5px 0 -3px var(--ink); padding-top: 1.25rem; }
+.rule-double { position: relative; border-top: 3px solid var(--ink); padding-top: 1.25rem; }
+.rule-double::before { content: ''; position: absolute; left: 0; right: 0; top: 3px; border-top: 1px solid var(--ink); }
 .on-ink, [data-tone="ink"] { background: var(--ink); color: var(--paper); --line: var(--line-on-ink); --ink-2: oklch(80% 0.01 70); }
 .on-ink .eyebrow, [data-tone="ink"] .eyebrow { color: oklch(78% 0.02 70); }
 

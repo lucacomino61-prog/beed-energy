@@ -1,0 +1,41 @@
+---
+// Full specification table, grouped from the category template: key figures (the template's card highlights),
+// the other attributes, then the body (dimensions, weight, warranty from the product record).
+import { attrLabel, formatSpec, type Attr, type SpecValue } from '../lib/catalog';
+import { num } from '../lib/money';
+import type { Lang } from '../lib/i18n';
+import { ts } from '../i18n/shop';
+interface Props {
+  lang: Lang;
+  specs: { attr: Attr; value: SpecValue }[];
+  w: number | null; h: number | null; d: number | null;
+  weight: number | null;
+  warranty: number | null;
+}
+const { lang, specs, w, h, d, weight, warranty } = Astro.props;
+const t = ts(lang).product;
+const key = specs.filter((s) => s.attr.highlight);
+const rest = specs.filter((s) => !s.attr.highlight);
+const body: [string, string][] = [];
+if (w || h || d) body.push([`${t.dims} · ${t.dimsOrder}`, [w, h, d].map((v) => (v ? num(v, 0, lang) : '—')).join(' × ')]);
+if (weight) body.push([t.weight, `${num(weight, weight < 10 ? 1 : 0, lang)} kg`]);
+// Warranty is shown here only when the template has no warranty attribute of its own.
+if (warranty && !specs.some((s) => /warranty/.test(s.attr.key))) body.push([t.warranty, t.years(num(warranty, 0, lang))]);
+const groups = [
+  { title: t.specGroups.key, rows: key.map((s) => [attrLabel(s.attr, lang), formatSpec(s.attr, s.value, lang)] as [string, string]) },
+  { title: t.specGroups.other, rows: rest.map((s) => [attrLabel(s.attr, lang), formatSpec(s.attr, s.value, lang)] as [string, string]) },
+  { title: t.specGroups.body, rows: body },
+].filter((g) => g.rows.length);
+---
+<div class="specsheet">
+  {groups.map((g, i) => (
+    <table class="table specsheet__table">
+      <caption class="specsheet__cap"><span class="key">{String(i + 1).padStart(2, '0')}</span> {g.title}</caption>
+      <tbody>
+        {g.rows.map(([k, v]) => (
+          <tr><th scope="row">{k}</th><td class="mono">{v}</td></tr>
+        ))}
+      </tbody>
+    </table>
+  ))}
+</div>

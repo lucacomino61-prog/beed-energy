@@ -1,0 +1,74 @@
+---
+// One product in a listing: drawing, brand, name, 2–3 key specs, lowest price, unit price, offer count, stock, compare toggle.
+import ProductDrawing from './ProductDrawing.astro';
+import { formatSpec, type Attr, type ProductCard } from '../lib/catalog';
+import { href, type Lang } from '../lib/i18n';
+import { price, unitPrice } from '../lib/shop-data';
+import { ts } from '../i18n/shop';
+interface Props {
+  p: ProductCard;
+  lang: Lang;
+  category: string; // slug_en, for the drawing
+  unitLabel?: string | null;
+  attrs: Attr[];
+  compared?: boolean;
+  level?: 'h2' | 'h3';
+}
+const { p, lang, category, unitLabel = null, attrs, compared = false, level = 'h3' } = Astro.props;
+const t = ts(lang);
+const name = lang === 'sq' ? p.name_sq : p.name_en;
+const H = level;
+const highlights = attrs
+  .filter((a) => a.highlight && p.specs[a.key] !== null && p.specs[a.key] !== undefined && p.specs[a.key] !== '')
+  .slice(0, 3)
+  .map((a) => formatSpec(a, p.specs[a.key], lang));
+const link = href(lang, 'product', { slug: p.slug });
+const hasOffers = p.offer_count > 0 && p.min_price !== null;
+---
+<article class="pcard" data-pcard>
+  <div class="pcard__fig">
+    <ProductDrawing category={category} w={p.width_mm} h={p.height_mm} d={p.depth_mm} specs={p.specs} decorative />
+  </div>
+  <div class="pcard__body">
+    <p class="pcard__brand" translate="no">{p.brand}</p>
+    <H class="pcard__name"><a href={link}>{name}</a></H>
+    {highlights.length > 0 && (
+      <ul class="pcard__specs" role="list">
+        {highlights.map((h) => <li class="tag">{h}</li>)}
+      </ul>
+    )}
+    <div class="pcard__foot">
+      <div class="pcard__price">
+        {hasOffers ? (
+          <>
+            <p class="price"><span class="pcard__from">{t.from}</span> {price(p.min_price!, lang)}{p.compare_at && p.compare_at > p.min_price! && <s class="was"><span class="visually-hidden">{lang === 'sq' ? 'Më parë' : 'Was'} </span>{price(p.compare_at, lang)}</s>}</p>
+            {p.unit_price !== null && unitLabel && <p class="unit-price">{unitPrice(p.unit_price, unitLabel, lang)}</p>}
+            <p class="pcard__meta">
+              <span>{t.offers(p.offer_count)}</span>
+              <span class:list={['pcard__stock', { 'is-out': p.total_stock <= 0 }]}>
+                <span class="dot" aria-hidden="true"></span>{p.total_stock > 0 ? (p.fastest_days !== null ? t.lead(p.fastest_days) : t.inStock) : t.outOfStock}
+              </span>
+            </p>
+          </>
+        ) : (
+          <>
+            <p class="pcard__none">{t.noOffers}</p>
+            <a class="pcard__quote link-arrow" href={href(lang, 'quote', {}, { produkt: p.slug })}><span>{t.requestQuote}</span><span class="arrow" aria-hidden="true">→</span></a>
+          </>
+        )}
+      </div>
+      <form class="pcard__actions" method="post" action="/api/compare" data-compare-form>
+        <input type="hidden" name="productId" value={p.id} />
+        <button class="cmp-toggle" type="submit" aria-pressed={compared ? 'true' : 'false'} data-compare-toggle={p.id} aria-label={t.compare.label(name)}>
+          <span class="cmp-toggle__box" aria-hidden="true"></span>
+          <span class="cmp-toggle__off" aria-hidden="true">{t.compare.add}</span><span class="cmp-toggle__on" aria-hidden="true">{t.compare.on}</span>
+        </button>
+      </form>
+    </div>
+  </div>
+</article>
+
+<script>
+  import { syncCompareToggles } from '../scripts/compare';
+  syncCompareToggles();
+</script>

@@ -112,7 +112,8 @@ document.addEventListener('submit', async (e) => {
   const body = Object.fromEntries(fd.entries());
   btn?.setAttribute('aria-busy', 'true');
   try {
-    const res = await fetch(form.action, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify(body) });
+    // form.action would return an <input name="action"> inside the form, so read the attribute.
+    const res = await fetch(form.getAttribute('action') ?? '/api/cart', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify(body) });
     if (!res.ok) throw new Error(String(res.status));
     const data = await res.json();
     if (isCart) {

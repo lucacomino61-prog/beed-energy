@@ -1,0 +1,177 @@
+---
+// Compare up to 4 products of one category: columns per product, rows = comparable spec attributes,
+// the best value marked with a copper ◆ and the words "më i miri / best" (never colour alone).
+// "Show differences only" is a GET parameter that compare.ts applies without a reload.
+import Site from '../layouts/Site.astro';
+import ProductDrawing from '../components/ProductDrawing.astro';
+import { attributes, attrLabel, bestOf, categoryById, formatSpec, offersFor, productCardsByIds, type ProductCard } from '../lib/catalog';
+import { COMPARE_MAX } from '../lib/basket';
+import { href, type Lang } from '../lib/i18n';
+import { offerRows, price, unitPrice } from '../lib/shop-data';
+import { num } from '../lib/money';
+import { ts } from '../i18n/shop';
+import '../styles/shop.css';
+
+interface Props { lang: Lang; ids: number[]; }
+const { lang, ids } = Astro.props;
+const t = ts(lang);
+const C = t.comparePage;
+const other: Lang = lang === 'sq' ? 'en' : 'sq';
+const DIFF = { sq: 'ndryshime', en: 'diff' } as const;
+const diffOn = Astro.url.searchParams.get(DIFF.sq) === '1' || Astro.url.searchParams.get(DIFF.en) === '1';
+
+const all = productCardsByIds(ids.slice(0, COMPARE_MAX));
+const cat = all[0] ? categoryById(all[0].category_id) : undefined;
+const items: ProductCard[] = cat ? all.filter((p) => p.category_id === cat.id) : [];
+const dropped = all.length - items.length;
+const catName = cat ? (lang === 'sq' ? cat.name_sq : cat.name_en) : '';
+const unitLabel = cat ? (lang === 'sq' ? cat.unit_label_sq : cat.unit_label_en) : null;
+const attrs = cat ? attributes(cat.id).filter((a) => a.comparable) : [];
+const nameOf = (p: ProductCard) => (lang === 'sq' ? p.name_sq : p.name_en);
+const best = new Map(
+  items.map((p) => {
+    const basis = cat?.unit_basis ? p.specs[cat.unit_basis] : null;
+    const rows = offerRows(offersFor(p.id), null, typeof basis === 'number' ? basis : null);
+    return [p.id, rows.find((r) => r.stock_qty > 0 && r.total !== null) ?? null];
+  }),
+);
+
+type Cell = { id: number; text: string; best: boolean; v: string };
+type Row = { key: string; label: string; cells: Cell[]; same: boolean };
+const minIds = (vals: { id: number; v: number | null }[], dir: 'lower' | 'higher') => {
+  const n = vals.filter((x): x is { id: number; v: number } => x.v !== null);
+  if (n.length < 2) return new Set<number>();
+  const target = dir === 'lower' ? Math.min(...n.map((x) => x.v)) : Math.max(...n.map((x) => x.v));
+  if (n.every((x) => x.v === target)) return new Set<number>();
+  return new Set(n.filter((x) => x.v === target).map((x) => x.id));
+};
+const mk = (key: string, label: string, cells: Omit<Cell, 'best'>[], bestIds: Set<number>): Row => ({
+  key,
+  label,
+  cells: cells.map((c) => ({ ...c, best: bestIds.has(c.id) })),
+  same: new Set(cells.map((c) => c.v)).size <= 1,
+});
+
+const rows: Row[] = [];
+if (items.length) {
+  rows.push(mk('price', C.rows.price, items.map((p) => ({ id: p.id, text: p.min_price !== null ? price(p.min_price, lang) : C.noOffer, v: String(p.min_price) })), minIds(items.map((p) => ({ id: p.id, v: p.min_price })), 'lower')));
+  if (unitLabel && items.some((p) => p.unit_price !== null))
+    rows.push(mk('unit', `${C.rows.unit} (${unitLabel})`, items.map((p) => ({ id: p.id, text: p.unit_price !== null ? unitPrice(p.unit_price, unitLabel, lang) : '—', v: String(p.unit_price) })), minIds(items.map((p) => ({ id: p.id, v: p.unit_price })), 'lower')));
+  rows.push(mk('offers', C.rows.offers, items.map((p) => ({ id: p.id, text: String(p.offer_count), v: String(p.offer_count) })), new Set()));
+  for (const a of attrs) {
+    const vals = items.map((p) => ({ id: p.id, v: p.specs[a.key] ?? null }));
+    if (vals.every((x) => x.v === null || x.v === '')) continue;
+    rows.push(mk(a.key, attrLabel(a, lang), vals.map((x) => ({ id: x.id, text: formatSpec(a, x.v, lang), v: String(x.v) })), bestOf(a, vals)));
+  }
+  if (items.some((p) => p.width_mm || p.height_mm))
+    rows.push(mk('dims', C.rows.dims, items.map((p) => { const s = [p.width_mm, p.height_mm, p.depth_mm].map((v) => (v ? num(v, 0, lang) : '—')).join(' × '); return { id: p.id, text: s, v: s }; }), new Set()));
+  if (items.some((p) => p.weight_kg))
+    rows.push(mk('weight', C.rows.weight, items.map((p) => ({ id: p.id, text: p.weight_kg ? `${num(p.weight_kg, p.weight_kg < 10 ? 1 : 0, lang)} kg` : '—', v: String(p.weight_kg) })), new Set()));
+}
+
+const base = href(lang, 'compare');
+const pList = items.map((p) => p.id);
+const removeAction = (id: number) => {
+  const left = pList.filter((x) => x !== id);
+  return left.length ? `${base}?p=${left.join(',')}` : base;
+};
+const alternate = href(other, 'compare') + (pList.length ? `?p=${pList.join(',')}` : '');
+---
+<Site lang={lang} title={C.metaTitle} description={C.metaDesc} alternate={alternate} current="compare" hideTray noindex={pList.length === 0}>
+  <div class="shop compare" data-compare-page data-diff-param={DIFF[lang]} data-diff={diffOn ? '' : undefined} data-removed={t.product.removed}>
+    <header class="wrap sheet-head shop-head">
+      <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'} class="crumbs">
+        <ol><li><a href={href(lang, 'home')}>{t.home}</a></li><li><a href={href(lang, 'shop')}>{t.shop}</a></li><li aria-current="page">{C.h1}</li></ol>
+      </nav>
+      <p class="eyebrow">{C.eyebrow}</p>
+      <h1 class="poster poster--s" tabindex="-1">{C.h1}</h1>
+      {items.length > 0 && <p class="lede rule-double">{C.lede(catName)}</p>}
+      <p class="visually-hidden" role="status" data-compare-status></p>
+    </header>
+
+    {items.length === 0 ? (
+      <section class="wrap shop-section">
+        <div class="empty">
+          <p class="title">{C.emptyTitle}</p>
+          <p class="muted">{C.emptyText}</p>
+          <a class="btn" href={href(lang, 'shop')}>{C.toShop} <span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+      </section>
+    ) : (
+      <section class="wrap compare__body" aria-labelledby="compare-cap">
+        {dropped > 0 && <p class="notice">{C.otherCat}</p>}
+        {items.length > 1 && (
+          <form class="compare__tools" method="get" action={base}>
+            <input type="hidden" name="p" value={pList.join(',')} />
+            <label class="check"><input type="checkbox" name={DIFF[lang]} value="1" checked={diffOn} data-diff-toggle /> <span>{C.diffOnly}</span></label>
+            <button class="btn btn--ghost btn--s" type="submit" data-diff-submit>{C.diffOnly}</button>
+            <p class="compare__legend mono small"><span class="bestmark" aria-hidden="true">◆</span> {C.legend.replace(/^◆ /, '')}</p>
+          </form>
+        )}
+        <div class="table-scroll compare__scroll">
+          <table class="table compare__table" data-compare-table style={`--cols:${items.length}`}>
+            <caption id="compare-cap" class="visually-hidden">{C.h1}: {catName}</caption>
+            <thead>
+              <tr>
+                <td class="compare__corner"><span class="key">{catName}</span></td>
+                {items.map((p) => (
+                  <th scope="col" class="compare__head" data-col={p.id}>
+                    <div class="compare__fig"><ProductDrawing category={cat!.slug_en} w={p.width_mm} h={p.height_mm} d={p.depth_mm} specs={p.specs} decorative /></div>
+                    <p class="pcard__brand" translate="no">{p.brand}</p>
+                    <a class="compare__name" href={href(lang, 'product', { slug: p.slug })}>{nameOf(p)}</a>
+                    <form method="post" action={removeAction(p.id)} data-cmp-remove>
+                      <input type="hidden" name="productId" value={p.id} />
+                      <button class="compare__remove" type="submit" aria-label={C.remove(nameOf(p))}><span aria-hidden="true">✕</span> {C.removeShort}</button>
+                    </form>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr data-row={r.key} data-same={r.same && items.length > 1 ? '' : undefined}>
+                  <th scope="row">{r.label}</th>
+                  {r.cells.map((c) => (
+                    <td data-col={c.id} data-v={c.v} class:list={['mono', { 'is-best': c.best }]}>
+                      {c.text}
+                      {c.best && <span class="bestmark-tag"><span class="bestmark" aria-hidden="true">◆</span> {C.best}</span>}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+              <tr data-row="buy">
+                <th scope="row"><span class="visually-hidden">{C.addBest}</span></th>
+                {items.map((p) => {
+                  const o = best.get(p.id);
+                  return (
+                    <td data-col={p.id}>
+                      {o ? (
+                        <form method="post" action="/api/cart" data-cart-form>
+                          <input type="hidden" name="offerId" value={o.id} />
+                          <input type="hidden" name="qty" value={o.qty} />
+                          <button class="btn btn--s btn--block" type="submit">{C.addBest}<span class="visually-hidden">: {nameOf(p)}</span></button>
+                        </form>
+                      ) : (
+                        <a class="btn btn--ghost btn--s btn--block" href={href(lang, 'quote', {}, { produkt: p.slug })}>{t.requestQuote}</a>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        {items.length < 2 && cat && (
+          <div class="notice compare__more">
+            <p>{C.addMore}</p>
+            <a class="link-arrow" href={href(lang, 'category', { slug: lang === 'sq' ? cat.slug_sq : cat.slug_en })}><span>{C.addMoreLink(catName)}</span><span class="arrow" aria-hidden="true">→</span></a>
+          </div>
+        )}
+      </section>
+    )}
+  </div>
+</Site>
+
+<script>
+  import '../scripts/compare';
+</script>

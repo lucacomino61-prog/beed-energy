@@ -1,0 +1,314 @@
+---
+// Product page: the "Fleta teknike" (drawing + title block), the offers table sorted by total delivered,
+// specifications, price history, price alert, related products and the phone action bar.
+import Site from '../layouts/Site.astro';
+import ProductDrawing from '../components/ProductDrawing.astro';
+import ProductCard from '../components/ProductCard.astro';
+import OffersTable from '../components/OffersTable.astro';
+import PriceHistory from '../components/PriceHistory.astro';
+import SpecSheet from '../components/SpecSheet.astro';
+import { attributes, categoryById, offersFor, priceHistory, productCardsByIds, productSpecs, related } from '../lib/catalog';
+import { readCompare } from '../lib/basket';
+import { href, type Lang } from '../lib/i18n';
+import { cities as allCities, drawingNo, fitDesc, fitTitle, offerRows, parseSources, price, unitPrice } from '../lib/shop-data';
+import { num } from '../lib/money';
+import { ts } from '../i18n/shop';
+import '../styles/shop.css';
+
+import type { AlertFlash } from '../lib/shop-alerts';
+interface Props { lang: Lang; product: any; flash: AlertFlash; }
+const { lang, product: p, flash } = Astro.props;
+const t = ts(lang);
+const P = t.product;
+const other: Lang = lang === 'sq' ? 'en' : 'sq';
+const cat = categoryById(p.category_id)!;
+const card = productCardsByIds([p.id])[0];
+const specs = productSpecs(p.id, p.category_id);
+const attrs = attributes(p.category_id);
+const name: string = lang === 'sq' ? p.name_sq : p.name_en;
+const catName = lang === 'sq' ? cat.name_sq : cat.name_en;
+const summary: string = (lang === 'sq' ? p.summary_sq : p.summary_en) || '';
+const body: string = (lang === 'sq' ? p.body_sq : p.body_en) || '';
+const unitLabel = lang === 'sq' ? cat.unit_label_sq : cat.unit_label_en;
+const basis = cat.unit_basis ? card?.specs[cat.unit_basis] : null;
+
+// City: ?qyteti= (sq) or ?city= (en); either works in both languages.
+const CITY = { sq: 'qyteti', en: 'city' } as const;
+const cityList = allCities();
+const citySlug = Astro.url.searchParams.get(CITY.sq) ?? Astro.url.searchParams.get(CITY.en) ?? '';
+const city = cityList.find((c) => c.slug === citySlug) ?? null;
+const cityName = city ? (lang === 'sq' ? city.name_sq : city.name_en) : null;
+
+const rows = offerRows(offersFor(p.id), city, typeof basis === 'number' ? basis : null);
+const live = rows.filter((r) => r.stock_qty > 0 && r.total !== null);
+const bestOffer = live.find((r) => r.best) ?? live[0] ?? null;
+const prices = rows.map((r) => r.price_all);
+const lowPrice = prices.length ? Math.min(...prices) : null;
+const highPrice = prices.length ? Math.max(...prices) : null;
+const sellerCount = new Set(rows.map((r) => r.seller_id)).size;
+const anyDemo = rows.some((r) => r.isDemo);
+const history = priceHistory(p.id, 90);
+const rel = related(p, 4);
+const compared = new Set(readCompare(Astro.cookies));
+const sources = parseSources(p.sources_json);
+const dno = drawingNo(cat.id, p.id);
+const dims = [p.width_mm, p.height_mm, p.depth_mm];
+const path = href(lang, 'product', { slug: p.slug });
+const altPath = href(other, 'product', { slug: p.slug }) + (city ? `?${CITY[other]}=${city.slug}` : '');
+
+const title = fitTitle([P.metaTitle(p.brand, p.model), P.metaTitleShort(p.brand, p.model), name]);
+const description = fitDesc(P.metaDesc(name, rows.length, lowPrice !== null ? price(lowPrice, lang) : null));
+
+const origin = Astro.url.origin;
+const jsonld: Record<string, unknown>[] = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name,
+    description: summary || undefined,
+    brand: { '@type': 'Brand', name: p.brand },
+    model: p.model,
+    mpn: p.model,
+    sku: dno,
+    category: catName,
+    url: origin + path,
+    ...(p.weight_kg ? { weight: { '@type': 'QuantitativeValue', value: p.weight_kg, unitCode: 'KGM' } } : {}),
+    ...(rows.length && lowPrice !== null
+      ? {
+          offers: {
+            '@type': 'AggregateOffer',
+            priceCurrency: 'ALL',
+            lowPrice,
+            highPrice,
+            offerCount: rows.length,
+            availability: live.length ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+          },
+        }
+      : {}),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: t.home, item: origin + href(lang, 'home') },
+      { '@type': 'ListItem', position: 2, name: t.shop, item: origin + href(lang, 'shop') },
+      { '@type': 'ListItem', position: 3, name: catName, item: origin + href(lang, 'category', { slug: lang === 'sq' ? cat.slug_sq : cat.slug_en }) },
+      { '@type': 'ListItem', position: 4, name, item: origin + path },
+    ],
+  },
+];
+
+// Price alert form state from the flash cookie (set by /api/price-alert, read once).
+const errs = new Set(flash?.errors ?? []);
+const alertOk = !!flash?.ok;
+const firstErr = errs.has('email') ? 'alert-email' : errs.has('target') ? 'alert-target' : null;
+const quoteHref = href(lang, 'quote', {}, { produkt: p.slug });
+---
+<Site lang={lang} title={title} description={description} alternate={altPath} current="category" jsonld={jsonld} bodyClass="has-actionbar">
+  <article class="product" data-product data-slug={p.slug}>
+    <header class="wrap product__crumbs">
+      <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'} class="crumbs">
+        <ol>
+          <li><a href={href(lang, 'home')}>{t.home}</a></li>
+          <li><a href={href(lang, 'shop')}>{t.shop}</a></li>
+          <li><a href={href(lang, 'category', { slug: lang === 'sq' ? cat.slug_sq : cat.slug_en })}>{catName}</a></li>
+          <li aria-current="page">{p.brand} {p.model}</li>
+        </ol>
+      </nav>
+    </header>
+
+    <section class="wrap sheet" aria-labelledby="product-title">
+      <figure class="sheet__drawing" data-fan-source>
+        <div class="sheet__paper">
+          <span class="sheet__corner sheet__corner--tl key" aria-hidden="true">{dno}</span>
+          <span class="sheet__corner sheet__corner--tr key" aria-hidden="true">{P.noScale}</span>
+          <ProductDrawing category={cat.slug_en} w={p.width_mm} h={p.height_mm} d={p.depth_mm} specs={card?.specs ?? {}} dims title={P.drawingAlt(name)} class="sheet__svg" />
+        </div>
+        <figcaption class="sheet__note small muted">{P.drawingNote}</figcaption>
+      </figure>
+
+      <div class="sheet__info">
+        <p class="eyebrow"><span translate="no">{p.brand}</span> · {catName}</p>
+        <h1 id="product-title" class="title product__title">{name}</h1>
+        {summary && <p class="lede product__summary">{summary}</p>}
+
+        <div class="buybox" aria-labelledby="buybox-label">
+          {lowPrice !== null ? (
+            <>
+              <p id="buybox-label" class="eyebrow">{bestOffer ? P.bestOffer : P.lowest}</p>
+              <p class="price price--big buybox__price">{price(bestOffer?.price_all ?? lowPrice, lang)}</p>
+              <p class="buybox__meta small">
+                <span>{t.vatIncl}</span>
+                <span>{t.offersFromSellers(rows.length, sellerCount)}</span>
+                {bestOffer && card?.unit_price && unitLabel && typeof basis === 'number' && <span class="mono">{unitPrice(bestOffer.price_all / basis, unitLabel, lang)}</span>}
+              </p>
+              {lowPrice !== highPrice && highPrice !== null && <p class="small muted mono">{P.priceRange(price(lowPrice, lang), price(highPrice, lang))}</p>}
+              <p class="small buybox__delivery">
+                {bestOffer && city && bestOffer.fee !== null
+                  ? <>{P.deliveryFromBest(bestOffer.fee === 0 ? P.free : price(bestOffer.fee, lang), cityName!)} · {P.bestTotal(price(bestOffer.total!, lang))}</>
+                  : P.deliveryExtra}
+              </p>
+              <div class="buybox__actions">
+                {bestOffer ? (
+                  <form method="post" action="/api/cart" data-cart-form>
+                    <input type="hidden" name="offerId" value={bestOffer.id} />
+                    <input type="hidden" name="qty" value={bestOffer.qty} />
+                    <button class="btn" type="submit">{P.addBest} <span class="visually-hidden">({bestOffer.seller_name})</span></button>
+                  </form>
+                ) : (
+                  <a class="btn" href={quoteHref}>{t.requestQuote}</a>
+                )}
+                <a class="link-arrow" href="#ofertat"><span>{P.seeOffers}</span><span class="arrow" aria-hidden="true">↓</span></a>
+              </div>
+            </>
+          ) : (
+            <>
+              <p id="buybox-label" class="eyebrow">{t.noOffers}</p>
+              <p class="small">{P.noOffersText}</p>
+              <div class="buybox__actions"><a class="btn" href={quoteHref}>{t.requestQuote} <span class="arrow" aria-hidden="true">→</span></a></div>
+            </>
+          )}
+          <form class="buybox__compare" method="post" action="/api/compare" data-compare-form>
+            <input type="hidden" name="productId" value={p.id} />
+            <button class="cmp-toggle" type="submit" aria-pressed={compared.has(p.id) ? 'true' : 'false'} data-compare-toggle={p.id} aria-label={t.compare.label(name)}>
+              <span class="cmp-toggle__box" aria-hidden="true"></span>
+              <span class="cmp-toggle__off" aria-hidden="true">{t.compare.add}</span><span class="cmp-toggle__on" aria-hidden="true">{t.compare.on}</span>
+            </button>
+          </form>
+        </div>
+
+        <dl class="titleblock product__tb">
+          <div><dt>{P.brand}</dt><dd translate="no">{p.brand}</dd></div>
+          <div><dt>{P.model}</dt><dd translate="no">{p.model}</dd></div>
+          <div><dt>{P.drawingNo}</dt><dd>{dno}</dd></div>
+          <div><dt>{P.dims}</dt><dd>{dims.some(Boolean) ? dims.map((v) => (v ? num(v, 0, lang) : '—')).join(' × ') : '—'}</dd></div>
+          <div><dt>{P.weight}</dt><dd>{p.weight_kg ? `${num(p.weight_kg, p.weight_kg < 10 ? 1 : 0, lang)} kg` : '—'}</dd></div>
+          <div><dt>{P.warranty}</dt><dd>{p.warranty_years ? P.years(num(p.warranty_years, 0, lang)) : '—'}</dd></div>
+          <div><dt>{P.scale}</dt><dd>{P.noScale}</dd></div>
+          <div><dt>{P.source}</dt><dd>{sources[0] ? <a href={sources[0].url} rel="noopener external" target="_blank">{sources[0].label}</a> : '—'}</dd></div>
+        </dl>
+        {p.datasheet_url && (
+          <a class="link-arrow product__datasheet" href={p.datasheet_url} rel="noopener external" target="_blank">
+            <span>{P.datasheet}</span><span class="arrow" aria-hidden="true">↗</span>
+          </a>
+        )}
+      </div>
+    </section>
+
+    <section id="ofertat" class="wrap product__section" aria-labelledby="offers-title" tabindex="-1">
+      <div class="section-head">
+        <p class="key section-head__key" aria-hidden="true">01</p>
+        <h2 id="offers-title" class="title section-head__title">{P.offersTitle}</h2>
+        {rows.length > 0 && <p class="mono small muted">{t.offersFromSellers(rows.length, sellerCount)}</p>}
+      </div>
+      {rows.length ? (
+        <>
+          <OffersTable lang={lang} rows={rows} cities={cityList} city={city} cityParam={CITY[lang]} action={path} unitLabel={unitLabel} productName={name} slug={p.slug} />
+          {anyDemo && <p class="small muted product__demo">{t.sampleNote}</p>}
+        </>
+      ) : (
+        <div class="empty">
+          <p class="title">{P.noOffersTitle}</p>
+          <p class="muted">{P.noOffersText}</p>
+          <a class="btn" href={quoteHref}>{t.requestQuote} <span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+      )}
+    </section>
+
+    <section class="wrap product__section" aria-labelledby="specs-title">
+      <div class="section-head">
+        <p class="key section-head__key" aria-hidden="true">02</p>
+        <h2 id="specs-title" class="title section-head__title">{P.specs}</h2>
+      </div>
+      <div class="product__specs">
+        <SpecSheet lang={lang} specs={specs} w={p.width_mm} h={p.height_mm} d={p.depth_mm} weight={p.weight_kg} warranty={p.warranty_years} />
+        {(body || sources.length > 0) && (
+          <div class="product__about">
+            {body && <><h3 class="eyebrow">{P.summary}</h3><div class="prose"><p>{body}</p></div></>}
+            {sources.length > 0 && (
+              <>
+                <h3 class="eyebrow">{P.sources}</h3>
+                <ul class="product__sources" role="list">
+                  {sources.map((s) => <li><a href={s.url} rel="noopener external" target="_blank">{s.label}</a></li>)}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+
+    <section class="wrap product__section product__duo" aria-label={`${P.history} · ${P.alert}`}>
+      <div>
+        <div class="section-head">
+          <p class="key section-head__key" aria-hidden="true">03</p>
+          <h2 class="title section-head__title">{P.history}</h2>
+        </div>
+        <p class="small muted">{P.historyIntro}</p>
+        <PriceHistory lang={lang} points={history} />
+      </div>
+      <div id="njoftim" tabindex="-1">
+        <div class="section-head">
+          <p class="key section-head__key" aria-hidden="true">04</p>
+          <h2 class="title section-head__title">{P.alert}</h2>
+        </div>
+        <p class="small muted">{P.alertIntro}</p>
+        {alertOk ? (
+          <p class="notice notice--ok" role="status" data-autofocus>{P.alertOk(flash?.target ? price(Number(flash.target), lang) : '')}</p>
+        ) : (
+          <form class="alert-form" method="post" action="/api/price-alert" novalidate data-first-error={firstErr ?? undefined}>
+            {errs.size > 0 && <p class="form-errors" role="alert">{errs.has('rate') ? P.errRate : P.alertErrors}</p>}
+            <input type="hidden" name="productId" value={p.id} />
+            <input type="hidden" name="lang" value={lang} />
+            <div class="hp" aria-hidden="true"><label for="alert-website">Website</label><input id="alert-website" name="website" tabindex="-1" autocomplete="off" /></div>
+            <div class="field">
+              <label for="alert-email">{P.email}</label>
+              <input class="input" id="alert-email" name="email" type="email" autocomplete="email" spellcheck="false" required value={flash?.email ?? ''}
+                aria-invalid={errs.has('email') ? 'true' : undefined} aria-describedby={errs.has('email') ? 'alert-email-err' : undefined} />
+              {errs.has('email') && <p class="error" id="alert-email-err">{P.errEmail}</p>}
+            </div>
+            <div class="field">
+              <label for="alert-target">{P.target}</label>
+              <input class="input mono" id="alert-target" name="target" inputmode="numeric" autocomplete="off" required value={flash?.target ?? ''}
+                aria-invalid={errs.has('target') ? 'true' : undefined} aria-describedby={`alert-target-hint${errs.has('target') ? ' alert-target-err' : ''}`} />
+              <p class="hint" id="alert-target-hint">{lowPrice !== null ? P.targetHint(price(lowPrice, lang)) : P.historyEmpty}</p>
+              {errs.has('target') && <p class="error" id="alert-target-err">{P.errTarget}</p>}
+            </div>
+            <button class="btn" type="submit">{P.alertSubmit}</button>
+            <p class="small muted">{P.alertPrivacy}</p>
+          </form>
+        )}
+      </div>
+    </section>
+
+    {rel.length > 0 && (
+      <section class="wrap product__section" aria-labelledby="related-title">
+        <div class="section-head">
+          <p class="key section-head__key" aria-hidden="true">05</p>
+          <h2 id="related-title" class="title section-head__title">{P.related}</h2>
+        </div>
+        <ul class="results results--wide" role="list">
+          {rel.map((r) => <li><ProductCard p={r} lang={lang} category={cat.slug_en} unitLabel={unitLabel} attrs={attrs} compared={compared.has(r.id)} /></li>)}
+        </ul>
+      </section>
+    )}
+
+    <div class="actionbar" data-actionbar>
+      <div class="actionbar__price">
+        {lowPrice !== null ? <><span class="small muted">{P.barFrom}</span> <span class="price">{price(bestOffer?.price_all ?? lowPrice, lang)}</span></> : <span class="small">{t.noOffers}</span>}
+      </div>
+      <a class="btn btn--ghost btn--s" href={quoteHref}>{t.requestQuote}</a>
+      {bestOffer && (
+        <form method="post" action="/api/cart" data-cart-form>
+          <input type="hidden" name="offerId" value={bestOffer.id} />
+          <input type="hidden" name="qty" value={bestOffer.qty} />
+          <button class="btn btn--s" type="submit">{P.barAdd}<span class="visually-hidden">: {P.addBest}</span></button>
+        </form>
+      )}
+    </div>
+  </article>
+</Site>
+
+<script>
+  import '../scripts/product';
+</script>

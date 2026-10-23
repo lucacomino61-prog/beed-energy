@@ -1,0 +1,7 @@
+---
+import Category from '../../views/Category.astro';
+import { categoryBySlug } from '../../lib/catalog';
+const category = categoryBySlug(Astro.params.slug ?? '', 'sq');
+if (!category) return Astro.rewrite('/404');
+---
+<Category lang="sq" category={category} />

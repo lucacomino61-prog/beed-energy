@@ -1,0 +1,211 @@
+---
+// Category listing: title block, faceted filters from the spec template, sort, grid/list view, pagination.
+// Every state lives in the URL; the filter form is a plain GET form.
+import Site from '../layouts/Site.astro';
+import ProductCard from '../components/ProductCard.astro';
+import Facets from '../components/Facets.astro';
+import { applyFilters, attributes, attrLabel, categories, formatSpec, productsInCategory, readFilters, type Category } from '../lib/catalog';
+import { readCompare } from '../lib/basket';
+import { href, type Lang } from '../lib/i18n';
+import { fitDesc, fitTitle, normaliseParams, price } from '../lib/shop-data';
+import { num } from '../lib/money';
+import { ts } from '../i18n/shop';
+import { tc } from '../i18n/common';
+import '../styles/shop.css';
+
+interface Props { lang: Lang; category: Category; }
+const { lang, category: cat } = Astro.props;
+const t = ts(lang);
+const c = t.category;
+const other: Lang = lang === 'sq' ? 'en' : 'sq';
+const VIEW = { sq: ['pamja', 'liste'], en: ['view', 'list'] } as const;
+const PAGE = { sq: 'faqe', en: 'page' } as const;
+const PER_PAGE = 24;
+
+const params = normaliseParams(Astro.url.searchParams);
+// Accept either language's view/page names (a shared link may come from the other language).
+const isList = params.get('pamja') === 'liste' || params.get('view') === 'list';
+const pageNo = Math.max(1, Math.floor(Number(params.get(PAGE.sq) ?? params.get(PAGE.en) ?? 1)) || 1);
+for (const k of ['pamja', 'view', 'faqe', 'page']) params.delete(k);
+
+const attrs = attributes(cat.id);
+const cards = productsInCategory(cat.id);
+const f = readFilters(params, attrs);
+const { items, facets } = applyFilters(cards, f, attrs);
+const prices = cards.map((p) => p.min_price).filter((x): x is number => x !== null);
+const priceLo = prices.length ? Math.min(...prices) : null;
+const priceHi = prices.length ? Math.max(...prices) : null;
+const offerTotal = cards.reduce((s, p) => s + p.offer_count, 0);
+const pages = Math.max(1, Math.ceil(items.length / PER_PAGE));
+const page = Math.min(pageNo, pages);
+const shown = items.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+const compared = new Set(readCompare(Astro.cookies));
+const unitLabel = lang === 'sq' ? cat.unit_label_sq : cat.unit_label_en;
+const name = lang === 'sq' ? cat.name_sq : cat.name_en;
+const intro = lang === 'sq' ? cat.intro_sq : cat.intro_en;
+const allCats = categories();
+const index = allCats.findIndex((x) => x.id === cat.id) + 1;
+const groupName = tc(lang).groups[cat.group_key as 'energy'] ?? '';
+
+// URL builder: current filters with overrides (null removes a key).
+const base = href(lang, 'category', { slug: lang === 'sq' ? cat.slug_sq : cat.slug_en });
+function url(over: Record<string, string | null> = {}, opts: { list?: boolean; page?: number; l?: Lang } = {}) {
+  const l = opts.l ?? lang;
+  const q = new URLSearchParams(params);
+  for (const [k, v] of Object.entries(over)) v === null || v === '' ? q.delete(k) : q.set(k, v);
+  if (opts.list ?? isList) q.set(VIEW[l][0], VIEW[l][1]);
+  if ((opts.page ?? 1) > 1) q.set(PAGE[l], String(opts.page));
+  const s = q.toString().replace(/%2C/g, ',');
+  const path = l === lang ? base : href(l, 'category', { slug: l === 'sq' ? cat.slug_sq : cat.slug_en });
+  return path + (s ? `?${s}` : '');
+}
+const without = (key: string, value?: string) => {
+  const cur = (params.get(key) ?? '').split(',').filter(Boolean);
+  const next = value === undefined ? [] : cur.filter((v) => v !== value);
+  return url({ [key]: next.length ? next.join(',') : null });
+};
+
+// Active filter chips, each with its own remove link.
+const chips: { label: string; href: string }[] = [];
+for (const b of f.brands) chips.push({ label: b, href: without('brand', b) });
+if (f.priceMin !== null || f.priceMax !== null)
+  chips.push({ label: `${c.price.replace(/ \(.+\)/, '')}: ${f.priceMin !== null ? num(f.priceMin, 0, lang) : '…'} – ${f.priceMax !== null ? num(f.priceMax, 0, lang) : '…'}`, href: url({ min: null, max: null }) });
+if (f.inStock) chips.push({ label: c.inStock, href: url({ stock: null }) });
+for (const [k, r] of Object.entries(f.ranges)) {
+  const a = attrs.find((x) => x.key === k)!;
+  chips.push({ label: `${attrLabel(a, lang)}: ${r.min !== null ? num(r.min, a.decimals, lang) : '…'} – ${r.max !== null ? num(r.max, a.decimals, lang) : '…'}${a.unit ? ' ' + a.unit : ''}`, href: url({ [`${k}_min`]: null, [`${k}_max`]: null }) });
+}
+for (const [k, vs] of Object.entries(f.sets)) {
+  const a = attrs.find((x) => x.key === k)!;
+  for (const v of vs) chips.push({ label: `${attrLabel(a, lang)}: ${formatSpec(a, a.type === 'bool' ? v === '1' : v, lang)}`, href: without(k, v) });
+}
+const clearHref = url({ ...Object.fromEntries([...params.keys()].filter((k) => k !== 'sort').map((k) => [k, null])) });
+
+const keep: Record<string, string> = {};
+if (isList) keep[VIEW[lang][0]] = VIEW[lang][1];
+
+const title = fitTitle([c.metaTitle(name), name]);
+const fullDesc = c.metaDesc(name, cards.length, intro);
+const description = fullDesc.length <= 160 ? fullDesc : fitDesc(c.metaDesc(name, cards.length, '').trim());
+const sortKeys = Object.keys(c.sort);
+const filtered = chips.length > 0;
+// Facet-filtered and paged URLs are variants of one listing: keep them out of the index.
+const noindex = filtered || page > 1 || params.has('sort');
+
+const jsonld = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: t.home, item: Astro.url.origin + href(lang, 'home') },
+      { '@type': 'ListItem', position: 2, name: t.shop, item: Astro.url.origin + href(lang, 'shop') },
+      { '@type': 'ListItem', position: 3, name, item: Astro.url.origin + base },
+    ],
+  },
+];
+---
+<Site lang={lang} title={title} description={description} alternate={url({}, { l: other })} current="category" jsonld={jsonld} noindex={noindex}>
+  <div class="shop" data-category-page>
+    <header class="wrap sheet-head shop-head">
+      <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'} class="crumbs">
+        <ol>
+          <li><a href={href(lang, 'home')}>{t.home}</a></li>
+          <li><a href={href(lang, 'shop')}>{t.shop}</a></li>
+          <li aria-current="page">{name}</li>
+        </ol>
+      </nav>
+      <p class="eyebrow">{c.eyebrow(index)} · {groupName}</p>
+      <h1 class="title title--xl shop-head__title">{name}</h1>
+      <div class="shop-head__row rule-double">
+        {intro && <p class="lede">{intro}</p>}
+        <dl class="titleblock shop-head__tb">
+          <div><dt>{lang === 'sq' ? 'Produkte' : 'Products'}</dt><dd>{cards.length}</dd></div>
+          <div><dt>{lang === 'sq' ? 'Oferta' : 'Offers'}</dt><dd>{offerTotal}</dd></div>
+          <div><dt>{t.from}</dt><dd>{priceLo !== null ? price(priceLo, lang) : '—'}</dd></div>
+          {unitLabel && <div><dt>{lang === 'sq' ? 'Njësia' : 'Unit'}</dt><dd>{unitLabel}</dd></div>}
+        </dl>
+      </div>
+    </header>
+
+    {cards.length === 0 ? (
+      <section class="wrap shop-section">
+        <div class="empty">
+          <p class="title">{c.emptyCategory}</p>
+          <p class="muted">{c.emptyCategoryHint}</p>
+          <div class="row">
+            <a class="btn" href={href(lang, 'quote')}>{t.requestQuote} <span class="arrow" aria-hidden="true">→</span></a>
+            <a class="btn btn--ghost" href={href(lang, 'shop')}>{t.landing.allCats}</a>
+          </div>
+        </div>
+      </section>
+    ) : (
+      <div class="wrap listing">
+        <div class="listing__side" data-facets-panel>
+          <Facets lang={lang} action={base} facets={facets} f={f} priceLo={priceLo} priceHi={priceHi} keep={keep} clearHref={clearHref} activeCount={chips.length} />
+        </div>
+        <section class="listing__main" aria-labelledby="results-title">
+          <div class="toolbar">
+            <h2 id="results-title" class="toolbar__count" aria-live="polite">{c.results(items.length)}</h2>
+            <button class="btn btn--ghost btn--s toolbar__filters" type="button" aria-expanded="false" aria-controls="filters" data-facets-open>{c.openFilters(chips.length)}</button>
+            <div class="toolbar__sort">
+              <label for="sort">{c.sortLabel}</label>
+              <select class="select" id="sort" name="sort" form="filters" data-autosubmit>
+                {sortKeys.map((k) => <option value={k} selected={f.sort === k}>{c.sort[k]}</option>)}
+              </select>
+              <noscript><button class="btn btn--s" type="submit" form="filters">{c.apply}</button></noscript>
+            </div>
+            <div class="toolbar__view" role="group" aria-label={c.view}>
+              <a class="viewbtn" href={url({}, { list: false, page })} aria-current={!isList ? 'true' : undefined}>
+                <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H1zM9 9h6v6H9z" fill="none" stroke="currentColor" /></svg>
+                <span>{c.grid}</span>
+              </a>
+              <a class="viewbtn" href={url({}, { list: true, page })} aria-current={isList ? 'true' : undefined}>
+                <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M1 2h14M1 6h14M1 10h14M1 14h14" fill="none" stroke="currentColor" /></svg>
+                <span>{c.list}</span>
+              </a>
+            </div>
+          </div>
+
+          {chips.length > 0 && (
+            <div class="chips">
+              <span class="visually-hidden">{c.active}:</span>
+              <ul role="list" class="chips__list">
+                {chips.map((ch) => (
+                  <li><a class="chip" href={ch.href} aria-label={c.remove(ch.label)}><span>{ch.label}</span><span aria-hidden="true">✕</span></a></li>
+                ))}
+              </ul>
+              <a class="chips__clear" href={clearHref}>{c.clear}</a>
+            </div>
+          )}
+
+          {items.length === 0 ? (
+            <div class="empty">
+              <p class="title">{c.emptyFiltered}</p>
+              <p class="muted">{c.emptyFilteredHint}</p>
+              <a class="btn" href={clearHref}>{c.clear}</a>
+            </div>
+          ) : (
+            <ul class:list={['results', { 'results--list': isList }]} role="list">
+              {shown.map((p) => (
+                <li><ProductCard p={p} lang={lang} category={cat.slug_en} unitLabel={unitLabel} attrs={attrs} compared={compared.has(p.id)} /></li>
+              ))}
+            </ul>
+          )}
+
+          {pages > 1 && (
+            <nav class="pager" aria-label={c.page(page, pages)}>
+              {page > 1 ? <a class="btn btn--ghost btn--s" href={url({}, { page: page - 1 })} rel="prev">← {c.prev}</a> : <span />}
+              <span class="pager__n">{c.page(page, pages)}</span>
+              {page < pages ? <a class="btn btn--ghost btn--s" href={url({}, { page: page + 1 })} rel="next">{c.next} →</a> : <span />}
+            </nav>
+          )}
+          {unitLabel && <p class="small muted listing__note">{c.unitNote(unitLabel)}</p>}
+        </section>
+      </div>
+    )}
+  </div>
+</Site>
+
+<script>
+  import '../scripts/filters';
+</script>

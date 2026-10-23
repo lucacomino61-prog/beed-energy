@@ -1,0 +1,9 @@
+---
+import Compare from '../../views/Compare.astro';
+import { compareIds, removeFromCompare } from '../../lib/shop-compare';
+if (Astro.request.method === 'POST') {
+  await removeFromCompare(Astro.request, Astro.cookies, Astro.url);
+  return Astro.redirect(Astro.url.pathname + Astro.url.search, 303);
+}
+---
+<Compare lang="en" ids={compareIds(Astro.url, Astro.cookies)} />

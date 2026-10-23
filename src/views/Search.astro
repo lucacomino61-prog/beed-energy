@@ -1,0 +1,93 @@
+---
+// Search: products by name, brand or model (diacritics optional) plus matching categories; empty and no-result states.
+import Site from '../layouts/Site.astro';
+import ProductCard from '../components/ProductCard.astro';
+import { attributes, categories, fold, searchProducts } from '../lib/catalog';
+import { readCompare } from '../lib/basket';
+import { href, type Lang } from '../lib/i18n';
+import { fitTitle, price } from '../lib/shop-data';
+import { ts } from '../i18n/shop';
+import '../styles/shop.css';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+const t = ts(lang);
+const S = t.search;
+const other: Lang = lang === 'sq' ? 'en' : 'sq';
+const q = (Astro.url.searchParams.get('q') ?? '').trim().slice(0, 80);
+const cats = categories();
+const results = q ? searchProducts(q, 48) : [];
+const terms = fold(q).split(/\s+/).filter((x) => x.length > 1);
+const catHits = q ? cats.filter((c) => { const hay = fold(`${c.name_sq} ${c.name_en} ${c.slug_sq} ${c.slug_en}`); return terms.some((x) => hay.includes(x)); }) : [];
+const catById = new Map(cats.map((c) => [c.id, c]));
+const attrsByCat = new Map<number, ReturnType<typeof attributes>>();
+for (const p of results) if (!attrsByCat.has(p.category_id)) attrsByCat.set(p.category_id, attributes(p.category_id));
+const compared = new Set(readCompare(Astro.cookies));
+const title = q ? fitTitle([S.metaTitleQ(q), S.metaTitle]) : S.metaTitle;
+const catLink = (c: (typeof cats)[number]) => href(lang, 'category', { slug: lang === 'sq' ? c.slug_sq : c.slug_en });
+---
+<Site lang={lang} title={title} description={S.metaDesc} alternate={href(other, 'search', {}, { q })} current="search" noindex={!!q}>
+  <div class="shop search">
+    <header class="wrap sheet-head shop-head">
+      <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'} class="crumbs">
+        <ol><li><a href={href(lang, 'home')}>{t.home}</a></li><li><a href={href(lang, 'shop')}>{t.shop}</a></li><li aria-current="page">{S.h1}</li></ol>
+      </nav>
+      <p class="eyebrow">{S.eyebrow}</p>
+      <h1 class="poster poster--s">{S.h1}</h1>
+      <form class="shop-search shop-search--big rule-double" role="search" method="get" action={href(lang, 'search')}>
+        <label class="visually-hidden" for="search-q">{S.label}</label>
+        <input class="input" id="search-q" name="q" type="search" value={q} placeholder={S.placeholder} autocomplete="off" spellcheck="false" enterkeyhint="search" />
+        <button class="btn" type="submit">{S.submit}</button>
+      </form>
+    </header>
+
+    <div class="wrap search__body">
+      {q && <h2 class="toolbar__count search__count" aria-live="polite">{S.results(results.length, q)}</h2>}
+
+      {catHits.length > 0 && (
+        <section class="search__cats" aria-labelledby="search-cats">
+          <h3 id="search-cats" class="eyebrow">{S.cats}</h3>
+          <ul class="chips__list" role="list">
+            {catHits.map((c) => <li><a class="chip" href={catLink(c)}><span>{lang === 'sq' ? c.name_sq : c.name_en}</span><span aria-hidden="true">→</span></a></li>)}
+          </ul>
+        </section>
+      )}
+
+      {results.length > 0 && (
+        <ul class="results results--wide" role="list">
+          {results.map((p) => {
+            const c = catById.get(p.category_id)!;
+            return <li><ProductCard p={p} lang={lang} category={c.slug_en} unitLabel={lang === 'sq' ? c.unit_label_sq : c.unit_label_en} attrs={attrsByCat.get(p.category_id) ?? []} compared={compared.has(p.id)} /></li>;
+          })}
+        </ul>
+      )}
+
+      {q && results.length === 0 && (
+        <div class="empty">
+          <p class="title">{S.none(q)}</p>
+          <p class="muted">{S.noneHint}</p>
+          <a class="btn" href={href(lang, 'quote')}>{t.requestQuote} <span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+      )}
+
+      {(!q || results.length === 0) && (
+        <section class="search__browse" aria-labelledby="browse-title">
+          {!q && <p class="lede">{S.emptyQ}</p>}
+          <h2 id="browse-title" class="eyebrow">{S.browse}</h2>
+          <ul class="catlist" role="list">
+            {cats.map((c, i) => (
+              <li>
+                <a class="catrow catrow--slim" href={catLink(c)}>
+                  <span class="catrow__key key">{String(i + 1).padStart(2, '0')}</span>
+                  <span class="catrow__name">{lang === 'sq' ? c.name_sq : c.name_en}</span>
+                  <span class="catrow__count">{t.products(c.product_count ?? 0)}{c.min_price ? ` · ${t.from} ${price(c.min_price, lang)}` : ''}</span>
+                  <span class="catrow__arrow" aria-hidden="true">→</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  </div>
+</Site>

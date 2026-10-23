@@ -1,0 +1,113 @@
+---
+// The offers table: one row per seller offer, sorted by total delivered to the chosen city.
+// A real <table> on wide screens; on phones each row becomes a card (roles kept explicit so Safari keeps table semantics).
+import { href, date, type Lang } from '../lib/i18n';
+import { price, unitPrice, type City, type OfferRow } from '../lib/shop-data';
+import { num } from '../lib/money';
+import { ts } from '../i18n/shop';
+interface Props {
+  lang: Lang;
+  rows: OfferRow[];
+  cities: City[];
+  city: City | null;
+  cityParam: string;
+  action: string; // product URL (without query)
+  unitLabel: string | null;
+  productName: string;
+  slug: string;
+}
+const { lang, rows, cities, city, cityParam, action, unitLabel, productName, slug } = Astro.props;
+const t = ts(lang).product;
+const tt = ts(lang);
+const C = t.cols;
+const cityName = (c: City) => (lang === 'sq' ? c.name_sq : c.name_en);
+const hasTiers = rows.some((r) => r.tiers.length);
+const hasUnit = !!unitLabel && rows.some((r) => r.perUnit !== null);
+---
+<div class="offers" data-offers>
+  <form class="offers__city" method="get" action={`${action}#ofertat`} data-city-form>
+    <label for="offer-city">{t.city}</label>
+    <select class="select" id="offer-city" name={cityParam} data-city-select>
+      <option value="" selected={!city}>{t.chooseCity}</option>
+      {cities.map((c) => <option value={c.slug} selected={city?.id === c.id}>{cityName(c)}</option>)}
+    </select>
+    <button class="btn btn--ghost btn--s" type="submit" data-city-submit>{t.update}</button>
+  </form>
+  <p class="offers__intro small muted">{t.offersIntro}{!city && ` (${t.pickCityTotal})`}</p>
+
+  <table class="table offers__table" role="table" data-offers-table>
+    <caption class="visually-hidden">{t.offersTitle}: {productName}</caption>
+    <thead role="rowgroup">
+      <tr role="row">
+        <th scope="col" role="columnheader">{C.seller}</th>
+        <th scope="col" role="columnheader" class="num">{C.price}</th>
+        {hasUnit && <th scope="col" role="columnheader" class="num">{C.unit}</th>}
+        {hasTiers && <th scope="col" role="columnheader">{C.tiers}</th>}
+        <th scope="col" role="columnheader">{C.stock}</th>
+        <th scope="col" role="columnheader" class="num">{C.delivery}</th>
+        <th scope="col" role="columnheader" class="num">{C.total}</th>
+        <th scope="col" role="columnheader"><span class="visually-hidden">{C.buy}</span></th>
+      </tr>
+    </thead>
+    <tbody role="rowgroup">
+      {rows.map((r) => {
+        const out = r.stock_qty <= 0;
+        const rating = r.seller_rating !== null && r.seller_rating_count > 0 ? t.rating(num(r.seller_rating, 1, lang), r.seller_rating_count) : t.noRating;
+        const sellerCity = lang === 'sq' ? r.seller_city_sq : r.seller_city_en;
+        return (
+          <tr role="row" class:list={['offer', { 'offer--best': r.best, 'offer--out': out, 'offer--promoted': !!r.promoted }]} data-offer-row data-seller={r.seller_name} data-price={price(r.price_all, lang)}>
+            <th scope="row" role="rowheader" class="offer__seller">
+              <div class="offer__badges">
+                {r.best && <span class="tag tag--ink"><span aria-hidden="true">◆</span> {t.best}</span>}
+                {r.fastest && <span class="tag tag--copper"><span aria-hidden="true">↯</span> {t.fastest}</span>}
+                {!!r.promoted && <span class="tag">{t.sponsored}</span>}
+              </div>
+              <a class="offer__name" href={href(lang, 'seller', { slug: r.seller_slug })} translate="no">{r.seller_name}</a>
+              <div class="offer__trust">
+                {!!r.seller_verified && <span class="tag tag--ok"><span aria-hidden="true">✓</span> {t.verified}</span>}
+                {r.isDemo && <span class="tag tag--demo">{tt.sample}</span>}
+              </div>
+              <p class="offer__meta">{rating}{sellerCity && <> · {sellerCity}</>}</p>
+              <p class="offer__meta">{t.updated(date(r.updated_at, lang))}</p>
+            </th>
+            <td role="cell" class="num offer__price" data-label={C.price}>
+              <span class="price">{price(r.price_all, lang)}</span>
+              {r.compare_at_all && r.compare_at_all > r.price_all && <s class="was"><span class="visually-hidden">{t.wasPrice}: </span>{price(r.compare_at_all, lang)}</s>}
+            </td>
+            {hasUnit && <td role="cell" class="num" data-label={C.unit}>{r.perUnit !== null && unitLabel ? <span class="unit-price">{unitPrice(r.perUnit, unitLabel, lang)}</span> : '—'}</td>}
+            {hasTiers && (
+              <td role="cell" data-label={C.tiers}>
+                {r.tiers.length ? <ul class="offer__tiers" role="list">{r.tiers.map((x) => <li>{t.tier(x.min_qty, price(x.price_all, lang))}</li>)}</ul> : t.noTiers}
+              </td>
+            )}
+            <td role="cell" data-label={C.stock}>
+              <p class:list={['offer__stock', { 'is-out': out }]}><span class="dot" aria-hidden="true"></span>{out ? tt.outOfStock : t.stockN(r.stock_qty)}</p>
+              <p class="offer__meta">{tt.lead(r.lead_days)}</p>
+              {r.min_qty > 1 && <p class="offer__meta">{t.minQty(r.min_qty)}</p>}
+              {!!r.installation_available && <p class="offer__meta">{t.installation}</p>}
+            </td>
+            <td role="cell" class="num" data-label={C.delivery}>
+              {r.fee === null ? <span class="offer__nozone">{city ? t.noZone : t.noZoneDefault}</span> : r.fee === 0 ? <strong>{t.free}</strong> : <span class="mono">{city ? price(r.fee, lang) : t.deliveryFrom(price(r.fee, lang))}</span>}
+              {r.fee !== null && r.fee > 0 && r.free_delivery_over_all && <p class="offer__meta">{t.freeOver(price(r.free_delivery_over_all, lang))}</p>}
+            </td>
+            <td role="cell" class="num offer__total" data-label={C.total}>
+              {r.total !== null ? <><span class="price">{price(r.total, lang)}</span><p class="offer__meta">{t.forQty(r.qty)}</p></> : '—'}
+            </td>
+            <td role="cell" class="offer__buy">
+              {out ? (
+                <a class="btn btn--ghost btn--s" href={href(lang, 'quote', {}, { produkt: slug })}>{tt.requestQuote}</a>
+              ) : (
+                <form class="offer__form" method="post" action="/api/cart" data-cart-form>
+                  <input type="hidden" name="offerId" value={r.id} />
+                  <label class="visually-hidden" for={`qty-${r.id}`}>{t.qty} ({r.seller_name})</label>
+                  <input class="input offer__qty" id={`qty-${r.id}`} name="qty" type="number" inputmode="numeric" min={r.min_qty} max={r.stock_qty} step="1" value={r.qty} />
+                  <button class:list={['btn btn--s', { 'btn--ghost': !r.best }]} type="submit">{t.add}<span class="visually-hidden">: {r.seller_name}</span></button>
+                </form>
+              )}
+            </td>
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+</div>

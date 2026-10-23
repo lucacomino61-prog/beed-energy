@@ -1,0 +1,76 @@
+---
+// Price history: the day's lowest price over the last 90 days as a server-rendered SVG step line,
+// with the same numbers as a table inside <details> (the accessible alternative).
+import { date, type Lang } from '../lib/i18n';
+import { price } from '../lib/shop-data';
+import { ts } from '../i18n/shop';
+interface Props { lang: Lang; points: { day: string; low: number; high: number }[]; days?: number; }
+const { lang, points, days = 90 } = Astro.props;
+const t = ts(lang).product;
+
+const W = 640, H = 220, padL = 8, padR = 8, padT = 18, padB = 26;
+const enough = points.length >= 2;
+const DAY = 86_400_000;
+const end = Date.now();
+const start = end - days * DAY;
+const lo = enough ? Math.min(...points.map((p) => p.low)) : 0;
+const hi = enough ? Math.max(...points.map((p) => p.low)) : 0;
+const span = hi - lo || Math.max(1, hi * 0.05);
+const yMin = lo - span * 0.25, yMax = hi + span * 0.25;
+const x = (iso: string) => padL + ((Date.parse(iso + 'T12:00:00Z') - start) / (end - start)) * (W - padL - padR);
+const y = (v: number) => padT + (1 - (v - yMin) / (yMax - yMin)) * (H - padT - padB);
+let d = '';
+if (enough) {
+  points.forEach((p, i) => {
+    const px = Math.max(padL, x(p.day)), py = y(p.low);
+    if (i === 0) d += `M${padL.toFixed(1)} ${py.toFixed(1)} H${px.toFixed(1)}`;
+    else d += ` H${px.toFixed(1)} V${py.toFixed(1)}`;
+  });
+  d += ` H${(W - padR).toFixed(1)}`;
+}
+const area = enough ? `${d} V${H - padB} H${padL} Z` : '';
+const last = points[points.length - 1];
+const loPoint = points.find((p) => p.low === lo);
+const fromLabel = date(new Date(start).toISOString(), lang);
+const toLabel = date(new Date(end).toISOString(), lang);
+const ticks = [0, 30, 60, 90].map((k) => ({ x: padL + (k / days) * (W - padL - padR), label: date(new Date(start + k * DAY).toISOString(), lang).replace(/ \d{4}$/, '') }));
+---
+<figure class="history">
+  {enough ? (
+    <>
+      <svg class="history__chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby="history-desc" preserveAspectRatio="none">
+        <title id="history-desc">{t.historyAlt(fromLabel, toLabel, price(lo, lang), price(hi, lang))}</title>
+        <g class="history__grid">
+          {[lo, hi].map((v) => <line x1={padL} x2={W - padR} y1={y(v)} y2={y(v)} />)}
+          {ticks.map((tk) => <line x1={tk.x} x2={tk.x} y1={padT - 6} y2={H - padB} />)}
+        </g>
+        <path class="history__area" d={area} />
+        <path class="history__line" d={d} />
+        {loPoint && <circle class="history__lo" cx={Math.max(padL, x(loPoint.day))} cy={y(lo)} r="3.5" />}
+        {last && <circle class="history__now" cx={W - padR} cy={y(last.low)} r="3.5" />}
+      </svg>
+      <div class="history__axis" aria-hidden="true">
+        {ticks.map((tk) => <span style={`left:${((tk.x / W) * 100).toFixed(2)}%`}>{tk.label}</span>)}
+      </div>
+      <figcaption class="history__cap">
+        <span class="mono">{t.historyRange(price(lo, lang), price(hi, lang))}</span>
+      </figcaption>
+      <details class="history__table">
+        <summary>{t.historyTable}</summary>
+        <div class="table-scroll">
+          <table class="table">
+            <caption class="visually-hidden">{t.history}</caption>
+            <thead><tr><th scope="col">{t.historyCols.day}</th><th scope="col" class="num">{t.historyCols.low}</th><th scope="col" class="num">{t.historyCols.high}</th></tr></thead>
+            <tbody>
+              {[...points].reverse().map((p) => (
+                <tr><th scope="row">{date(p.day + ' 12:00:00', lang)}</th><td class="num mono">{price(p.low, lang)}</td><td class="num mono">{price(p.high, lang)}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </>
+  ) : (
+    <p class="history__empty muted">{t.historyEmpty}</p>
+  )}
+</figure>

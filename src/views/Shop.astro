@@ -1,0 +1,107 @@
+---
+// Shop landing: the 14 categories in three groups with live product counts and lowest prices, then the products with most offers.
+import Site from '../layouts/Site.astro';
+import ProductCard from '../components/ProductCard.astro';
+import ProductDrawing from '../components/ProductDrawing.astro';
+import { attributes, categories, featuredProducts } from '../lib/catalog';
+import { readCompare } from '../lib/basket';
+import { href, type Lang } from '../lib/i18n';
+import { price } from '../lib/shop-data';
+import { ts } from '../i18n/shop';
+import '../styles/shop.css';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+const t = ts(lang);
+const L = t.landing;
+const cats = categories();
+const groups = ['energy', 'efficiency', 'build'].map((g) => ({ key: g, ...L.groups[g], cats: cats.filter((c) => c.group_key === g) })).filter((g) => g.cats.length);
+const featured = featuredProducts(8);
+const catById = new Map(cats.map((c) => [c.id, c]));
+const attrsByCat = new Map<number, ReturnType<typeof attributes>>();
+for (const p of featured) if (!attrsByCat.has(p.category_id)) attrsByCat.set(p.category_id, attributes(p.category_id));
+const compared = new Set(readCompare(Astro.cookies));
+const totalProducts = cats.reduce((s, c) => s + (c.product_count ?? 0), 0);
+let n = 0;
+const jsonld = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: L.metaTitle,
+    description: L.metaDesc,
+    hasPart: cats.map((c) => ({ '@type': 'CollectionPage', name: lang === 'sq' ? c.name_sq : c.name_en, url: Astro.url.origin + href(lang, 'category', { slug: lang === 'sq' ? c.slug_sq : c.slug_en }) })),
+  },
+];
+---
+<Site lang={lang} title={L.metaTitle} description={L.metaDesc} alternate={href(lang === 'sq' ? 'en' : 'sq', 'shop')} current="shop" jsonld={jsonld}>
+  <div class="shop">
+    <header class="wrap sheet-head shop-head shop-head--landing">
+      <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'} class="crumbs">
+        <ol><li><a href={href(lang, 'home')}>{t.home}</a></li><li aria-current="page">{t.shop}</li></ol>
+      </nav>
+      <p class="eyebrow">{L.eyebrow}</p>
+      <h1 class="poster shop-poster">{L.h1}</h1>
+      <div class="shop-head__row rule-double">
+        <p class="lede">{L.lede}</p>
+        <form class="shop-search" role="search" method="get" action={href(lang, 'search')}>
+          <label class="visually-hidden" for="shop-q">{t.search.label}</label>
+          <input class="input" id="shop-q" name="q" type="search" placeholder={t.search.placeholder} autocomplete="off" spellcheck="false" />
+          <button class="btn" type="submit">{t.search.submit}</button>
+        </form>
+        <dl class="titleblock shop-head__tb">
+          <div><dt>{lang === 'sq' ? 'Kategori' : 'Categories'}</dt><dd>{cats.length}</dd></div>
+          <div><dt>{lang === 'sq' ? 'Produkte' : 'Products'}</dt><dd>{totalProducts}</dd></div>
+          <div><dt>{lang === 'sq' ? 'Çmimet' : 'Prices'}</dt><dd>{t.vatIncl}</dd></div>
+        </dl>
+      </div>
+    </header>
+
+    <div class="wrap">
+      {groups.map((g) => (
+        <section class="catgroup" aria-labelledby={`g-${g.key}`}>
+          <div class="catgroup__head">
+            <h2 id={`g-${g.key}`} class="title catgroup__title">{g.title}</h2>
+            <p class="muted">{g.text}</p>
+          </div>
+          <ul class="catlist" role="list">
+            {g.cats.map((c) => {
+              n++;
+              const name = lang === 'sq' ? c.name_sq : c.name_en;
+              return (
+                <li>
+                  <a class="catrow" href={href(lang, 'category', { slug: lang === 'sq' ? c.slug_sq : c.slug_en })}>
+                    <span class="catrow__key key">{String(n).padStart(2, '0')}</span>
+                    <span class="catrow__fig" aria-hidden="true"><ProductDrawing category={c.slug_en} w={null} h={null} d={null} decorative /></span>
+                    <span class="catrow__name">{name}</span>
+                    <span class="catrow__count">{t.products(c.product_count ?? 0)}</span>
+                    <span class="catrow__price">{c.min_price ? <><span class="muted">{t.from}</span> <span class="price">{price(c.min_price, lang)}</span></> : <span class="muted">{L.emptyCat}</span>}</span>
+                    <span class="catrow__arrow" aria-hidden="true">→</span>
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+
+      <section class="shop-section" aria-labelledby="featured-title">
+        <h2 id="featured-title" class="title">{L.featured}</h2>
+        {featured.length ? (
+          <ul class="results results--wide" role="list">
+            {featured.map((p) => {
+              const c = catById.get(p.category_id)!;
+              return (
+                <li><ProductCard p={p} lang={lang} category={c.slug_en} unitLabel={lang === 'sq' ? c.unit_label_sq : c.unit_label_en} attrs={attrsByCat.get(p.category_id) ?? []} compared={compared.has(p.id)} /></li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div class="empty">
+            <p>{L.featuredEmpty}</p>
+            <a class="btn" href={href(lang, 'quote')}>{t.requestQuote} <span class="arrow" aria-hidden="true">→</span></a>
+          </div>
+        )}
+      </section>
+    </div>
+  </div>
+</Site>

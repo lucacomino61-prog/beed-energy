@@ -1,0 +1,83 @@
+---
+// Faceted filters for a category: a plain GET form (works without scripts); filters.ts submits it on change.
+// Number specs get min/max inputs with the range seen in the category; sets get checkboxes with live counts.
+import type { Facet, FilterState } from '../lib/catalog';
+import { attrLabel } from '../lib/catalog';
+import { num } from '../lib/money';
+import type { Lang } from '../lib/i18n';
+import { ts } from '../i18n/shop';
+interface Props {
+  lang: Lang;
+  action: string;
+  facets: Facet[];
+  f: FilterState;
+  priceLo: number | null;
+  priceHi: number | null;
+  keep: Record<string, string>; // sort / view params to keep when the form submits
+  clearHref: string;
+  activeCount: number;
+}
+const { lang, action, facets, f, priceLo, priceHi, keep, clearHref, activeCount } = Astro.props;
+const t = ts(lang);
+const c = t.category;
+const fmt = (v: number, d = 0) => num(v, d, lang);
+const id = (k: string) => `f-${k.replace(/[^a-z0-9_-]/gi, '')}`;
+const val = (v: number | null) => (v === null ? '' : String(v).replace('.', lang === 'sq' ? ',' : '.'));
+---
+<form id="filters" class="facets" method="get" action={action} data-filters aria-labelledby="facets-title">
+  <div class="facets__head">
+    <h2 id="facets-title" class="eyebrow facets__title">{c.filters}</h2>
+    <button class="facets__close" type="button" data-facets-close>{c.closeFilters} <span aria-hidden="true">✕</span></button>
+  </div>
+  {Object.entries(keep).map(([k, v]) => <input type="hidden" name={k} value={v} />)}
+
+  <fieldset class="facet">
+    <legend class="facet__legend">{c.price}</legend>
+    <div class="facet__range">
+      <label class="facet__num"><span>{c.min}</span><input class="input" name="min" inputmode="numeric" autocomplete="off" value={val(f.priceMin)} placeholder={priceLo !== null ? fmt(priceLo) : ''} /></label>
+      <label class="facet__num"><span>{c.max}</span><input class="input" name="max" inputmode="numeric" autocomplete="off" value={val(f.priceMax)} placeholder={priceHi !== null ? fmt(priceHi) : ''} /></label>
+    </div>
+    <label class="check"><input type="checkbox" name="stock" value="1" checked={f.inStock} /> <span>{c.inStock}</span></label>
+  </fieldset>
+
+  {facets.map((fc) => {
+    const label = fc.attr ? attrLabel(fc.attr, lang) : c.brand;
+    const unit = fc.attr?.unit ? ` (${fc.attr.unit})` : '';
+    if (fc.range) {
+      const d = fc.attr?.decimals ?? 0;
+      if (fc.range.lo === fc.range.hi) return null;
+      return (
+        <fieldset class="facet">
+          <legend class="facet__legend">{label}{unit}</legend>
+          <div class="facet__range">
+            <label class="facet__num"><span>{c.min}</span><input class="input" id={id(fc.key + '_min')} name={`${fc.key}_min`} inputmode="decimal" autocomplete="off" value={val(fc.range.min)} placeholder={fmt(fc.range.lo, d)} /></label>
+            <label class="facet__num"><span>{c.max}</span><input class="input" id={id(fc.key + '_max')} name={`${fc.key}_max`} inputmode="decimal" autocomplete="off" value={val(fc.range.max)} placeholder={fmt(fc.range.hi, d)} /></label>
+          </div>
+          <p class="facet__hint">{c.rangeHint(fmt(fc.range.lo, d), fmt(fc.range.hi, d))}{fc.attr?.unit ? ` ${fc.attr.unit}` : ''}</p>
+        </fieldset>
+      );
+    }
+    if (!fc.values || fc.values.length < 1) return null;
+    return (
+      <fieldset class="facet">
+        <legend class="facet__legend">{label}{unit}</legend>
+        <ul class="facet__list" role="list">
+          {fc.values.map((v) => (
+            <li>
+              <label class="check facet__opt">
+                <input type="checkbox" name={fc.key} value={v.value} checked={v.checked} />
+                <span class="facet__label" translate={fc.key === 'brand' ? 'no' : undefined}>{lang === 'sq' ? v.label_sq : v.label_en}</span>
+                <span class="facet__count">{v.count}</span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      </fieldset>
+    );
+  })}
+
+  <div class="facets__actions">
+    <button class="btn btn--block" type="submit" data-facets-apply>{c.apply}</button>
+    {activeCount > 0 && <a class="link-arrow facets__clear" href={clearHref}><span>{c.clear}</span></a>}
+  </div>
+</form>
