@@ -8,3 +8,7 @@ data/uploads/
 .env.*
 !.env.example
 .probes/
+
+# Client documents and personal registry details stay local
+research/private/
+research/brief-page-*.webp
