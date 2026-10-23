@@ -20,12 +20,12 @@ export function groupDigits(n: number, sep = THIN): string {
 
 /** 124 900 L — the short form Albanian price tags use. */
 export function lek(n: number, lang: Lang = 'sq'): string {
-  return `${groupDigits(n)}${NBSP}${lang === 'sq' ? 'L' : 'ALL'}`;
+  return `${groupDigits(n, lang === 'sq' ? THIN : ',')}${NBSP}${lang === 'sq' ? 'L' : 'ALL'}`;
 }
 
 /** 124 900 lekë — the long form for sentences and totals. */
 export function lekLong(n: number, lang: Lang = 'sq'): string {
-  return `${groupDigits(n)}${NBSP}${lang === 'sq' ? 'lekë' : 'lekë (ALL)'}`;
+  return `${groupDigits(n, lang === 'sq' ? THIN : ',')}${NBSP}${lang === 'sq' ? 'lekë' : 'ALL'}`;
 }
 
 export function eur(n: number, decimals = 0): string {

@@ -77,3 +77,21 @@ Mounting manufacturers publish no single wind or snow load per product; K2 and S
 - **No Albanian retailer or distributor** was checked successfully, so "sold in Albania" is unverified for every product.
 - Warranty years are `null` wherever the manufacturer document does not state them (Huawei, Fronius, GoodWe, Pylontech, chargers).
 - All prices are from one EU retailer and include its default (Luxembourg) VAT. They are reference prices only.
+
+## Prices added 2026-10-23
+One real public price per product, from the seller page named in the JSON price_source (read 2026-10-23). Where the price is in EUR no conversion was needed; no Albanian seller listing was found for any of these models. Full detail is in each product's price_note.
+
+| Product | Price (EUR) | Seller, country, VAT, unit |
+|---|---|---|
+| Fronius Wattpilot Flex Home 22 C6 | 839.50 | [Solarhandel24, Germany, incl. VAT 19%, per charger](https://solarhandel24.de/products/fronius-wattpilot-flex-home-22-c6-22kw) |
+| GoodWe GW22K-HCA-20 (HCA G2 series) | 445.00 | [sun.store public page, "from" price of 3 offers, excl. VAT, per charger (single data point)](https://sun.store/en/product/goodwe-gw22k-hca-20-50536) |
+| Deye SUN-EVSE22K01-EU-AC | 390.00 | [Sunnergie, Netherlands, excl. VAT, per charger](https://sunnergie.com/product/deye-smart-wallbox-ac-charger-22-kw-sun-evse22k01-eu-ac/) |
+| K2 Systems SingleRail 36 (item 2004258) — K2 SingleRail System | 32.45 | [Solarscouts, Germany, VAT basis not stated, per 3.65 m rail](https://solarscouts.de/K2-SingleRail-36-365-m-2004258) |
+| K2 Systems D-Dome 6.10 Base Set (item 2003620) — K2 Dome 6 System | 43.59 | [GR Solartechnik, Germany, VAT basis not stated (0% selectable for private PV buyers), per base set](https://gr-solar.de/produkt/k2-systems-k2-d-dome-6-10-base-set-2003620) |
+| Top Cable TOPSOLAR PV H1Z2Z2-K 1 × 6 mm² | 1.61 | [Elektrika.lv, Latvia, incl. VAT 21%, per metre (1–99 m, red)](https://www.elektrika.lv/en/cables-and-wires/installation-cables-and-wires/installation-wires/top-cable-wire-topsolar-pv-h1z2z2-k-1x6-1500v-red-5601006rr500) |
+| BYD Battery-Box Premium HVS 10.2 | 3,159.00 | [Solarhandel24, Germany, same figure at 0% VAT (DE private) / incl. 20% (AT) / +19% (business), per complete tower](https://solarhandel24.de/products/byd-hvs-10-2-battery-box-premium) |
+| BYD Battery-Box Premium HVM 11.0 | 3,359.00 | [Solarhandel24, Germany, same VAT note as HVS, per complete tower, pre-order](https://solarhandel24.de/products/byd-battery-box-premium-hvm-11-0) |
+| Dyness PowerBox G3 | 1,519.00 | [Rebor B.V., Netherlands, excl. VAT (€1,837.99 incl. 21%), per battery](https://www.shop-rebor.com/en/products/dyness-powerbox-g3-10-24kwh-lifepo4-thuisbatterij) |
+| Deye SUN-10K-SG04LP3-EU | 1,869.98 | [CZECH.SOLAR, Czech Republic, incl. VAT 21%, per inverter](https://shop.czech.solar/en/solar-inverters/deye-sun-10k-sg04lp3-eu/) |
+
+Still without a price: jinko-tiger-neo-3-670, trina-vertex-n-neg19rc20-650, trina-vertex-s-plus-neg9rp28z-485, aiko-neostar-3s54-475, canadian-solar-topbihiku6-535, canadian-solar-tophiku6-470-all-black, rec-alpha-pure-r-430, dmegc-infinity-rt-g54hbw-535, goodwe-gw10k-et-plus, growatt-mod-10ktl3-xh, abb-terra-ac-w22-t-r-0, schletter-tiled-roof-system, imo-si32-pel64r-4-dc-isolator, amphenol-amphe-pv-h4-plus-6mm2.

@@ -14,6 +14,10 @@ Last updated 2026-10-23.
 | Cash-on-delivery limit | checkout | 250 000 lekë (assumption). |
 | Delivery zones and surcharges | basket, checkout | Zone 1 Tirana–Durrës +0, zone 2 +300, zone 3 +600 lekë (assumption; Posta Shqiptare's published tariff is 1 400 lekë excl. VAT for 7–10 kg intercity). |
 | Who issues the fiscal invoice (seller as merchant of record vs platform) | terms, order page | Written as "the seller issues it"; confirm with an accountant (Law 87/2019, Instruction 16/2020). |
+| Payment and invoicing model: buyers pay BeeD Consulting by bank transfer (`settings.bank.beneficiary`) while the seller issues the fiscal invoice | checkout, order page, terms §5, /shit-me-ne | Not in the research: research D2 only covers BeeD invoicing sellers for the subscription and commission. Who receives the buyer's money, who pays it out to the seller, and who invoices whom must be confirmed with the client's accountant or lawyer before launch (copy review 2026-10-23, legal check). |
+| Unit price per kg (cement and masonry) and per metre (PV cable) | category, product and compare pages; terms §3 | Cement and masonry now uses `bag_kg` → lekë/kg. Only products with a bag weight in their datasheet get a unit price (Ceresit CM 11, SikaTop Seal 107); the Antea cements, Ytong blocks and Kurum rebar have no bag weight in research, so they show none. PV cable has no length attribute, so there is no lekë/m price. Terms §3 promises a unit price (Law 9902 art. 9): add bag weights and a cable length attribute, or narrow the terms. |
+| Legal placeholders (copy review 2026-10-23, legal check) | footer, /kushtet, /privatesia, contact, checkout | Missing before launch: registered office address, email and phone (Law 10128 art. 7; Law 9902 art. 36); the model withdrawal form (Annex I(B); without it the withdrawal period can extend by up to 12 months, art. 37/2); who pays return costs (art. 36); order confirmation by email (Law 9902 art. 37.7; Law 10128 art. 14). |
+| "Prices include 20% VAT (for VAT-registered sellers)" | footer, checkout | Sellers under the ALL 10 million turnover threshold charge no VAT (research D1). Confirm the wording, and how a non-registered seller's prices and invoices are shown, with the accountant. |
 | Terms of use, privacy policy, returns | /kushtet, /privatesia | Drafts from public sources (research/albania-construction-commerce.md); a lawyer must review. A 2025 draft consumer law may change the withdrawal wording. |
 | Signer / administrator name | nowhere | Kept off the site on purpose. |
 
@@ -30,10 +34,10 @@ Last updated 2026-10-23.
 - **Admin password:** set it yourself with `npm run admin:password -- you@example.com "Name"`; the developer sign-in button only exists with `DEV_LOGIN=1` on 127.0.0.1.
 
 ## Energy facts with open questions (research/albania-energy.md, research/tariffs-prices.md)
-- Price paid for surplus solar power under the May 2026 net-billing rules: **not published**; the calculator values it at 0 and the house's layer 05 says so.
+- Price paid for surplus solar power under the May 2026 net-billing rules: **not found** in the research (not the same as "not published"); the calculator values it at 0 as an assumption and the house's layer 05 says so, citing Instruction 3/2019 point 17.
 - Household tariff VAT basis: 8.5 / 9.5 lekë/kWh read as **excluding** VAT (ERE notice of Jan 2025); confirm on a 2026 OSHEE bill.
 - Distribution tariffs after 30 April 2026: not published on ERE's tariff page as of 2026-10-23.
-- Calculator assumptions: self-use 45% without battery / 80% with battery, degradation 0.4%/yr, 25 years, panel 500 Wp — engineering assumptions, shown on the page.
+- Calculator assumptions: self-use 45% without battery / 80% with battery, degradation 0.5%/yr (Jordan & Kurtz median, research/tariffs-prices.md §4), 25 years, panel 500 Wp — engineering assumptions, shown on the page.
 
 ## Product data
 - Specs, dimensions and datasheet links come from manufacturers (research/products-*.json, spot-checked by a fact-checker). Reference prices are public prices found on the date in `reference_price_source`.

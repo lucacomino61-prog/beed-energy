@@ -40,9 +40,9 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
           id: 'platforma',
           title: '1. Kush jemi dhe si funksionon tregu',
           paras: [
-            'BeeD Energy është një treg online i operuar nga BeeD Consulting sh.p.k., NIPT M41722050A, me seli në Tiranë, e regjistruar në Qendrën Kombëtare të Biznesit më 22 maj 2024. [Adresa e plotë e selisë, emaili dhe telefoni.]',
+            'BeeD Energy është një treg online që drejtohet nga BeeD Consulting sh.p.k., NIPT M41722050A, me seli në Tiranë, e regjistruar në Qendrën Kombëtare të Biznesit më 22 maj 2024. [Adresa e plotë e selisë, emaili dhe telefoni.]',
             'Produktet në BeeD Energy i shesin shitës të pavarur: furnitorë, instalues, prodhues dhe kompani ndërtimi. Kontrata e shitjes lidhet ndërmjet jush dhe shitësit. Emri, NIPT-i dhe kontaktet e shitësit shfaqen në faqen e tij dhe në porosi.',
-            'BeeD Energy ruan ofertat që publikojnë shitësit. Kur na njoftoni për një ofertë të paligjshme ose mashtruese, e shqyrtojmë dhe e heqim pa vonesë (ligji 10128/2009, neni 17). Njoftimet dërgohen te faqja e kontaktit.',
+            'BeeD Energy ruan ofertat që publikojnë shitësit. Kur na njoftoni për një ofertë të paligjshme ose mashtruese, e shqyrtojmë dhe, nëse është e paligjshme, e heqim pa vonesë (ligji 10128/2009, neni 17). Njoftimet na i dërgoni përmes faqes së kontaktit.',
           ],
         },
         {
@@ -52,14 +52,14 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
             'Faqja ofrohet në shqip dhe në anglisht. Informacioni për konsumatorin është gjithmonë në shqip.',
             'Ju lutemi jepni të dhëna të sakta në porosi, në kërkesat për ofertë dhe në mesazhe.',
             'Nuk lejohet përdorimi i faqes për përmbajtje të paligjshme, për reklama të pakërkuara ose për të ngarkuar sistemin me kërkesa automatike.',
-            'Mesazhet tregtare që marrim ose dërgojmë shënohen qartë si të tilla; promovimet e paguara të shitësve shënohen “Sponsorizuar”.',
+            'Mesazhet tregtare që dërgojmë ne ose shitësit shënohen qartë si të tilla; promovimet e paguara të shitësve shënohen “Sponsorizuar”.',
           ],
         },
         {
           id: 'cmimet',
           title: '3. Çmimet',
           list: [
-            'Çmimet shfaqen vetëm në lekë dhe janë përfundimtare: përfshijnë TVSH-në 20%.',
+            'Çmimet shfaqen vetëm në lekë dhe janë përfundimtare: përfshijnë TVSH-në 20% (për shitësit e regjistruar për TVSH).',
             'Kostoja e dërgesës shfaqet në shportë, për çdo shitës, para se të porosisni.',
             'Për produktet që shiten me sasi shfaqet edhe çmimi për njësi (për m², kg, Wp ose kWh).',
             'Çmimet sipas sasisë zbatohen automatikisht kur sasia arrin pragun e treguar nga shitësi.',
@@ -71,7 +71,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
           list: [
             'Shtoni ofertat në shportë. Në shportë mund të ndryshoni sasitë ose të hiqni produkte: këtu korrigjoni çdo gabim.',
             'Në arkë shkruani të dhënat, zgjidhni dërgesën dhe pagesën. Mënyrat e pagesës dhe kufizimet e dërgesës shfaqen që në fillim të arkës.',
-            'Para porosisë shihni përmbledhjen e plotë: produktet, shitësit, dërgesën dhe totalin. Butoni i fundit tregon qartë se porosia ka detyrim pagese.',
+            'Para porosisë shihni përmbledhjen e plotë: produktet, shitësit, dërgesën dhe totalin. Butoni i fundit tregon qartë se porosia përfshin detyrimin për të paguar.',
             'Pas porosisë hapet faqja e porosisë me një lidhje private. [Konfirmimi me email, me këto kushte dhe formularin e heqjes dorë, do të aktivizohet para nisjes.]',
             'Çdo shitës e dërgon pjesën e vet të porosisë si paketë më vete.',
           ],
@@ -82,7 +82,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
           list: [
             'Pagesë në dorëzim, deri në kufirin e treguar në arkë.',
             'Transfertë bankare, me të dhënat që shfaqen në faqen e porosisë.',
-            'Kartë debiti ose krediti përmes një ofruesi pagesash të licencuar nga Banka e Shqipërisë, me 3-D Secure. [Ofruesi përfundimtar do të konfirmohet para nisjes.]',
+            'Kartë debiti ose krediti përmes POK (RPAY sh.p.k., institucion i parasë elektronike i licencuar nga Banka e Shqipërisë), me 3-D Secure.',
             'Nuk shtohet asnjë tarifë për mënyrën e pagesës mbi koston reale (ligji 9902/2008, neni 37/11).',
             'Faturën e fiskalizuar (me NIVF, NSLF dhe kod QR) e lëshon shitësi. Për pagesat me kartë fatura mund t’ju dërgohet me email si PDF; për bizneset që paguajnë me transfertë, shitësi lëshon faturë elektronike.',
           ],
@@ -93,7 +93,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
           list: [
             'Shitësi dërgon brenda afatit të shfaqur në ofertë, dhe jo më vonë se 30 ditë nga porosia, përveç kur bini dakord ndryshe (ligji 9902/2008, neni 37/10).',
             'Kostoja varet nga shitësi dhe nga zona e qytetit tuaj; disa shitës dërgojnë falas mbi një vlerë të caktuar.',
-            'Produktet e mëdha (paleta, panele të gjata, çimento) mund të kërkojnë transport me ofertë; këtë e shënon shitësi.',
+            'Produktet e mëdha (paleta, panele të gjata, çimento) mund të kërkojnë transport me çmim sipas kërkesës; këtë e shënon shitësi.',
             'Rreziku për produktet kalon te ju kur i merrni fizikisht në dorë (neni 37/12).',
             'Kur shitësi e lejon, mund ta tërhiqni porosinë te shitësi.',
           ],
@@ -106,7 +106,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
           ],
           list: [
             'Na njoftoni ose njoftoni shitësin me një deklaratë të qartë, ose me formularin model. [Formulari model sipas Aneksit I(B) të ligjit 9902/2008 do të shtohet këtu nga juristi.]',
-            'Ktheni produktin brenda 14 ditëve nga njoftimi. Përgjigjeni vetëm për dëmtimin që vjen nga përdorimi përtej asaj që duhet për ta provuar.',
+            'Ktheni produktin brenda 14 ditëve nga njoftimi. Përgjigjeni vetëm për uljen e vlerës së produktit që vjen nga përdorimi përtej asaj që nevojitet për ta kontrolluar.',
             'Shitësi ju kthen të gjitha pagesat, përfshirë dërgesën standarde, brenda 14 ditëve nga njoftimi juaj (neni 37/5).',
             'Kush paguan kthimin: [për t’u përcaktuar nga çdo shitës dhe treguar para porosisë, përfshirë koston për produktet që nuk dërgohen me postë].',
             'Përjashtime (neni 37/8): produktet e bëra sipas specifikimeve tuaja ose qartësisht të personalizuara (p.sh. dritare me masë, materiale të prera me porosi), produktet që prishen shpejt dhe produktet e vulosura që nuk kthehen për arsye higjiene pasi hapen.',
@@ -128,7 +128,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
           title: '9. Ankesat',
           list: [
             'Shkruajini fillimisht shitësit përmes porosisë ose bisedës së kërkesës. Nëse nuk zgjidhet, na shkruani te faqja e kontaktit.',
-            'Mund t’i drejtoheni edhe Komisionit për Mbrojtjen e Konsumatorëve.',
+            'Mund t’i drejtoheni edhe Komisionit për Mbrojtjen e Konsumatorit.',
           ],
         },
         {
@@ -145,7 +145,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
           id: 'ligji',
           title: '11. Ligji i zbatueshëm dhe ndryshimet',
           paras: [
-            'Për këto kushte zbatohet ligji shqiptar, përfshirë ligjin 10128/2009 për tregtinë elektronike, ligjin 9902/2008 për mbrojtjen e konsumatorëve, ligjin 124/2024 për të dhënat personale dhe ligjin 50/2025 që ratifikon vendimin e CEFTA-s për tregtinë elektronike. [Gjykata kompetente: për t’u përcaktuar nga juristi.]',
+            'Për këto kushte zbatohet ligji shqiptar, përfshirë ligjin 10128/2009 për tregtinë elektronike, ligjin 9902/2008 për mbrojtjen e konsumatorëve, ligjin 124/2024 për të dhënat personale dhe ligjin 50/2025 që ratifikon vendimin e CEFTA-s për tregtinë elektronike [teksti i ligjit 50/2025: për t’u verifikuar nga juristi]. [Gjykata kompetente: për t’u përcaktuar nga juristi.]',
             'Kur i ndryshojmë këto kushte, publikojmë datën e versionit të ri. Porositë e bëra më parë ndjekin kushtet e asaj dite.',
           ],
         },
@@ -189,7 +189,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
             'Për të kryer porosinë ose kërkesën tuaj: baza është kontrata (neni 7).',
             'Për faturat dhe kontabilitetin: detyrim ligjor.',
             'Për sigurinë e faqes dhe parandalimin e abuzimit: interes legjitim.',
-            'Për email ose SMS marketingu: vetëm me pëlqimin tuaj të veçantë, të pashënuar paraprakisht, që mund ta tërhiqni kur të doni. Sot nuk dërgojmë mesazhe marketingu.',
+            'Për email ose SMS marketingu: vetëm me pëlqimin tuaj të veçantë, të dhënë në një kuti që nuk është e shënuar paraprakisht. Pëlqimin mund ta tërhiqni kur të doni. Sot nuk dërgojmë mesazhe marketingu.',
           ],
         },
         {
@@ -198,7 +198,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
           list: [
             'Me shitësin që përmbush porosinë ose që i përgjigjet kërkesës suaj, vetëm të dhënat që i duhen.',
             'Me korrierin që dërgon paketën: emri, telefoni dhe adresa.',
-            'Me ofruesin e pagesave me kartë, kur paguani me kartë. Të dhënat e kartës i fut te faqja e ofruesit; ne nuk i shohim.',
+            'Me ofruesin e pagesave me kartë, kur paguani me kartë. Të dhënat e kartës i futni te faqja e ofruesit; ne nuk i shohim.',
             'Me administratën tatimore, përmes faturës së fiskalizuar të shitësit.',
             'Nuk i shesim të dhënat tuaja. [Vendi ku ndodhen serverët dhe çdo transferim jashtë Shqipërisë: për t’u konfirmuar para nisjes.]',
           ],
@@ -218,7 +218,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
             'Sesioni i panelit të administrimit, vetëm për shitësit dhe administratorët që hyjnë.',
             'beed-motion në ruajtjen lokale të shfletuesit: nëse keni ndezur “Kursim energjie”.',
           ],
-          after: ['Nuk përdorim cookies analitike apo reklamash. Nëse i shtojmë, do të ngarkohen vetëm pasi t’i pranoni në një banderolë ku “Pranoj” dhe “Refuzoj” kanë të njëjtën peshë.'],
+          after: ['Nuk përdorim cookies analitike apo reklamash. Nëse i shtojmë, do të ngarkohen vetëm pasi t’i pranoni në një banderolë ku “Prano të gjitha” dhe “Refuzo” kanë të njëjtën peshë.'],
         },
         {
           id: 'te-drejtat',
@@ -226,7 +226,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
           list: [
             'Të shihni të dhënat që kemi për ju, t’i korrigjoni ose t’i fshini.',
             'Të kufizoni përpunimin ose të merrni të dhënat në një format të lexueshëm.',
-            'T’i kundërshtoni përpunimit, sidomos për marketing të drejtpërdrejtë, në çdo kohë (neni 19.2).',
+            'Të kundërshtoni përpunimin, sidomos për marketing të drejtpërdrejtë, në çdo kohë (neni 19.2).',
             'Të tërhiqni pëlqimin, pa prekur përpunimin e bërë më parë.',
             'Të ankoheni te Komisioneri për të Drejtën e Informimit dhe Mbrojtjen e të Dhënave Personale (idp.al).',
           ],
@@ -240,7 +240,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
           id: 'siguria',
           title: '9. Siguria',
           paras: [
-            'Faqja përdor lidhje të koduar (HTTPS). Lidhjet e porosive dhe të kërkesave kanë një kod të rastësishëm që nuk merret me mend. Seancat e administrimit ruhen të koduara.',
+            'Faqja përdor lidhje të koduar (HTTPS). Lidhjet e porosive dhe të kërkesave kanë një kod të rastësishëm që nuk merret me mend. Seancat e administrimit ruhen si hash.',
             'Nëse ndodh një shkelje e sigurisë së të dhënave, njoftojmë Komisionerin brenda 72 orëve (neni 29.1) dhe ju, kur rreziku për ju është i lartë.',
           ],
         },
@@ -271,9 +271,9 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
           id: 'platforma',
           title: '1. Who we are and how the marketplace works',
           paras: [
-            'BeeD Energy is an online marketplace operated by BeeD Consulting sh.p.k., NIPT M41722050A, based in Tirana, registered with the National Business Centre on 22 May 2024. [Full registered address, email and phone.]',
-            'Products on BeeD Energy are sold by independent sellers: suppliers, installers, manufacturers and contractors. The sales contract is between you and the seller. The seller’s name, NIPT and contacts are shown on its page and on the order.',
-            'BeeD Energy hosts the offers sellers publish. When you tell us about an unlawful or misleading offer, we review it and remove it without delay (Law 10128/2009, Art. 17). Send notices through the contact page.',
+            'BeeD Energy is an online marketplace run by BeeD Consulting sh.p.k., NIPT M41722050A, based in Tirana, registered with the National Business Centre on 22 May 2024. [Full registered address, email and phone.]',
+            'Products on BeeD Energy are sold by independent sellers: suppliers, installers, manufacturers and construction companies. The sales contract is between you and the seller. The seller’s name, NIPT and contacts are shown on its page and on the order.',
+            'BeeD Energy hosts the offers sellers publish. When you tell us about an unlawful or misleading offer, we review it and, if it is unlawful, remove it without delay (Law 10128/2009, Art. 17). Send your notices to us through the contact page.',
           ],
         },
         {
@@ -283,14 +283,14 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
             'The site is offered in Albanian and English. Consumer information is always available in Albanian.',
             'Please give accurate details in orders, quote requests and messages.',
             'The site may not be used for unlawful content, unsolicited advertising or loading the system with automated requests.',
-            'Commercial messages are clearly marked as such; sellers’ paid promotions are marked “Sponsored”.',
+            'Commercial messages sent by us or by sellers are clearly marked as such; sellers’ paid promotions are marked “Sponsored”.',
           ],
         },
         {
           id: 'cmimet',
           title: '3. Prices',
           list: [
-            'Prices are shown only in lekë and are final: they include 20% VAT.',
+            'Prices are shown only in lekë and are final: they include 20% VAT (for VAT-registered sellers).',
             'The delivery cost is shown in the basket, per seller, before you order.',
             'Products sold by quantity also show a unit price (per m², kg, Wp or kWh).',
             'Volume prices apply automatically when the quantity reaches the seller’s threshold.',
@@ -313,7 +313,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
           list: [
             'Cash on delivery, up to the limit shown at checkout.',
             'Bank transfer, with the details shown on the order page.',
-            'Debit or credit card through a payment provider licensed by the Bank of Albania, with 3-D Secure. [The final provider will be confirmed before launch.]',
+            'Debit or credit card through POK (RPAY sh.p.k., an electronic money institution licensed by the Bank of Albania), with 3-D Secure.',
             'No fee is added for a payment method beyond its real cost (Law 9902/2008, Art. 37/11).',
             'The fiscalised invoice (with NIVF, NSLF and QR code) is issued by the seller. For card payments it can be emailed to you as a PDF; for businesses paying by transfer, the seller issues an electronic invoice.',
           ],
@@ -324,7 +324,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
           list: [
             'The seller ships within the time shown in the offer, and no later than 30 days after the order unless you agree otherwise (Law 9902/2008, Art. 37/10).',
             'The cost depends on the seller and on your city’s zone; some sellers deliver free above a set amount.',
-            'Large goods (pallets, long panels, cement) may need freight on quote; the seller says so.',
+            'Large goods (pallets, long panels, cement) may need freight priced on request; the seller says so.',
             'The risk passes to you when you physically take the goods (Art. 37/12).',
             'Where the seller allows it, you can collect the order from the seller.',
           ],
@@ -376,7 +376,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
           id: 'ligji',
           title: '11. Applicable law and changes',
           paras: [
-            'These terms are governed by Albanian law, including Law 10128/2009 on electronic commerce, Law 9902/2008 on consumer protection, Law 124/2024 on personal data and Law 50/2025 ratifying the CEFTA decision on electronic commerce. [Competent court: to be set by the lawyer.]',
+            'These terms are governed by Albanian law, including Law 10128/2009 on electronic commerce, Law 9902/2008 on consumer protection, Law 124/2024 on personal data and Law 50/2025 ratifying the CEFTA decision on electronic commerce [the text of Law 50/2025: to be checked by the lawyer]. [Competent court: to be set by the lawyer.]',
             'When we change these terms, we publish the date of the new version. Orders placed earlier follow the terms of that day.',
           ],
         },
@@ -420,7 +420,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
             'To carry out your order or request: the basis is the contract (Art. 7).',
             'For invoices and accounting: legal obligation.',
             'For site security and abuse prevention: legitimate interest.',
-            'For marketing email or SMS: only with your separate, unticked consent, which you can withdraw at any time. Today we send no marketing messages.',
+            'For marketing email or SMS: only with your separate consent, given in a box that is not ticked in advance. You can withdraw it at any time. Today we send no marketing messages.',
           ],
         },
         {
@@ -449,7 +449,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
             'The admin panel session, only for sellers and administrators who sign in.',
             'beed-motion in the browser’s local storage: whether you switched on “Energy saving”.',
           ],
-          after: ['We use no analytics or advertising cookies. If we add any, they will load only after you accept them in a banner where “Accept” and “Decline” carry equal weight.'],
+          after: ['We use no analytics or advertising cookies. If we add any, they will load only after you accept them in a banner where “Accept all” and “Reject” carry equal weight.'],
         },
         {
           id: 'te-drejtat',

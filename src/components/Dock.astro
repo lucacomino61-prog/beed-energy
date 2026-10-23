@@ -6,7 +6,7 @@ interface Props { lang: Lang; current?: RouteKey; cartCount: number; compareCoun
 const { lang, current, cartCount, compareCount } = Astro.props;
 const t = tc(lang);
 ---
-<nav class="dock" aria-label={lang === 'sq' ? 'Shpejt' : 'Quick'}>
+<nav class="dock" aria-label={lang === 'sq' ? 'Lidhje të shpejta' : 'Quick links'}>
   <a href={href(lang, 'search')} aria-current={current === 'search' ? 'page' : undefined}>
     <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8.5" cy="8.5" r="5.5" /><path d="m13 13 4.5 4.5" /></svg>{t.dock.search}
   </a>

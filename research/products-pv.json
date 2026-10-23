@@ -496,9 +496,9 @@
       "https://hqcdn.hqsmartcloud.com/deyeinverter/2026/09/15/BDatasheetSUN-5-12K-SG04LP320260911en.pdf",
       "https://www.deyeinverter.com/download/product-2/"
     ],
-    "reference_price_eur": null,
-    "price_source": null,
-    "price_note": null
+    "reference_price_eur": 1869.98,
+    "price_source": "https://shop.czech.solar/en/solar-inverters/deye-sun-10k-sg04lp3-eu/ — CZECH.SOLAR (Czech solar web shop) — read 2026-10-23",
+    "price_note": "Czech solar web shop, incl. VAT 21% Czech Republic (€1,545.44 excl. VAT), per inverter SUN-10K-SG04LP3-EU, €1,869.98"
   },
   {
     "slug": "goodwe-gw10k-et-plus",
@@ -631,9 +631,9 @@
       "https://bydbatterybox.com/uploads/downloads/BCU2.0_BBOX_HVS_Datasheet_EN_V1.0_250328-67ee42d4ced21.pdf",
       "https://www.bydbatterybox.com/downloads"
     ],
-    "reference_price_eur": null,
-    "price_source": null,
-    "price_note": "No public price for the complete HVS 10.2 tower found; Alma Solar lists the HVS 2.56 module (EUR 999) and the BCU (EUR 535) separately (read 2026-10-23)"
+    "reference_price_eur": 3159,
+    "price_source": "https://solarhandel24.de/products/byd-hvs-10-2-battery-box-premium — Solarhandel24 (German solar retailer) — read 2026-10-23",
+    "price_note": "German solar retailer, per complete HVS 10.2 (10.24 kWh), €3,159.00 (list €3,759.21); the shop shows the same figure for German private buyers at 0% VAT (German zero rate for residential PV), for Austrian buyers 'incl. 20% MwSt.', and for business buyers plus 19% VAT; SKU 300.302.054, in stock"
   },
   {
     "slug": "byd-battery-box-premium-hvm-11-0",
@@ -664,9 +664,9 @@
       "https://www.bydbatterybox.com/uploads/downloads/BCU2.0_BBOX_HVM_Datasheet_EN_V1.0_250328-67ee3a426f6ce.pdf",
       "https://www.bydbatterybox.com/downloads"
     ],
-    "reference_price_eur": null,
-    "price_source": null,
-    "price_note": null
+    "reference_price_eur": 3359,
+    "price_source": "https://solarhandel24.de/products/byd-battery-box-premium-hvm-11-0 — Solarhandel24 (German solar retailer) — read 2026-10-23",
+    "price_note": "German solar retailer, per complete HVM 11.0 (11.04 kWh), €3,359.00 (list €3,997.21); same figure shown for German private buyers at 0% VAT (German zero rate for residential PV), for Austrian buyers 'incl. 20% MwSt.', and for business buyers plus 19% VAT; SKU 300.302.009, pre-order, delivery from end of October 2026"
   },
   {
     "slug": "pylontech-us5000",
@@ -731,9 +731,9 @@
       "https://www.dyness.com/powerbox-g3-low-voltage-residential-battery",
       "https://www.dyness.com/Public/Uploads/uploadfile/files/20261016/DynessPowerboxG3Datasheeten20261009.pdf"
     ],
-    "reference_price_eur": null,
-    "price_source": null,
-    "price_note": null
+    "reference_price_eur": 1519,
+    "price_source": "https://www.shop-rebor.com/en/products/dyness-powerbox-g3-10-24kwh-lifepo4-thuisbatterij — Rebor B.V. (Dutch solar web shop) — read 2026-10-23",
+    "price_note": "Dutch solar web shop, excl. VAT (€1,519.00 excl. 21% BTW; €1,837.99 incl. VAT 21% Netherlands), per PowerBox G3 10.24 kWh battery"
   },
   {
     "slug": "fronius-reserva-6-3",
@@ -823,9 +823,9 @@
       "https://www.fronius.com/en/solar-energy/solar-solutions/e-mobility/wattpilot-flex",
       "https://www.fronius.com/~/downloads/Solar%20Energy/Datasheets/SE_DS_Fronius_Wattpilot_Flex_EN.pdf"
     ],
-    "reference_price_eur": null,
-    "price_source": null,
-    "price_note": null
+    "reference_price_eur": 839.5,
+    "price_source": "https://solarhandel24.de/products/fronius-wattpilot-flex-home-22-c6-22kw — Solarhandel24 (German solar retailer) — read 2026-10-23",
+    "price_note": "German solar retailer, incl. VAT 19% Germany (shipping extra), per charger, €839.50 sale price (regular €999.00), SKU 301.201.015, in stock"
   },
   {
     "slug": "goodwe-hca-g2-22kw",
@@ -853,9 +853,9 @@
       "https://admin.goodwe.com/Ftp/Downloads/Datasheet/AU/GW_HCA-G2_Datasheet-AU.pdf",
       "https://en.goodwe.com/hca-g2"
     ],
-    "reference_price_eur": null,
-    "price_source": null,
-    "price_note": null
+    "reference_price_eur": 445,
+    "price_source": "https://sun.store/en/product/goodwe-gw22k-hca-20-50536 — sun.store (EU B2B marketplace), lowest of 3 seller offers — read 2026-10-23",
+    "price_note": "EU B2B marketplace, excl. VAT (sun.store marks valueAddedTaxIncluded = false), per charger GW22K-HCA-20, 'from €445.00' (3 offers); single data point from the public product page"
   },
   {
     "slug": "deye-sun-evse22k01-eu-ac",
@@ -883,9 +883,9 @@
       "https://hqcdn.hqsmartcloud.com/deyeinverter/2026/08/21/BDatasheetSmartEVCharger20260821en.pdf",
       "https://www.deyeinverter.com/download/product-2/"
     ],
-    "reference_price_eur": null,
-    "price_source": null,
-    "price_note": null
+    "reference_price_eur": 390,
+    "price_source": "https://sunnergie.com/product/deye-smart-wallbox-ac-charger-22-kw-sun-evse22k01-eu-ac/ — Sunnergie (Dutch solar web shop) — read 2026-10-23",
+    "price_note": "Dutch solar web shop, excl. VAT (page says 'excl. VAT'), per charger SUN-EVSE22K01-EU-AC, €390.00, 4 in stock"
   },
   {
     "slug": "k2-singlerail-36",
@@ -912,9 +912,9 @@
       "https://catalogue.k2-systems.com/en-uk/mounting-systems/pitched-roof-systems/k2-singlerail-system/",
       "https://catalogue.k2-systems.com/media/74/9c/2a/SingleRail-IFP-en.pdf?ts=1785822310"
     ],
-    "reference_price_eur": null,
-    "price_source": null,
-    "price_note": null
+    "reference_price_eur": 32.45,
+    "price_source": "https://solarscouts.de/K2-SingleRail-36-365-m-2004258 — Solarscouts (German PV web shop) — read 2026-10-23",
+    "price_note": "German PV web shop, VAT treatment not stated on the page (German residential PV parts can be zero-rated), per 3.65 m SingleRail 36 rail (item 2004258), €32.45"
   },
   {
     "slug": "k2-dome-6-10-flat-roof",
@@ -940,9 +940,9 @@
     "sources": [
       "https://catalogue.k2-systems.com/en-uk/mounting-systems/flat-roof-systems/k2-dome-6-system/"
     ],
-    "reference_price_eur": null,
-    "price_source": null,
-    "price_note": null
+    "reference_price_eur": 43.59,
+    "price_source": "https://gr-solar.de/produkt/k2-systems-k2-d-dome-6-10-base-set-2003620 — GR Solartechnik (German PV web shop) — read 2026-10-23",
+    "price_note": "German PV web shop, per D-Dome 6.10 Base Set (item 2003620), €43.59 plus shipping; the page says private buyers of a PV system can choose 0% VAT at checkout (German zero rate), so the VAT basis of the shown figure is not stated; in stock"
   },
   {
     "slug": "schletter-tiled-roof-system",
@@ -996,9 +996,9 @@
       "https://www.topcable.com/downloads/pdf/en/topcable-datasheet-topsolar-pv-h1z2z2-k-en.pdf",
       "https://www.topcable.com/cable/topsolar-pv-h1z2z2-k/"
     ],
-    "reference_price_eur": null,
-    "price_source": null,
-    "price_note": null
+    "reference_price_eur": 1.61,
+    "price_source": "https://www.elektrika.lv/en/cables-and-wires/installation-cables-and-wires/installation-wires/top-cable-wire-topsolar-pv-h1z2z2-k-1x6-1500v-red-5601006rr500 — Elektrika.lv (Latvian electrical wholesaler-retailer) — read 2026-10-23",
+    "price_note": "Latvian electrical retailer, incl. VAT 21% Latvia, per metre (cut length, 1–99 m; €1.37/m from 100 m, €1.21/m from 500 m; cutting fee €6.05 per cut), TOPSOLAR PV H1Z2Z2-K 1×6 1500 V red, mpn 5601006.RR500, in stock"
   },
   {
     "slug": "imo-si32-pel64r-4-dc-isolator",

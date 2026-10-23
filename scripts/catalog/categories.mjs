@@ -37,7 +37,7 @@ export const CATEGORIES = [
     slug_sq: 'invertere', slug_en: 'inverters', name_sq: 'Inverterë', name_en: 'Inverters', group_key: 'energy',
     research: 'inverters', unit_basis: 'rated_ac_power_kw', unit_label_sq: 'lekë/kW', unit_label_en: 'ALL/kW',
     intro_sq: 'Inverterë të lidhur me rrjetin (on-grid) dhe hibridë, njëfazorë dhe trefazorë. Shikoni sa MPPT kanë dhe nëse mund të lidhen me bateri.',
-    intro_en: 'Grid-tied and hybrid inverters, single and three phase. Check the MPPT count and whether a battery fits.',
+    intro_en: 'Grid-tied and hybrid inverters, single and three phase. Check the MPPT count and whether they can take a battery.',
     attrs: [
       a('rated_ac_power_kw', 'Fuqia nominale AC', 'Rated AC power', 'kW', 'number', { f: true, h: true, b: 'higher', d: 1, r: true }),
       a('max_pv_power_kwp', 'Fuqia maksimale PV', 'Max PV power', 'kWp', 'number', { b: 'higher', d: 1 }),
@@ -74,7 +74,7 @@ export const CATEGORIES = [
     slug_sq: 'karikues-makinash', slug_en: 'ev-chargers', name_sq: 'Karikues për makina elektrike', name_en: 'EV chargers', group_key: 'energy',
     research: 'ev-chargers', unit_basis: null,
     intro_sq: 'Karikues muri për makina elektrike, me lidhës Type 2.',
-    intro_en: 'Wall chargers for electric cars with a Type 2 connection.',
+    intro_en: 'Wall chargers for electric cars with a Type 2 connector.',
     attrs: [
       a('max_power_kw', 'Fuqia maksimale', 'Max power', 'kW', 'number', { f: true, h: true, b: 'higher', d: 1, r: true }),
       a('phases', 'Numri i fazave', 'Phases', '', 'number', { f: true }),
@@ -103,7 +103,7 @@ export const CATEGORIES = [
     slug_sq: 'aksesore-pv', slug_en: 'pv-accessories', name_sq: 'Aksesorë fotovoltaikë', name_en: 'PV accessories', group_key: 'energy',
     research: 'pv-accessories', unit_basis: null,
     intro_sq: 'Lidhës MC4, kabllo diellore dhe ndërprerës DC për impiante fotovoltaike.',
-    intro_en: 'Connectors, cable and DC switches for PV installations.',
+    intro_en: 'MC4 connectors, solar cable and DC isolators for PV installations.',
     attrs: [
       a('rated_voltage_v', 'Tensioni nominal', 'Rated voltage', 'V', 'number', { f: true, h: true }),
       a('rated_current_a', 'Rryma nominale', 'Rated current', 'A', 'number', { h: true, b: 'higher' }),
@@ -139,15 +139,15 @@ export const CATEGORIES = [
       a('scop', 'SCOP', 'SCOP', '', 'number', { b: 'higher', d: 1 }),
       a('energy_class_cooling', 'Klasa energjetike (ftohje)', 'Energy class (cooling)', '', 'text', { f: true }),
       a('refrigerant', 'Gazi ftohës', 'Refrigerant', '', 'text', { f: true }),
-      a('indoor_noise_min_db', 'Zhurma minimale e njësisë së brendshme', 'Indoor unit min noise', 'dB(A)', 'number', { b: 'lower' }),
+      a('indoor_noise_min_db', 'Niveli minimal i zhurmës (njësia e brendshme)', 'Min noise level (indoor unit)', 'dB(A)', 'number', { b: 'lower' }),
       warranty,
     ],
   },
   {
     slug_sq: 'ngrohes-uji-diellor', slug_en: 'solar-water-heaters', name_sq: 'Ngrohës uji diellorë', name_en: 'Solar water heaters', group_key: 'efficiency',
     research: 'solar-water-heaters', unit_basis: 'tank_litres', unit_label_sq: 'lekë/litër', unit_label_en: 'ALL/litre',
-    intro_sq: 'Sisteme termosifoni me kolektor dhe depozitë, të zakonshme në çatitë shqiptare.',
-    intro_en: 'Thermosiphon systems with collector and tank, a common sight on Albanian roofs.',
+    intro_sq: 'Sisteme termosifoni me kolektor dhe depozitë.',
+    intro_en: 'Thermosiphon systems with collector and tank.',
     attrs: [
       a('tank_litres', 'Vëllimi i depozitës', 'Tank volume', 'L', 'number', { f: true, h: true, b: 'higher', r: true }),
       a('collector_area_m2', 'Sipërfaqja e kolektorit', 'Collector area', 'm²', 'number', { h: true, b: 'higher', d: 2 }),
@@ -188,7 +188,7 @@ export const CATEGORIES = [
   },
   {
     slug_sq: 'cimento-dhe-murature', slug_en: 'cement-and-masonry', name_sq: 'Çimento dhe muraturë', name_en: 'Cement and masonry', group_key: 'build',
-    research: 'cement-masonry', unit_basis: null,
+    research: 'cement-masonry', unit_basis: 'bag_kg', unit_label_sq: 'lekë/kg', unit_label_en: 'ALL/kg',
     intro_sq: 'Çimento, blloqe, hekur betoni, ngjitës dhe hidroizolim për kantier.',
     intro_en: 'Cement, blocks, rebar, adhesives and waterproofing for the site.',
     attrs: [

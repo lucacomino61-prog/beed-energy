@@ -68,7 +68,7 @@
       "monthly_all": null,
       "commission_pct": 7,
       "features_sq": [
-        "Oferta pa limit",
+        "Oferta pa kufi",
         "Çmime sipas sasisë",
         "Kërkesa për ofertë nga blerësit"
       ],
@@ -84,13 +84,13 @@
       "monthly_all": null,
       "commission_pct": 6,
       "features_sq": [
-        "Gjithçka te Pro",
-        "Vendosje e promovuar",
+        "Gjithçka nga plani Pro",
+        "Produkte të promovuara",
         "Fushata marketingu dixhital"
       ],
       "features_en": [
         "Everything in Pro",
-        "Promoted placement",
+        "Promoted listings",
         "Digital marketing campaigns"
       ]
     }

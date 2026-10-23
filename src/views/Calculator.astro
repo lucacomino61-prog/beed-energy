@@ -10,7 +10,6 @@ import { pvCities } from '../lib/pages-db';
 import { calcQuery, readCalcInput, runCalc } from '../lib/pages-solar';
 import { calcResultsHtml } from '../lib/pages-calc-html';
 import { tariffs } from '../lib/solar';
-import { setting } from '../lib/db';
 import { tp } from '../i18n/pages';
 
 interface Props { lang: Lang }
@@ -22,7 +21,6 @@ const input = readCalcInput(Astro.url.searchParams);
 const out = runCalc(input);
 const cities = pvCities();
 const tar = tariffs();
-const fx = setting<{ url?: string } | null>('currency', null);
 const touched = Astro.url.searchParams.size > 0;
 const q = touched ? calcQuery(input) : undefined;
 const alternate = href(other(lang), 'calculator', {}, q);
@@ -146,7 +144,6 @@ const jsonld = {
         <li><a href="https://re.jrc.ec.europa.eu/api/v5_3/PVcalc?lat=41.32833&lon=19.81806&peakpower=1&loss=14&optimalangles=1&outputformat=json" rel="noopener">{t.src.pvgis}</a></li>
         <li><a href={tar.url ?? 'https://ere.gov.al/sq/tarifat/tarifat-dhe-cmimet'} rel="noopener">{t.src.ere}</a></li>
         <li><a href="https://ere.gov.al/doc/Udhezim_3_20.06.2019%20(2).pdf" rel="noopener">{t.src.udh}</a></li>
-        <li><a href={fx?.url ?? 'https://www.bankofalbania.org/Tregjet/Kursi_zyrtar_i_kembimit/'} rel="noopener">{t.src.boa}</a></li>
       </ul>
     </div>
     <div class="calc-how__map">

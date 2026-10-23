@@ -87,3 +87,20 @@ Read on 2026-10-23. Data file: `research/products-building.json` (26 products). 
 - `warranty_years` is mostly null because makers publish it per country or only in warranty PDFs. The retail warranties seen at Neptun are 36 months (Daikin, LG) and 24 months (Midea).
 - No Albanian-market evidence was found for the specific models of Mitsubishi, Panasonic, Vaillant, Gree Pular, the three Greek solar water heaters, Austrotherm, VEKA, Salamander, Ytong, Shelly, Fronius or Philips. Ask the client which brands its partner sellers carry.
 - Neptun's catalogue also lists **Midea** splits in Albania, for example AG2Eco-12NXD0 at 59,990 lekë (regular 86,790). No Midea datasheet or EPREL record was found for that pair, so it was not added.
+
+## Prices added 2026-10-23
+One real public price per product, from the seller page named in the JSON price_source (read 2026-10-23). Where the price is in EUR no conversion was needed; no Albanian seller listing was found for any of these models. Full detail is in each product's price_note.
+
+| Product | Price (EUR) | Seller, country, VAT, unit |
+|---|---|---|
+| Calpak Mark-5 160/2.6 | 1,230.00 | [Klimamichaniki SA, Greece, incl. VAT 24%, per system (double-energy version)](https://klimamichaniki.gr/product/calpak-mark5-160-2-6/) |
+| Sika SikaTop Seal-107 | 32.25 | [MASTERHAUS, Bulgaria, consumer price (VAT 20% included by law), per 25 kg kit](https://www.masterhaus.bg/en/product/190793-two-component-waterproofing-top-seal-107-25-kg-sika) |
+| Ytong (Xella) Classic ZB 25 | 6.36 | [BMD STIL, Croatia, consumer price (VAT 25% included by law), per block 625×250×200; density not stated on the page](https://www.bmd-stil.hr/hr/cigla-i-zidovi-882/porobeton-siporex-899/porobeton-siporex-25-cm-ytong-porobeton-zidni-blok-classic-25-20-106647/) |
+| Austrotherm XPS TOP 30, 50 mm | 54.74 | [Keuck Baustoff, Germany, incl. VAT 19%, per pack of 6.00 m² (XPS TOP 30 SF)](https://keuck-baustoffe.de/product/austrotherm-xps-top-30-sf-1250-x-600-x-50-mm-6-qm1-pak-12-pakete1-palette) |
+| Vaillant aroTHERM plus VWL 75/6 A 230V S2 | 5,549.00 | [HeizungsDiscount24, Germany, incl. VAT 19%, per unit (art. 0010021118; page does not print S2)](https://www.heizungsdiscount24.de/waermepumpen/vaillant-arotherm-plus-vwl-756-a-heizungswaermepumpe.html) |
+| Panasonic WH-MDC09J3E5 | 3,855.00 | [immotecshop24, Germany, incl. VAT 19%, per unit (listed as WH-MDC09J3E5-1)](https://www.immotecshop24.de/Panasonic-Aquarea-HP-Monoblock-Waermepumpe-9-kW-Gen-J-230-V) |
+| Gree GWH12AGB-K6DNA1A | 475.00 | [Kyriakos Electric, Cyprus, consumer price (VAT 19% included by law), per set, sale price](https://kyriakoselectric.com/product/gree-pular-12000-btu-gwh12agb-k6dna1a/) |
+| Daikin FTXM35A + RXM35A | 1,140.00 | [Ydor O.E., Greece, consumer price (VAT 24% included by law), per set; outdoor listed as RXM35A9](https://www.ydor.com.gr/klimatistiko-daikin-perfera-ftxm35a-rxm35a9-12000-btu-1660.html) |
+| Philips (Signify) CoreLine Panel gen6 RC132V G6 36S/840 PSD W60L60 OC (911401890885) | 190.28 | [LTT-Versand, Germany, incl. VAT 19%, per luminaire (MPN 911401890885)](https://www.ltt-versand.de/en/light/lights-for-home-commercial-use/wall-and-ceiling-lights/72126/philips-coreline-panel-gen6-26-w-600x600-mm-vpc-3600-lm-4000-k-dali) |
+
+Still without a price: daikin-altherma-3-r-w-ehbh08e6v-erga06evh, mitsubishi-ecodan-puz-wm85vaa-bs, sole-eurostar-150-1-250, cosmosolar-glass-cs-170-2-52-vs, rockwool-frontrock-max-plus-100, austrotherm-eps-af-plus-100, ceresit-ceretherm-aquastatic-etics, veka-softline-82-md, salamander-bluevolution-82, antea-cem-ii-b-ll-32-5-r, antea-cem-ii-a-ll-42-5-r, kurum-b500c-rebar-12mm, ceresit-cm-11-plus-25kg, philips-coreline-panel-g6-rc132v-all-in-wia.

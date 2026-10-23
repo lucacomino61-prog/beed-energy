@@ -38,7 +38,10 @@ const lambda = best('insulation', 'thermal_conductivity_w_mk', 'MIN');
 const uw = best('windows', 'uw_w_m2k', 'MIN') ?? best('windows', 'uf_w_m2k', 'MIN');
 const cop = best('heat-pumps', 'cop_a7w35', 'MAX');
 
-type Shown = { value: string; text: string; source?: { label: string; url: string }; product?: { slug: string; name: string } };
+type Link = { label: string; url: string };
+type Shown = { value: string; text: string; source?: Link; also?: Link; product?: { slug: string; name: string } };
+// Source labels are bilingual in story.ts; print the one for this page's language.
+const srcFor = (s: Fact['source']): Link => ({ label: s.label[lang], url: s.url });
 function factFor(f: (typeof LAYERS)[number]['fact']): Shown {
   if (f === 'insulation') {
     if (!lambda) return t.insulationNone;
@@ -54,7 +57,7 @@ function factFor(f: (typeof LAYERS)[number]['fact']): Shown {
     return { ...t.heat(num(cop.v, 2, lang)), product: { slug: cop.slug, name: `${cop.brand} ${cop.model}` } };
   }
   const x = f as Fact;
-  return { value: x.value[lang], text: x.text[lang], source: x.source };
+  return { value: x.value[lang], text: x.text[lang], source: srcFor(x.source), also: x.also && srcFor(x.also) };
 }
 
 const house = houseSvg({ title: t.drawingAlt });
@@ -111,9 +114,9 @@ const jsonld = [
             <p class="chapter__key mono"><span class="tag tag--copper">{String(l.n).padStart(2, '0')} / 07</span> {l.short[lang]}</p>
             <h2 class="title chapter__title">{l.name[lang]}</h2>
             <p class="chapter__fact"><strong class="chapter__value mono">{fact.value}</strong> {fact.text}</p>
-            {fact.source && <p class="small muted mono chapter__src">{t.source}: <a href={fact.source.url} rel="noopener" target="_blank">{fact.source.label}</a></p>}
+            {fact.source && <p class="small muted mono chapter__src">{t.source}: <a href={fact.source.url} rel="noopener" target="_blank">{fact.source.label}</a>{fact.also && <>; <a href={fact.also.url} rel="noopener" target="_blank">{fact.also.label}</a></>}</p>}
             {fact.product && <p class="small muted mono chapter__src">{t.datasheet}: <a href={href(lang, 'product', { slug: fact.product.slug })}>{fact.product.name}</a></p>}
-            {l.extra && <p class="chapter__extra"><span class="mono">{l.extra.value[lang]}</span> {l.extra.text[lang]} <a class="small mono muted" href={l.extra.source.url} rel="noopener" target="_blank">↗ {l.extra.source.label}</a></p>}
+            {l.extra && <p class="chapter__extra"><span class="mono">{l.extra.value[lang]}</span> {l.extra.text[lang]} <a class="small mono muted" href={l.extra.source.url} rel="noopener" target="_blank">↗ {l.extra.source.label[lang]}</a></p>}
             <ul class="chapter__cats" aria-label={t.inShop}>
               {l.categories.map((s) => {
                 const c = bySlug.get(s);
@@ -151,7 +154,7 @@ const jsonld = [
     </ol>
   </section>
 
-  <section class="manifesto wrap section" aria-label="Manifest">
+  <section class="manifesto wrap section" aria-label={lang === 'sq' ? 'Manifesti' : 'Manifesto'}>
     <p class="manifesto__text" data-manifesto>
       {manifestoWords.map((w) => <span class="w">{w} </span>)}
     </p>
@@ -199,7 +202,7 @@ const jsonld = [
                 <h3 class="pcard__name"><a href={href(lang, 'product', { slug: p.slug })}>{lang === 'sq' ? p.name_sq : p.name_en}</a></h3>
                 <div class="pcard__foot">
                   <span class="price">{p.min_price ? `${t.from} ${lek(p.min_price, lang)}` : t.noOffers}</span>
-                  <span class="mono small muted">{p.offer_count} {lang === 'sq' ? 'oferta' : p.offer_count === 1 ? 'offer' : 'offers'}</span>
+                  <span class="mono small muted">{p.offer_count} {lang === 'sq' ? (p.offer_count === 1 ? 'ofertë' : 'oferta') : p.offer_count === 1 ? 'offer' : 'offers'}</span>
                 </div>
               </div>
             </li>
@@ -220,7 +223,11 @@ const jsonld = [
           <li class="numbers__item" style={`--i:${i}`}>
             <span class="numbers__value">{n.value[lang]}</span>
             <span class="numbers__text">{n.text[lang]}</span>
-            <a class="mono small muted" href={n.source.url} rel="noopener" target="_blank">↗ {n.source.label}</a>
+            {n.also ? (
+              <span><a class="mono small muted" href={n.source.url} rel="noopener" target="_blank">↗ {n.source.label[lang]}</a> <a class="mono small muted" href={n.also.url} rel="noopener" target="_blank">↗ {n.also.label[lang]}</a></span>
+            ) : (
+              <a class="mono small muted" href={n.source.url} rel="noopener" target="_blank">↗ {n.source.label[lang]}</a>
+            )}
           </li>
         ))}
       </ol>
