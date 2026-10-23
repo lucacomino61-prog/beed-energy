@@ -116,7 +116,7 @@ rows.forEach((_r, i) => {
   for (const k of ['key', 'label_sq', 'label_en', 'options', 'decimals'] as const) tplLabels[`a${i}_${k}`] = `${t.tpl.row} ${i + 1} · ${(t.tpl as any)[k] ?? k}`;
 });
 ---
-<Admin lang={lang} t={t} user={user} url={url} title={title} section="categories" flash={flashMsg}
+<Admin lang={lang} t={t} user={user} url={url} title={title} section="categories" help="category" flash={flashMsg}
   sheet={existing ? [[t.cat.attrs, rows.length], [t.cat.group, t.cat.groups[existing.group_key] ?? existing.group_key]] : []}>
   <div slot="head" class="adm-head-tools">
     {existing && <a class="btn btn--s btn--ghost" href={href(lang, 'category', { slug: lang === 'sq' ? existing.slug_sq : existing.slug_en })}>{t.cat.shop}</a>}

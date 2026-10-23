@@ -1,6 +1,6 @@
 ---
-// One product in a listing: drawing, brand, name, 2–3 key specs, lowest price, unit price, offer count, stock, compare toggle.
-import ProductDrawing from './ProductDrawing.astro';
+// One product in a listing: photo, brand, name, 2–3 key specs, lowest price, unit price, offer count, stock, compare toggle.
+import ProductPhoto from './ProductPhoto.astro';
 import { formatSpec, type Attr, type ProductCard } from '../lib/catalog';
 import { href, type Lang } from '../lib/i18n';
 import { price, unitPrice } from '../lib/shop-data';
@@ -8,13 +8,13 @@ import { ts } from '../i18n/shop';
 interface Props {
   p: ProductCard;
   lang: Lang;
-  category: string; // slug_en, for the drawing
+  category?: string; // slug_en; kept for callers, the photo does not need it
   unitLabel?: string | null;
   attrs: Attr[];
   compared?: boolean;
   level?: 'h2' | 'h3';
 }
-const { p, lang, category, unitLabel = null, attrs, compared = false, level = 'h3' } = Astro.props;
+const { p, lang, unitLabel = null, attrs, compared = false, level = 'h3' } = Astro.props;
 const t = ts(lang);
 const name = lang === 'sq' ? p.name_sq : p.name_en;
 const H = level;
@@ -27,7 +27,7 @@ const hasOffers = p.offer_count > 0 && p.min_price !== null;
 ---
 <article class="pcard" data-pcard>
   <div class="pcard__fig">
-    <ProductDrawing category={category} w={p.width_mm} h={p.height_mm} d={p.depth_mm} specs={p.specs} decorative />
+    <ProductPhoto src={p.image} brand={p.brand} model={p.model} />
   </div>
   <div class="pcard__body">
     <p class="pcard__brand" translate="no">{p.brand}</p>

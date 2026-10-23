@@ -152,3 +152,23 @@ if (table && rows.length && !seen && motionOn() && !location.hash) {
   });
 }
 onMotionChange((on) => { if (!on) finish(); });
+
+// ---------- photo gallery: a thumbnail swaps the main photo (without the script it opens the photo) ----------
+const mainPhoto = document.querySelector<HTMLImageElement>('.gallery__main img.ph');
+document.querySelectorAll<HTMLAnchorElement>('[data-gallery-thumb]').forEach((a) => {
+  a.addEventListener('click', (e) => {
+    if (!mainPhoto || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    mainPhoto.src = a.href;
+    mainPhoto.alt = a.dataset.alt ?? '';
+    if (a.dataset.w && a.dataset.h) {
+      mainPhoto.width = Number(a.dataset.w);
+      mainPhoto.height = Number(a.dataset.h);
+    } else {
+      mainPhoto.removeAttribute('width');
+      mainPhoto.removeAttribute('height');
+    }
+    document.querySelectorAll('[data-gallery-thumb][aria-current]').forEach((x) => x.removeAttribute('aria-current'));
+    a.setAttribute('aria-current', 'true');
+  });
+});

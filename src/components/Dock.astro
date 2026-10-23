@@ -1,5 +1,5 @@
 ---
-// Phone-only bottom dock (Fluid Glass's docked pill): search, categories, compare, basket within thumb reach.
+// Phone-only bottom dock (Fluid Glass's docked pill): home, search, categories, compare, basket within thumb reach.
 import { href, type Lang, type RouteKey } from '../lib/i18n';
 import { tc } from '../i18n/common';
 interface Props { lang: Lang; current?: RouteKey; cartCount: number; compareCount: number; }
@@ -7,6 +7,9 @@ const { lang, current, cartCount, compareCount } = Astro.props;
 const t = tc(lang);
 ---
 <nav class="dock" aria-label={lang === 'sq' ? 'Lidhje të shpejta' : 'Quick links'}>
+  <a href={href(lang, 'home')} aria-current={current === 'home' ? 'page' : undefined}>
+    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 9.5 10 3.5l7 6" /><path d="M5 8v8.5h3.5v-5h3v5H15V8" /></svg>{t.dock.home}
+  </a>
   <a href={href(lang, 'search')} aria-current={current === 'search' ? 'page' : undefined}>
     <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8.5" cy="8.5" r="5.5" /><path d="m13 13 4.5 4.5" /></svg>{t.dock.search}
   </a>

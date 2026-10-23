@@ -24,7 +24,7 @@ export const common = {
       demo: 'Prototip: shitësit, çmimet dhe stoku janë shembuj deri në nisjen e tregut.',
       top: 'Kthehu lart',
     },
-    dock: { search: 'Kërko', categories: 'Kategoritë', compare: 'Krahaso', cart: 'Shporta' },
+    dock: { home: 'Kreu', search: 'Kërko', categories: 'Kategoritë', compare: 'Krahaso', cart: 'Shporta' },
     unit: { lek: 'L', from: 'nga' },
   },
   en: {
@@ -49,7 +49,7 @@ export const common = {
       demo: 'Prototype: sellers, prices and stock are samples until the marketplace launches.',
       top: 'Back to top',
     },
-    dock: { search: 'Search', categories: 'Categories', compare: 'Compare', cart: 'Basket' },
+    dock: { home: 'Home', search: 'Search', categories: 'Categories', compare: 'Compare', cart: 'Basket' },
     unit: { lek: 'ALL', from: 'from' },
   },
 } as const;

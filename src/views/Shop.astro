@@ -3,7 +3,6 @@
 import Site from '../layouts/Site.astro';
 import TitleBlock from '../components/TitleBlock.astro';
 import ProductCard from '../components/ProductCard.astro';
-import ProductDrawing from '../components/ProductDrawing.astro';
 import { attributes, categories, featuredProducts } from '../lib/catalog';
 import { readCompare } from '../lib/basket';
 import { href, type Lang } from '../lib/i18n';
@@ -71,7 +70,7 @@ const jsonld = [
                 <li>
                   <a class="catrow" href={href(lang, 'category', { slug: lang === 'sq' ? c.slug_sq : c.slug_en })}>
                     <span class="catrow__key key">{String(n).padStart(2, '0')}</span>
-                    <span class="catrow__fig" aria-hidden="true"><ProductDrawing category={c.slug_en} w={null} h={null} d={null} decorative /></span>
+                    <span class="catrow__fig" aria-hidden="true">{c.cover && <img class="ph" src={c.cover} alt="" loading="lazy" decoding="async" />}</span>
                     <span class="catrow__name">{name}</span>
                     <span class="catrow__count">{t.products(c.product_count ?? 0)}</span>
                     <span class="catrow__price">{c.min_price ? <><span class="muted">{t.from}</span> <span class="price">{price(c.min_price, lang)}</span></> : <span class="muted">{L.emptyCat}</span>}</span>

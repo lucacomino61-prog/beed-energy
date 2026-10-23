@@ -175,12 +175,25 @@ hr { border: 0; border-top: 1px solid var(--line); }
 .table .num { text-align: right; white-space: nowrap; }
 .table-scroll { overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
 
+/* ---------- product photos (src/lib/photo.ts) ---------- */
+/* The photo whole on white; until a product has one, its brand and model set as type on paper. The
+   figure boxes below were drawn for line drawings (grid paper, padding): a photo fills them instead. */
+.ph { display: block; width: 100%; height: 100%; }
+img.ph { object-fit: contain; background: #fff; }
+.ph--none { container-type: inline-size; display: grid; place-content: center; justify-items: center; gap: 0.35em; padding: 8%; text-align: center; background: var(--paper-2); color: var(--ink-2); }
+.ph--none b { font-weight: 800; font-stretch: 66%; text-transform: uppercase; line-height: 0.92; color: var(--ink); font-size: clamp(0.7rem, 14cqi, 2.25rem); overflow-wrap: anywhere; }
+.ph--none span { font: 400 clamp(0.55rem, 6cqi, 0.8125rem) / 1.25 var(--font-mono); letter-spacing: 0.03em; overflow-wrap: anywhere; }
+:is(.pcard__fig, .bline__fig, .compare__fig, .sheet__paper, .catrow__fig):has(.ph) { padding: 0; place-items: stretch; background: #fff;
+  /* one track that cannot grow: a grid item's minimum is its content's size, so a 900 × 1200 photo would
+     otherwise widen the frame (and the page) instead of fitting inside it */
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr); overflow: hidden; }
+.ph { min-width: 0; min-height: 0; }
+
 /* ---------- product card ---------- */
 .pcard { position: relative; display: grid; grid-template-rows: auto 1fr; border: 1px solid var(--line); background: var(--paper); transition: border-color 200ms var(--ease-out); }
 .pcard__fig { aspect-ratio: 4 / 3; display: grid; place-items: center; padding: 1.25rem; border-bottom: 1px solid var(--line); color: var(--ink); background:
   linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 24px 24px,
   linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 24px 24px; background-color: var(--paper); }
-.pcard__fig svg { width: 100%; height: 100%; max-height: 100%; }
 .pcard__body { display: grid; gap: 0.5rem; padding: 0.9rem 1rem 1rem; align-content: start; }
 .pcard__brand { font: 500 0.6875rem var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
 .pcard__name { font-weight: 650; font-size: 1.0625rem; line-height: 1.2; }
@@ -257,7 +270,7 @@ html[data-header="hidden"] .site-header:not(:focus-within) { transform: translat
 @media (max-width: 760px) {
   .dock {
     position: fixed; z-index: 45; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); transform: translateX(-50%);
-    display: grid; grid-template-columns: repeat(4, 1fr); width: min(26rem, calc(100% - 20px));
+    display: grid; grid-template-columns: repeat(5, 1fr); width: min(28rem, calc(100% - 20px));
     background: var(--ink); color: var(--paper); border-radius: var(--pill); padding: 4px; box-shadow: var(--shadow-2), inset 0 0 0 1px var(--line-on-ink);
   }
   .dock a, .dock button { display: grid; place-items: center; gap: 2px; min-height: 52px; border-radius: var(--pill); text-decoration: none; font: 500 0.6875rem var(--font-mono); letter-spacing: 0.03em; background: none; border: 0; color: inherit; cursor: pointer; }

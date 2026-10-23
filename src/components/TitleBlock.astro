@@ -13,6 +13,8 @@ export interface TitleBlockItem {
   dd?: Record<string, string>;
   /** Brand and model names: translate="no". */
   noTranslate?: boolean;
+  /** Part of the drawing-sheet look rather than information (sheet number, date): phones may leave it out. */
+  decor?: boolean;
 }
 interface Props {
   items: (TitleBlockItem | false | '' | null | undefined)[];
@@ -25,7 +27,7 @@ const show = (v: TitleBlockItem['value']) => (v === null || v === undefined || v
 ---
 <dl class:list={['titleblock rule-double tb', cls]} {...rest}>
   {list.map((i) => (
-    <div>
+    <div data-decor={i.decor ? '' : undefined}>
       <dt>{i.label}</dt>
       <dd translate={i.noTranslate ? 'no' : undefined} {...(i.dd ?? {})}>
         {i.href ? (

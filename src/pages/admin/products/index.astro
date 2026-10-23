@@ -5,7 +5,7 @@ import Pager from '../_parts/Pager.astro';
 import St from '../_parts/St.astro';
 import { adminCtx, allCategories, pageParam, productsList } from '../../../lib/admin-panel';
 import { isAdmin } from '../../../lib/admin';
-import { drawProduct } from '../../../lib/drawing';
+import ProductPhoto from '../../../components/ProductPhoto.astro';
 import { lek } from '../../../lib/money';
 import { date } from '../../../lib/i18n';
 
@@ -18,8 +18,10 @@ const cat = Number(url.searchParams.get('category')) || null;
 const statusQ = url.searchParams.get('status') ?? '';
 const status = ['draft', 'published', 'archived'].includes(statusQ) ? statusQ : '';
 const q = (url.searchParams.get('q') ?? '').trim().slice(0, 60);
+const photoQ = url.searchParams.get('photo') ?? '';
+const photo = admin && (photoQ === 'none' || photoQ === 'some') ? photoQ : '';
 const page = pageParam(url);
-const { rows, total } = await productsList({ cat, status, q, page }, admin ? null : user.seller_id);
+const { rows, total } = await productsList({ cat, status, q, page, photo }, admin ? null : user.seller_id);
 const totalAll = cats.reduce((s: number, x: any) => s + x.products, 0);
 ---
 <Admin lang={lang} t={t} user={user} url={url} title={t.products.title} section="products" flash={flash} sheet={[[t.sheet.records, totalAll]]}>
@@ -41,12 +43,22 @@ const totalAll = cats.reduce((s: number, x: any) => s + x.products, 0);
         {['published', 'draft', 'archived'].map((s) => <option value={s} selected={s === status}>{t.pstatus[s]}</option>)}
       </select>
     </div>
+    {admin && (
+      <div class="field">
+        <label for="f-photo">{t.products.photo}</label>
+        <select class="select" id="f-photo" name="photo">
+          <option value="">{t.common.all}</option>
+          <option value="none" selected={photo === 'none'}>{t.products.photoNone}</option>
+          <option value="some" selected={photo === 'some'}>{t.products.photoSome}</option>
+        </select>
+      </div>
+    )}
     <div class="field field--grow">
       <label for="f-q">{t.products.search}</label>
       <input class="input" id="f-q" name="q" type="search" value={q} placeholder={t.products.searchPh} autocomplete="off" />
     </div>
     <button class="btn" type="submit">{t.common.filter}</button>
-    {(q || status || cat) && <a class="btn btn--ghost" href="/admin/products">{t.common.reset}</a>}
+    {(q || status || cat || photo) && <a class="btn btn--ghost" href="/admin/products">{t.common.reset}</a>}
   </form>
 
   {rows.length === 0 ? (
@@ -68,10 +80,11 @@ const totalAll = cats.reduce((s: number, x: any) => s + x.products, 0);
         <tbody>
           {rows.map((p: any) => (
             <tr>
-              <td style="width: 4.5rem"><div style="width: 56px; height: 44px; color: var(--ink)" aria-hidden="true" set:html={drawProduct({ category: p.cat_slug, w: p.width_mm, h: p.height_mm, d: p.depth_mm, dims: false })} /></td>
+              <td class="adm-thumb-cell"><div class="adm-thumb" aria-hidden="true"><ProductPhoto src={p.image} brand={p.brand} model={p.model} /></div></td>
               <th scope="row" style="font-weight: 400">
                 {admin ? <a class="rowlink" href={`/admin/products/${p.id}`} translate="no">{p.brand} {p.model}</a> : <span class="strong" translate="no">{p.brand} {p.model}</span>}
                 <span class="sub">{lang === 'sq' ? p.name_sq : p.name_en}</span>
+                {admin && (p.photos > 0 ? <span class="sub">{t.products.photoCount(p.photos)}</span> : <span class="tag tag--warn">{t.products.photoNone}</span>)}
               </th>
               <td class="small">{lang === 'sq' ? p.cat_sq : p.cat_en}</td>
               <td><St s={p.status} label={t.pstatus[p.status]} />{p.featured ? <span class="sub">{t.products.featured}</span> : null}</td>

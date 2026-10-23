@@ -117,7 +117,7 @@ const labels: Record<string, string> = {
   lead_days: t.offers.lead, min_qty: t.offers.minQty, delivery_fee_all: t.offers.deliveryFee, free_delivery_over_all: t.offers.freeOver, t0_min: t.offers.tiers,
 };
 ---
-<Admin lang={lang} t={t} user={user} url={url} title={title} docTitle={name} section="offers" flash={flash}
+<Admin lang={lang} t={t} user={user} url={url} title={title} docTitle={name} section="offers" help="offer" flash={flash}
   sheet={existing ? [[t.offers.seller, existing.seller_name], [t.offers.updated, date(existing.updated_at, lang, true)]] : []}>
   <div slot="head" class="adm-head-tools">
     {existing && (existing.active ? <St s="active" label={t.offers.active} /> : <St s="archived" label={t.offers.inactive} />)}

@@ -8,6 +8,8 @@ import '../styles/global.css';
 import '../styles/admin.css';
 import BrandMark from '../components/BrandMark.astro';
 import TitleBlock from '../components/TitleBlock.astro';
+import AdminHelp from '../components/AdminHelp.astro';
+import { isHelpKey, type HelpKey } from '../i18n/admin-help';
 import type { Lang } from '../lib/i18n';
 import type { User } from '../lib/auth';
 import type { AdminWords } from '../i18n/admin';
@@ -27,8 +29,11 @@ interface Props {
   bare?: boolean; // no rail (login, print)
   bodyClass?: string;
   hideHead?: boolean;
+  /** Which help panel to show under the head; defaults to the section's. false shows none. */
+  help?: HelpKey | false;
 }
-const { lang, t, user, url, title, docTitle, section, flash, sheet = [], bare = false, bodyClass, hideHead = false } = Astro.props;
+const { lang, t, user, url, title, docTitle, section, flash, sheet = [], bare = false, bodyClass, hideHead = false, help } = Astro.props;
+const helpKey = help === false || bare || !user ? null : help ?? (isHelpKey(section) ? section : null);
 const idx = section ? NAV.findIndex((n) => n.key === section) : -1;
 const sheetNo = idx >= 0 ? `A-${String(idx + 1).padStart(2, '0')}` : 'A-00';
 const counts = user ? await navCounts(user) : null;
@@ -104,15 +109,16 @@ const today = new Date().toISOString().slice(0, 10);
           <header class="adm-head">
             <h1 class="adm-title">{title}</h1>
             <TitleBlock class="adm-tb" items={[
-              { label: t.sheet.no, value: sheetNo },
-              user && { label: t.sheet.role, value: t.role[user.role] },
-              user && { label: t.sheet.scope, value: user.role === 'admin' ? t.sheet.scopeAll : seller },
+              { label: t.sheet.no, value: sheetNo, decor: true },
+              user && { label: t.sheet.role, value: t.role[user.role], decor: true },
+              user && { label: t.sheet.scope, value: user.role === 'admin' ? t.sheet.scopeAll : seller, decor: true },
               ...sheet.map(([k, v]) => ({ label: k, value: v })),
-              { label: t.sheet.date, value: today },
+              { label: t.sheet.date, value: today, decor: true },
             ]} />
             <slot name="head" />
           </header>
         )}
+        {helpKey && user && <AdminHelp lang={lang} k={helpKey} seller={user.role === 'seller'} />}
         <slot />
       </main>
     </div>

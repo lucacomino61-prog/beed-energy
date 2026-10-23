@@ -1,0 +1,31 @@
+---
+// A ranked list as horizontal bars (orders by status, sales by category, best sellers). Every bar carries
+// its value at the tip, so the list reads as a table too and nothing hides behind a hover. One hue; bars
+// grow from one baseline, square there and rounded at the data end. On a phone the label sits above its bar.
+interface Item {
+  label: string;
+  sub?: string;
+  value: number;
+  valueText: string;
+  href?: string;
+}
+interface Props {
+  label: string;
+  items: Item[];
+  tone?: 'copper' | 'ink';
+}
+const { label, items, tone = 'copper' } = Astro.props;
+const max = Math.max(0, ...items.map((i) => i.value));
+---
+<ol class="chart hbars" data-hue={tone} role="list" aria-label={label}>
+  {items.map((it) => (
+    <li class="hbars__row">
+      <span class="hbars__label">
+        {it.href ? <a href={it.href}>{it.label}</a> : it.label}
+        {it.sub && <small>{it.sub}</small>}
+      </span>
+      <span class="hbars__track" aria-hidden="true"><span class="hbars__bar" style={`--v:${max ? (it.value / max).toFixed(4) : 0}`} /></span>
+      <span class="hbars__value">{it.valueText}</span>
+    </li>
+  ))}
+</ol>

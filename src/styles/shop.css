@@ -28,7 +28,6 @@
 }
 .catrow__key { grid-area: key; color: var(--copper-deep); align-self: start; padding-top: 0.2rem; }
 .catrow__fig { grid-area: fig; height: 3.75rem; display: grid; place-items: center; color: var(--ink-2); transition: color 200ms var(--ease-out); }
-.catrow__fig .pdraw, .catrow__fig svg { width: 100%; height: 100%; }
 .catrow__name { grid-area: name; font-weight: 650; font-size: 1.125rem; font-stretch: 85%; line-height: 1.15; overflow-wrap: anywhere; }
 .catrow__count, .catrow__price { font: 400 0.75rem/1.3 var(--font-mono); }
 .catrow__count { grid-area: meta; color: var(--ink-2); }
@@ -123,8 +122,6 @@
 /* card details beyond global.css .pcard */
 .pcard { height: 100%; }
 .pcard__fig { position: relative; }
-.pcard__fig .pdraw { position: absolute; inset: 1.25rem; display: grid; place-items: center; }
-.pcard__fig .pdraw svg, .sheet__paper .pdraw svg, .compare__fig .pdraw svg { width: 100%; height: 100%; }
 .pcard__name { overflow-wrap: anywhere; }
 .pcard__specs { list-style: none; padding: 0; min-width: 0; }
 /* long spec values ("ETICS: EPS (EN 13163) + Ceresit CT 85 …") wrap inside the card instead of widening it */
@@ -179,9 +176,14 @@
   background: linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 32px 32px, linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 32px 32px, var(--paper);
   box-shadow: inset 0 0 0 6px var(--paper), inset 0 0 0 7px var(--line-strong);
 }
-.sheet__paper .pdraw { position: absolute; inset: clamp(2.25rem, 1.5rem + 3vw, 4rem); }
 
-.sheet__paper .drawing__dims { color: var(--copper-deep); }
+/* product photos: the main photo in the sheet frame, the others as thumbnails under it (product.ts swaps them) */
+.sheet__paper:has(img.ph) { padding: clamp(0.75rem, 0.5rem + 1.5vw, 1.5rem); }
+.gallery__thumbs { list-style: none; padding: 0; margin: 0; display: flex; gap: 0.5rem; overflow-x: auto; scrollbar-width: thin; }
+.gallery__thumb { display: block; width: 4.5rem; aspect-ratio: 1; border: 1px solid var(--line-strong); background: #fff; }
+.gallery__thumb img { width: 100%; height: 100%; object-fit: contain; }
+.gallery__thumb[aria-current="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+@media (hover: hover) and (pointer: fine) { .gallery__thumb:hover { border-color: var(--copper-deep); } }
 .sheet__corner { position: absolute; top: 0.9rem; font-size: 0.6875rem; color: var(--ink-2); }
 .sheet__corner--tl { left: 1rem; }
 .sheet__corner--tr { right: 1rem; }
@@ -344,7 +346,6 @@ html.js .compare__tools [data-diff-submit] { display: none; }
 .compare__table th.compare__head { vertical-align: top; text-transform: none; letter-spacing: 0; font: inherit; color: var(--ink); white-space: normal; padding: 1rem 0.75rem; }
 .compare__fig { aspect-ratio: 4 / 3; display: grid; place-items: center; padding: 0.75rem; margin-bottom: 0.6rem; border: 1px solid var(--line); background: linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 20px 20px, linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 20px 20px; }
 .compare__fig { position: relative; }
-.compare__fig .pdraw { position: absolute; inset: 0.75rem; }
 .compare__name { display: block; font-weight: 650; font-size: 1rem; line-height: 1.2; margin-block: 0.2rem 0.4rem; overflow-wrap: anywhere; }
 .compare__remove { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 44px; padding: 0 0.7rem; background: none; border: 1px solid var(--line-strong); font: 500 0.75rem var(--font-mono); color: inherit; cursor: pointer; }
 @media (hover: hover) and (pointer: fine) { .compare__remove:hover { border-color: var(--ink); } }

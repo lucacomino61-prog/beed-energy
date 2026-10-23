@@ -4,6 +4,7 @@ Local build, nothing deployed. Dev server: `npm run dev` → http://127.0.0.1:38
 
 ## Stack
 - **Astro 7 SSR** (`output: 'server'`, `@astrojs/cloudflare`, running as a Cloudflare Worker). Every page is server-rendered: all words, prices and links are in the HTML before scripts run.
+- **Product photos** in Workers KV, binding `MEDIA` (`src/lib/media.ts`): keys are content hashes (`p/<product>/<sha256>.webp`), `product_images` keeps path, size and alt text, `/media/[...key]` serves them `immutable`. The file's real format is checked from its first bytes, not its name or declared type.
 - **Cloudflare D1** (SQLite), binding `DB`. Schema: `migrations/0001_init.sql`, generated from `src/lib/schema.sql` and applied with `wrangler d1 migrations apply`. `src/lib/db.ts` reads the binding from `cloudflare:workers`; every query is awaited. The seed scripts still build `data/beed.db` with `node:sqlite`, and `scripts/d1-export.mjs` turns it into `seed.sql` for D1.
 - **GSAP 3.15 + ScrollTrigger + Lenis 1.3** on one ticker: GSAP's ticker is the only `requestAnimationFrame` owner; Lenis steps from it (`autoRaf: false`). No other animation library, no component that brings its own loop.
 - Vanilla TypeScript in Astro `<script>` modules. No front-end framework.

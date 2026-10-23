@@ -1,0 +1,32 @@
+---
+// The help panel under every admin page head: one visible line on what the page is for, and a disclosure with
+// the steps and the meaning of each option (i18n/admin-help.ts). Whether it is open is remembered per page
+// in the browser (admin.ts); it starts closed so it never pushes the page down for someone who knows it.
+import type { Lang } from '../lib/i18n';
+import { helpChrome, helpFor, type HelpKey } from '../i18n/admin-help';
+interface Props { lang: Lang; k: HelpKey; seller: boolean }
+const { lang, k, seller } = Astro.props;
+const h = helpFor(lang, k);
+const c = helpChrome(lang);
+---
+<aside class="adm-help" aria-label={c.summary}>
+  <p class="adm-help__what">{h.what}</p>
+  {seller && h.seller && <p class="adm-help__seller">{h.seller}</p>}
+  <details class="adm-help__more" data-help={k}>
+    <summary>{c.summary}</summary>
+    <div class="adm-help__body">
+      <div>
+        <h2 class="adm-help__h">{c.steps}</h2>
+        <ol class="adm-help__steps">{h.steps.map((s) => <li>{s}</li>)}</ol>
+      </div>
+      <div>
+        <h2 class="adm-help__h">{c.terms}</h2>
+        <dl class="adm-help__terms">
+          {h.terms.map(([term, def]) => (
+            <div><dt>{term}</dt><dd>{def}</dd></div>
+          ))}
+        </dl>
+      </div>
+    </div>
+  </details>
+</aside>

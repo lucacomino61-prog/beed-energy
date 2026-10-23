@@ -1,0 +1,85 @@
+---
+// One series over time as columns (dashboard: sales per day). Plain HTML rather than a scaled SVG, so the
+// tick and date labels keep their size on a phone instead of shrinking with the drawing. One hue, no legend
+// (the heading names the series), the peak labelled, every other value in the tooltip and the table.
+// Keyboard: the columns are one tab stop; arrow keys, Home and End move between days (charts.ts).
+interface Point {
+  key: string; // ISO date, for the table
+  label: string; // short, under the axis (24.10)
+  long: string; // in the tooltip
+  value: number;
+  valueText: string;
+  extra?: string; // a second line in the tooltip (number of orders)
+}
+interface Props {
+  title: string;
+  points: Point[];
+  tone?: 'copper' | 'ink';
+  tick: (n: number) => string;
+  hint?: string;
+  asTable: string;
+  head: [string, string, string];
+  /** Said instead of the chart when every value is zero. */
+  empty: string;
+}
+const { title, points, tone = 'copper', tick, hint, asTable, head, empty } = Astro.props;
+const top = Math.max(0, ...points.map((p) => p.value));
+
+/** A round ceiling (1, 2, 2.5, 5 × 10ⁿ) so the two gridlines sit on clean numbers. */
+function nice(n: number): number {
+  if (n <= 0) return 1;
+  const p = 10 ** Math.floor(Math.log10(n));
+  return ([1, 2, 2.5, 5, 10].find((m) => m * p >= n) ?? 10) * p;
+}
+const ceiling = nice(top);
+const peak = top > 0 ? points.findIndex((p) => p.value === top) : -1;
+const n = points.length;
+// Five dates under the axis: first, last and three between.
+const ticksX = [...new Set([0, Math.round((n - 1) / 4), Math.round((n - 1) / 2), Math.round((3 * (n - 1)) / 4), n - 1])].filter((i) => i >= 0 && i < n);
+const focusAt = peak >= 0 ? peak : n - 1;
+---
+<figure class="chart cchart" data-hue={tone}>
+  {top === 0 ? <p class="muted">{empty}</p> : (<>
+  <div class="cchart__frame">
+    <div class="cchart__y" aria-hidden="true">
+      <span style="--y:1">{tick(ceiling)}</span>
+      <span style="--y:0.5">{tick(ceiling / 2)}</span>
+      <span style="--y:0">0</span>
+    </div>
+    <div class="cchart__plot">
+      <ol class="cchart__cols" role="list" aria-label={title} data-chart-cols>
+        {points.map((p, i) => (
+          <li
+            class="cchart__col"
+            style={`--v:${(p.value / ceiling).toFixed(4)}`}
+            tabindex={i === focusAt ? 0 : -1}
+            data-tip
+            data-tip-value={p.valueText}
+            data-tip-label={p.long}
+            data-tip-extra={p.extra}
+            aria-label={`${p.long}: ${p.valueText}${p.extra ? `, ${p.extra}` : ''}`}
+          >
+            {p.value > 0 && <span class="cchart__bar" data-tip-anchor />}
+            {i === peak && <span class:list={['cchart__peak', { 'cchart__peak--start': i < 4, 'cchart__peak--end': i > n - 5 }]} aria-hidden="true">{p.valueText}</span>}
+          </li>
+        ))}
+      </ol>
+    </div>
+    <div class="cchart__x" aria-hidden="true">
+      {ticksX.map((i) => <span style={`--x:${((i + 0.5) / n).toFixed(4)}`} class:list={{ first: i === 0, last: i === n - 1 }}>{points[i].label}</span>)}
+    </div>
+  </div>
+  {hint && <figcaption class="small muted">{hint}</figcaption>}
+  <details class="chart__table">
+    <summary class="small">{asTable}</summary>
+    <div class="table-scroll">
+      <table class="table adm-table">
+        <thead><tr><th scope="col">{head[0]}</th><th scope="col" class="num">{head[1]}</th><th scope="col" class="num">{head[2]}</th></tr></thead>
+        <tbody>
+          {points.filter((p) => p.value > 0).map((p) => <tr><th scope="row" class="mono" style="font-weight: 400">{p.key}</th><td class="num mono">{p.extra ?? ''}</td><td class="num price">{p.valueText}</td></tr>)}
+        </tbody>
+      </table>
+    </div>
+  </details>
+  </>)}
+</figure>

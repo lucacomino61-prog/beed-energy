@@ -1,9 +1,13 @@
 ---
-// A-01 Dashboard: week/month orders and sales, commission (admin), 30-day bars, open orders, low stock,
-// best sellers and the queue of things waiting for action. Sellers see only their own lines.
+// A-01 Dashboard: the week and month in figures, what is waiting for action, low stock, sales per day,
+// orders by status, sales by category, best sellers and (staff) how much of the catalogue has photos.
+// Sellers see only their own lines everywhere.
 import Admin from '../../layouts/Admin.astro';
+import ColumnChart from './_parts/ColumnChart.astro';
+import BarList from './_parts/BarList.astro';
 import { adminCtx } from '../../lib/admin-panel';
 import { dashboard, isAdmin } from '../../lib/admin';
+import { date } from '../../lib/i18n';
 import { groupDigits, lek } from '../../lib/money';
 
 const c = adminCtx(Astro);
@@ -15,19 +19,30 @@ const d = await dashboard(user);
 // 30 calendar days ending today (UTC, like SQLite's date()).
 const byDay = new Map(d.byDay.map((r) => [r.day, r]));
 const days = Array.from({ length: 30 }, (_, i) => {
-  const dt = new Date(Date.now() - (29 - i) * 864e5);
-  const key = dt.toISOString().slice(0, 10);
-  return { key, label: `${key.slice(8, 10)}.${key.slice(5, 7)}`, revenue: byDay.get(key)?.revenue ?? 0, orders: byDay.get(key)?.orders ?? 0 };
+  const key = new Date(Date.now() - (29 - i) * 864e5).toISOString().slice(0, 10);
+  const r = byDay.get(key);
+  const revenue = r?.revenue ?? 0;
+  return { key, label: `${key.slice(8, 10)}.${key.slice(5, 7)}`, long: date(key, lang), value: revenue, valueText: lek(revenue, lang), extra: r?.orders ? t.dash.ordersN(r.orders) : undefined };
 });
-const max = Math.max(0, ...days.map((x) => x.revenue));
-const peakIdx = max > 0 ? days.findIndex((x) => x.revenue === max) : -1;
-const W = 900;
-const H = 230;
-const base = 196;
-const top = 30;
-const slot = W / days.length;
-const bw = slot * 0.58;
-const bh = (v: number) => (max > 0 ? Math.max(v > 0 ? 2 : 0, ((base - top) * v) / max) : 0);
+/** Axis ticks in lekë, compact from a thousand up: 0 · 25K · 50K · 1.5M. */
+const tick = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(n % 1e6 ? 1 : 0)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : String(Math.round(n)));
+
+const ORDER_FLOW = ['new', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
+const statusN = new Map(d.byStatus.map((r) => [r.status, r.n]));
+const statusItems = ORDER_FLOW.filter((s) => (statusN.get(s) ?? 0) > 0).map((s) => {
+  const n = statusN.get(s)!;
+  return { label: t.status[s] ?? s, value: n, valueText: t.dash.ordersN(n), href: `/admin/orders?status=${s}` };
+});
+const categoryItems = d.byCategory.map((r) => ({ label: lang === 'sq' ? r.name_sq : r.name_en, sub: t.dash.pieces(r.qty), value: r.revenue, valueText: lek(r.revenue, lang) }));
+const topItems = d.topProducts.map((p: any) => ({
+  label: p.product_name,
+  sub: t.dash.pieces(p.qty),
+  value: p.revenue,
+  valueText: lek(p.revenue, lang),
+  href: p.product_id ? (admin ? `/admin/products/${p.product_id}` : `/admin/offers?q=${encodeURIComponent(p.product_name)}`) : undefined,
+}));
+const photos = d.photos;
+const photoShare = photos && photos.total ? photos.with_photo / photos.total : 0;
 
 const kpi = (n: number) => groupDigits(n);
 const cells = [
@@ -38,7 +53,6 @@ const cells = [
   { label: `${t.dash.revenue} · ${t.dash.month}`, n: d.month.revenue, unit: t.common.lek },
   ...(admin ? [{ label: `${t.dash.commission} · ${t.dash.month}`, n: d.month.commission, unit: t.common.lek, tone: 'copper' }] : []),
 ] as { label: string; sub?: string; n: number; unit: string; tone?: string; href?: string }[];
-
 const counts = d.counts as Record<string, number>;
 const countLinks: Record<string, string> = {
   applications: '/admin/applications',
@@ -69,43 +83,9 @@ const hot = new Set(['applications', 'quotes', 'messages', 'noOffer']);
     <p class="small muted" style="margin-top: 0.75rem">{admin ? t.dash.revenueNote : `${t.dash.sellerNote} ${t.dash.revenueNote}`}</p>
   </section>
 
-  <section class="adm-sec" aria-labelledby="h-chart">
-    <h2 class="adm-h2" id="h-chart"><span class="k">01</span>{t.dash.chart}</h2>
-    <div class="chart-box">
-      {max === 0 ? <p class="muted">{t.dash.chartEmpty}</p> : null}
-      <svg class="bars" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${t.dash.chart}. ${max > 0 ? `${days[peakIdx].label}: ${lek(max, lang)}` : t.dash.chartEmpty}`}>
-        <line class="grid" x1="0" x2={W} y1={top} y2={top} />
-        <line class="grid" x1="0" x2={W} y1={(top + base) / 2} y2={(top + base) / 2} />
-        {days.map((x, i) => {
-          const h = bh(x.revenue);
-          return <rect class:list={['bar', { 'bar--peak': i === peakIdx }]} x={(i * slot + (slot - bw) / 2).toFixed(1)} y={(base - h).toFixed(1)} width={bw.toFixed(1)} height={h.toFixed(1)} />;
-        })}
-        <line class="axis" x1="0" x2={W} y1={base} y2={base} />
-        {[0, 14, 29].map((i) => <text x={(i * slot + slot / 2).toFixed(1)} y={base + 22} text-anchor={i === 0 ? 'start' : i === 29 ? 'end' : 'middle'}>{days[i].label}</text>)}
-        {peakIdx >= 0 && (
-          <g>
-            <line class="axis" x1={(peakIdx * slot + slot / 2).toFixed(1)} x2={(peakIdx * slot + slot / 2).toFixed(1)} y1={(base - bh(max) - 4).toFixed(1)} y2={top - 14} stroke-dasharray="2 3" />
-            <text class="lbl-peak" x={(peakIdx * slot + slot / 2).toFixed(1)} y={top - 18} text-anchor={peakIdx > 24 ? 'end' : peakIdx < 5 ? 'start' : 'middle'}>{days[peakIdx].label} · {lek(max, lang)}</text>
-          </g>
-        )}
-      </svg>
-      <details style="margin-top: 0.5rem">
-        <summary class="small" style="min-height: 44px; display: flex; align-items: center; cursor: pointer">{t.common.asTable}</summary>
-        <div class="table-scroll">
-          <table class="table adm-table">
-            <thead><tr><th scope="col">{t.dash.day}</th><th scope="col" class="num">{t.dash.orders}</th><th scope="col" class="num">{t.dash.revenue}</th></tr></thead>
-            <tbody>
-              {days.filter((x) => x.orders > 0).map((x) => <tr><th scope="row" class="mono" style="font-weight: 400">{x.key}</th><td class="num mono">{x.orders}</td><td class="num price">{lek(x.revenue, lang)}</td></tr>)}
-            </tbody>
-          </table>
-        </div>
-      </details>
-    </div>
-  </section>
-
   <div class="adm-cols adm-sec">
     <section aria-labelledby="h-queue">
-      <h2 class="adm-h2" id="h-queue"><span class="k">02</span>{t.dash.queue}</h2>
+      <h2 class="adm-h2" id="h-queue"><span class="k">01</span>{t.dash.queue}</h2>
       <div class="counts">
         {Object.entries(counts).map(([k, n]) => (
           <a href={countLinks[k] ?? '/admin'}><span class="l">{t.dash.counts[k] ?? k}</span><span class="n" data-hot={hot.has(k) && n > 0 ? 'true' : 'false'}>{n}</span></a>
@@ -113,7 +93,7 @@ const hot = new Set(['applications', 'quotes', 'messages', 'noOffer']);
       </div>
     </section>
     <section aria-labelledby="h-low">
-      <h2 class="adm-h2" id="h-low"><span class="k">03</span>{t.dash.lowStock}<span class="meta">{t.dash.lowStockHint}</span></h2>
+      <h2 class="adm-h2" id="h-low"><span class="k">02</span>{t.dash.lowStock}<span class="meta">{t.dash.lowStockHint}</span></h2>
       {d.lowStock.length === 0 ? <p class="adm-empty">{t.dash.lowStockEmpty}</p> : (
         <div class="table-scroll">
           <table class="table adm-table">
@@ -133,23 +113,43 @@ const hot = new Set(['applications', 'quotes', 'messages', 'noOffer']);
     </section>
   </div>
 
-  <section class="adm-sec" aria-labelledby="h-top">
-    <h2 class="adm-h2" id="h-top"><span class="k">04</span>{t.dash.top}</h2>
-    {d.topProducts.length === 0 ? <p class="adm-empty">{t.dash.topEmpty}</p> : (
-      <div class="table-scroll">
-        <table class="table adm-table">
-          <thead><tr><th scope="col">{t.offers.product}</th><th scope="col" class="num">{t.dash.qty}</th><th scope="col" class="num">{t.dash.revenue}</th></tr></thead>
-          <tbody>
-            {d.topProducts.map((p: any) => (
-              <tr>
-                <td>{p.product_id ? <a class="rowlink" href={admin ? `/admin/products/${p.product_id}` : `/admin/offers?q=${encodeURIComponent(p.product_name)}`}><span translate="no">{p.product_name}</span></a> : <span translate="no">{p.product_name}</span>}</td>
-                <td class="num mono">{p.qty}</td>
-                <td class="num price">{lek(p.revenue, lang)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )}
+  <section class="adm-sec" aria-labelledby="h-chart">
+    <h2 class="adm-h2" id="h-chart"><span class="k">03</span>{t.dash.chart}</h2>
+    <div class="chart-box">
+      <ColumnChart title={t.dash.chart} points={days} tick={tick} hint={t.dash.chartHint} asTable={t.common.asTable} head={[t.dash.day, t.dash.orders, t.dash.revenue]} empty={t.dash.chartEmpty} />
+    </div>
   </section>
+
+  <div class="adm-cols adm-sec">
+    <section aria-labelledby="h-status">
+      <h2 class="adm-h2" id="h-status"><span class="k">04</span>{t.dash.byStatus}</h2>
+      {statusItems.length === 0 ? <p class="adm-empty">{t.dash.byStatusEmpty}</p> : <BarList label={t.dash.byStatus} items={statusItems} tone="ink" />}
+    </section>
+    <section aria-labelledby="h-cat">
+      <h2 class="adm-h2" id="h-cat"><span class="k">05</span>{t.dash.byCategory}</h2>
+      {categoryItems.length === 0 ? <p class="adm-empty">{t.dash.byCategoryEmpty}</p> : <BarList label={t.dash.byCategory} items={categoryItems} />}
+    </section>
+  </div>
+
+  <div class="adm-cols adm-sec">
+    <section aria-labelledby="h-top">
+      <h2 class="adm-h2" id="h-top"><span class="k">06</span>{t.dash.top}</h2>
+      {topItems.length === 0 ? <p class="adm-empty">{t.dash.topEmpty}</p> : <BarList label={t.dash.top} items={topItems} />}
+    </section>
+    {photos && (
+      <section aria-labelledby="h-photos">
+        <h2 class="adm-h2" id="h-photos"><span class="k">07</span>{t.dash.photosTitle}</h2>
+        <div class="meter">
+          <p class="meter__n">{photos.with_photo}<small> / {photos.total}</small></p>
+          <div class="meter__track" role="meter" aria-valuemin="0" aria-valuemax={photos.total} aria-valuenow={photos.with_photo} aria-label={t.dash.photosOf(photos.with_photo, photos.total)}>
+            <span class="meter__fill" style={`--v:${photoShare.toFixed(4)}`} />
+          </div>
+          <p class="small">{t.dash.photosOf(photos.with_photo, photos.total)}</p>
+          {photos.with_photo < photos.total
+            ? <p><a class="btn btn--s btn--ghost" href="/admin/products?status=published&photo=none">{t.dash.photosGo(photos.total - photos.with_photo)}</a></p>
+            : <p class="small muted">{t.dash.photosDone}</p>}
+        </div>
+      </section>
+    )}
+  </div>
 </Admin>

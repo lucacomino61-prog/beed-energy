@@ -1,8 +1,9 @@
 // Admin panel enhancements. Every form works without this file; it only adds:
 // focus on the error summary, confirm prompts, auto-refresh of the spec form when the category changes,
-// a live product drawing while dimensions are typed, quick price/stock saves without a reload, print.
+// photo resizing before upload, quick price/stock saves without a reload, print.
 // No animation library and no requestAnimationFrame here: forms and number entry stay still.
-import { drawProduct } from '../../lib/drawing';
+import './photos';
+import './charts';
 
 // ---------- first error gets focus ----------
 const summary = document.querySelector<HTMLElement>('[data-errors]');
@@ -22,25 +23,6 @@ document.querySelectorAll<HTMLSelectElement>('select[data-autosubmit]').forEach(
     if (btn && sel.form) sel.form.requestSubmit(btn);
   });
 });
-
-// ---------- live drawing preview ----------
-const box = document.querySelector<HTMLElement>('[data-drawing]');
-if (box) {
-  const dims = [...document.querySelectorAll<HTMLInputElement>('[data-dim]')];
-  const read = (k: string) => {
-    const el = dims.find((d) => d.dataset.dim === k);
-    const n = Number((el?.value ?? '').replace(/\s/g, '').replace(',', '.'));
-    return Number.isFinite(n) && n > 0 ? n : null;
-  };
-  let timer = 0;
-  const paint = () => {
-    box.innerHTML = drawProduct({ category: box.dataset.cat ?? '', w: read('w'), h: read('h'), d: read('d'), dims: true, title: box.dataset.title ?? '' });
-  };
-  dims.forEach((d) => d.addEventListener('input', () => {
-    clearTimeout(timer);
-    timer = window.setTimeout(paint, 120);
-  }));
-}
 
 // ---------- quick price / stock edit in the offers grid ----------
 document.querySelectorAll<HTMLFormElement>('form[data-quick]').forEach((form) => {
@@ -85,4 +67,17 @@ document.querySelectorAll<HTMLFormElement>('form[data-quick]').forEach((form) =>
 document.querySelectorAll<HTMLButtonElement>('[data-print]').forEach((b) => {
   b.hidden = false;
   b.addEventListener('click', () => window.print());
+});
+
+// ---------- page help: remember per page whether the guide is open ----------
+document.querySelectorAll<HTMLDetailsElement>('details[data-help]').forEach((d) => {
+  const key = `adm-help:${d.dataset.help}`;
+  try {
+    if (localStorage.getItem(key) === 'open') d.open = true;
+  } catch { /* storage blocked: it simply starts closed */ }
+  d.addEventListener('toggle', () => {
+    try {
+      localStorage.setItem(key, d.open ? 'open' : 'closed');
+    } catch { /* ignore */ }
+  });
 });

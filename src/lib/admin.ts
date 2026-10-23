@@ -24,8 +24,10 @@ export async function slugify(s: string): Promise<string> {
 // ---------- dashboard ----------
 
 export async function dashboard(u: User) {
-  const sellerFilter = isAdmin(u) ? '' : 'AND oi.seller_id = ?';
-  const sp = isAdmin(u) ? [] : [u.seller_id!];
+  const admin = isAdmin(u);
+  const sellerFilter = admin ? '' : 'AND oi.seller_id = ?';
+  const sp = admin ? [] : [u.seller_id!];
+  const n = async (sql: string, ...args: (string | number)[]) => (await get<{ n: number }>(sql, ...args))?.n ?? 0;
   const period = async (days: number) =>
     (await get<{ orders: number; revenue: number; commission: number }>(
       `SELECT COUNT(DISTINCT o.id) AS orders, COALESCE(SUM(oi.line_total_all), 0) AS revenue, COALESCE(SUM(oi.commission_all), 0) AS commission
@@ -34,45 +36,67 @@ export async function dashboard(u: User) {
       `-${days} days`,
       ...sp,
     ))!;
-  const byDay = await all<{ day: string; revenue: number; orders: number }>(
-    `SELECT date(o.created_at) AS day, COALESCE(SUM(oi.line_total_all), 0) AS revenue, COUNT(DISTINCT o.id) AS orders
-       FROM orders o JOIN order_items oi ON oi.order_id = o.id
-      WHERE o.status != 'cancelled' AND o.created_at >= datetime('now', '-30 days') ${sellerFilter}
-      GROUP BY day ORDER BY day`,
-    ...sp,
-  );
-  const open = (await get<{ n: number }>(
-    `SELECT COUNT(DISTINCT o.id) AS n FROM orders o JOIN order_items oi ON oi.order_id = o.id WHERE o.status IN ('new', 'confirmed', 'processing') ${sellerFilter}`,
-    ...sp,
-  ))!.n;
-  const lowStock = await all<any>(
-    `SELECT o.id, o.stock_qty, p.slug, p.brand, p.model, s.name AS seller FROM offers o JOIN products p ON p.id = o.product_id JOIN sellers s ON s.id = o.seller_id
-      WHERE o.active = 1 AND o.stock_qty <= 3 ${isAdmin(u) ? '' : 'AND o.seller_id = ?'} ORDER BY o.stock_qty LIMIT 8`,
-    ...sp,
-  );
-  const topProducts = await all<any>(
-    `SELECT oi.product_id, oi.product_name, SUM(oi.qty) AS qty, SUM(oi.line_total_all) AS revenue
-       FROM order_items oi JOIN orders o ON o.id = oi.order_id
-      WHERE o.status != 'cancelled' AND o.created_at >= datetime('now', '-90 days') ${sellerFilter}
-      GROUP BY oi.product_id ORDER BY revenue DESC LIMIT 6`,
-    ...sp,
-  );
-  const counts = isAdmin(u)
-    ? {
-        applications: (await get<{ n: number }>("SELECT COUNT(*) AS n FROM seller_applications WHERE status = 'new'"))!.n,
-        quotes: (await get<{ n: number }>("SELECT COUNT(*) AS n FROM quote_requests WHERE status = 'open'"))!.n,
-        messages: (await get<{ n: number }>('SELECT COUNT(*) AS n FROM contact_messages WHERE handled = 0'))!.n,
-        products: (await get<{ n: number }>("SELECT COUNT(*) AS n FROM products WHERE status = 'published'"))!.n,
-        sellers: (await get<{ n: number }>("SELECT COUNT(*) AS n FROM sellers WHERE status = 'active'"))!.n,
-        offers: (await get<{ n: number }>('SELECT COUNT(*) AS n FROM offers WHERE active = 1'))!.n,
-        noOffer: (await get<{ n: number }>("SELECT COUNT(*) AS n FROM products p WHERE status = 'published' AND NOT EXISTS (SELECT 1 FROM offers o WHERE o.product_id = p.id AND o.active = 1)"))!.n,
-      }
-    : {
-        quotes: (await get<{ n: number }>("SELECT COUNT(*) AS n FROM quote_requests WHERE status = 'open'"))!.n,
-        offers: (await get<{ n: number }>('SELECT COUNT(*) AS n FROM offers WHERE active = 1 AND seller_id = ?', u.seller_id!))!.n,
-      };
-  const [week, month] = await Promise.all([period(7), period(30)]);
-  return { week, month, byDay, open, lowStock, topProducts, counts };
+
+  // Every query is its own round trip to D1, so they all go at once rather than one after another.
+  const [week, month, byDay, open, lowStock, topProducts, byStatus, byCategory, photos, counts] = await Promise.all([
+    period(7),
+    period(30),
+    all<{ day: string; revenue: number; orders: number }>(
+      `SELECT date(o.created_at) AS day, COALESCE(SUM(oi.line_total_all), 0) AS revenue, COUNT(DISTINCT o.id) AS orders
+         FROM orders o JOIN order_items oi ON oi.order_id = o.id
+        WHERE o.status != 'cancelled' AND o.created_at >= datetime('now', '-30 days') ${sellerFilter}
+        GROUP BY day ORDER BY day`,
+      ...sp,
+    ),
+    n(`SELECT COUNT(DISTINCT o.id) AS n FROM orders o JOIN order_items oi ON oi.order_id = o.id WHERE o.status IN ('new', 'confirmed', 'processing') ${sellerFilter}`, ...sp),
+    all<any>(
+      `SELECT o.id, o.stock_qty, p.slug, p.brand, p.model, s.name AS seller FROM offers o JOIN products p ON p.id = o.product_id JOIN sellers s ON s.id = o.seller_id
+        WHERE o.active = 1 AND o.stock_qty <= 3 ${admin ? '' : 'AND o.seller_id = ?'} ORDER BY o.stock_qty LIMIT 8`,
+      ...sp,
+    ),
+    all<any>(
+      `SELECT oi.product_id, oi.product_name, SUM(oi.qty) AS qty, SUM(oi.line_total_all) AS revenue
+         FROM order_items oi JOIN orders o ON o.id = oi.order_id
+        WHERE o.status != 'cancelled' AND o.created_at >= datetime('now', '-90 days') ${sellerFilter}
+        GROUP BY oi.product_id ORDER BY revenue DESC LIMIT 6`,
+      ...sp,
+    ),
+    // Orders of the last 90 days by where they stand now; cancelled ones included, they are part of the picture.
+    all<{ status: string; n: number }>(
+      `SELECT o.status, COUNT(DISTINCT o.id) AS n FROM orders o JOIN order_items oi ON oi.order_id = o.id
+        WHERE o.created_at >= datetime('now', '-90 days') ${sellerFilter} GROUP BY o.status`,
+      ...sp,
+    ),
+    all<{ id: number; name_sq: string; name_en: string; revenue: number; qty: number }>(
+      `SELECT c.id, c.name_sq, c.name_en, SUM(oi.line_total_all) AS revenue, SUM(oi.qty) AS qty
+         FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id JOIN categories c ON c.id = p.category_id
+        WHERE o.status != 'cancelled' AND o.created_at >= datetime('now', '-30 days') ${sellerFilter}
+        GROUP BY c.id ORDER BY revenue DESC LIMIT 8`,
+      ...sp,
+    ),
+    // The catalogue is BeeD's, so only staff see how much of it still has no photo.
+    admin
+      ? get<{ total: number; with_photo: number }>(
+          `SELECT COUNT(*) AS total, COALESCE(SUM(EXISTS (SELECT 1 FROM product_images pi WHERE pi.product_id = p.id)), 0) AS with_photo
+             FROM products p WHERE p.status = 'published'`,
+        )
+      : Promise.resolve(null),
+    admin
+      ? Promise.all([
+          n("SELECT COUNT(*) AS n FROM seller_applications WHERE status = 'new'"),
+          n("SELECT COUNT(*) AS n FROM quote_requests WHERE status = 'open'"),
+          n('SELECT COUNT(*) AS n FROM contact_messages WHERE handled = 0'),
+          n("SELECT COUNT(*) AS n FROM products WHERE status = 'published'"),
+          n("SELECT COUNT(*) AS n FROM sellers WHERE status = 'active'"),
+          n('SELECT COUNT(*) AS n FROM offers WHERE active = 1'),
+          n("SELECT COUNT(*) AS n FROM products p WHERE status = 'published' AND NOT EXISTS (SELECT 1 FROM offers o WHERE o.product_id = p.id AND o.active = 1)"),
+        ]).then(([applications, quotes, messages, products, sellers, offers, noOffer]) => ({ applications, quotes, messages, products, sellers, offers, noOffer }))
+      : Promise.all([
+          n("SELECT COUNT(*) AS n FROM quote_requests WHERE status = 'open'"),
+          n('SELECT COUNT(*) AS n FROM offers WHERE active = 1 AND seller_id = ?', u.seller_id!),
+        ]).then(([quotes, offers]) => ({ quotes, offers })),
+  ]);
+  return { week, month, byDay, open, lowStock, topProducts, byStatus, byCategory, photos, counts };
 }
 
 // ---------- categories and spec templates ----------
@@ -298,6 +322,72 @@ export async function saveProduct(u: User, id: number | null, p: ProductInput, l
   const pid = id ?? results[insertIdx].id;
   await audit(u.id, id ? 'product.update' : 'product.create', 'product', pid);
   return { id: pid, errors };
+}
+
+// ---------- product photos ----------
+
+export type PhotoResult = { added: number; rejected: { name: string; reason: 'type' | 'size' | 'empty' }[] };
+
+/**
+ * Stores the uploaded photos and appends them after the product's existing ones (the first photo is the
+ * one shown on cards). A file that is not a JPEG, PNG or WebP, or is too large, is skipped and reported.
+ */
+export async function addProductImages(u: User, productId: number, files: File[]): Promise<PhotoResult> {
+  requireAdmin(u);
+  const p = await get<{ name_sq: string; name_en: string; brand: string; model: string }>('SELECT name_sq, name_en, brand, model FROM products WHERE id = ?', productId);
+  if (!p) throw new Error('missing-product');
+  const { putProductImage, MediaError } = await import('./media');
+  const last = await get<{ s: number | null }>('SELECT MAX(sort) AS s FROM product_images WHERE product_id = ?', productId);
+  let sort = (last?.s ?? -1) + 1;
+  const writes: Stmt[] = [];
+  const result: PhotoResult = { added: 0, rejected: [] };
+  for (const f of files) {
+    try {
+      const img = await putProductImage(productId, f);
+      // The same file twice is the same key; one row is enough.
+      writes.push(
+        stmt(
+          `INSERT INTO product_images (product_id, path, width, height, alt_sq, alt_en, sort)
+           SELECT ?, ?, ?, ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM product_images WHERE product_id = ? AND path = ?)`,
+          productId, img.path, img.width, img.height, `${p.brand} ${p.model} · ${p.name_sq}`, `${p.brand} ${p.model} · ${p.name_en}`, sort++, productId, img.path,
+        ),
+      );
+      result.added++;
+    } catch (e) {
+      if (e instanceof MediaError) result.rejected.push({ name: f.name, reason: e.code });
+      else throw e;
+    }
+  }
+  if (writes.length) {
+    writes.push(auditStmt(u.id, 'product.photo-add', 'product', productId, `${result.added} photo(s)`));
+    await batch(writes);
+  }
+  return result;
+}
+
+export async function removeProductImage(u: User, productId: number, imageId: number): Promise<boolean> {
+  requireAdmin(u);
+  const img = await get<{ path: string }>('SELECT path FROM product_images WHERE id = ? AND product_id = ?', imageId, productId);
+  if (!img) return false;
+  await batch([
+    stmt('DELETE FROM product_images WHERE id = ?', imageId),
+    auditStmt(u.id, 'product.photo-remove', 'product', productId, img.path),
+  ]);
+  // The row goes first: if deleting the file fails, the page no longer points at it either way.
+  const { deleteMedia } = await import('./media');
+  await deleteMedia(img.path).catch(() => {});
+  return true;
+}
+
+/** Moves one photo to the front, which makes it the photo on cards and the first on the product page. */
+export async function setMainProductImage(u: User, productId: number, imageId: number): Promise<boolean> {
+  requireAdmin(u);
+  const r = await batch([
+    stmt('UPDATE product_images SET sort = sort + 1 WHERE product_id = ? AND EXISTS (SELECT 1 FROM product_images WHERE id = ? AND product_id = ?)', productId, imageId, productId),
+    stmt('UPDATE product_images SET sort = 0 WHERE id = ? AND product_id = ?', imageId, productId),
+    auditStmt(u.id, 'product.photo-main', 'product', productId, String(imageId)),
+  ]);
+  return r[1].changes === 1;
 }
 
 // ---------- offers ----------

@@ -7,7 +7,7 @@ import '../styles/home.css';
 import { houseSvg } from '../lib/house';
 import { LAYERS, NUMBERS, type Fact } from '../content/story';
 import { categories, featuredProducts } from '../lib/catalog';
-import { drawProduct } from '../lib/drawing';
+import ProductPhoto from '../components/ProductPhoto.astro';
 import { all, get } from '../lib/db';
 import { href, type Lang } from '../lib/i18n';
 import { lek, num } from '../lib/money';
@@ -206,7 +206,7 @@ const jsonld = [
           const c = catOf.get(p.category_id);
           return (
             <li class="pcard" data-reveal>
-              <div class="pcard__fig"><Fragment set:html={drawProduct({ category: c?.slug_en ?? '', w: p.width_mm, h: p.height_mm, d: p.depth_mm, specs: p.specs, dims: false, title: `${p.brand} ${p.model}` })} /></div>
+              <div class="pcard__fig"><ProductPhoto src={p.image} brand={p.brand} model={p.model} /></div>
               <div class="pcard__body">
                 <p class="pcard__brand">{p.brand} · {c ? (lang === 'sq' ? c.name_sq : c.name_en) : ''}</p>
                 <h3 class="pcard__name"><a href={href(lang, 'product', { slug: p.slug })}>{lang === 'sq' ? p.name_sq : p.name_en}</a></h3>

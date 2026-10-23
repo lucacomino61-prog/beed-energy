@@ -1,6 +1,6 @@
 // Reads and writes for the content pages (calculator, sellers, sell with us, quote requests, contact).
 // Every query is a prepared statement with bound parameters.
-import { all, batch, get, run, setting, stmt, type Stmt } from './db';
+import { all, batch, get, run, setting, stmt } from './db';
 import { randomToken } from './auth';
 import type { Lang } from './i18n';
 

@@ -18,6 +18,14 @@
       "database_id": "cb2d74a3-924a-48b8-9e98-e3705ad83155",
       "migrations_dir": "migrations"
     }
+  ],
+  // Product photos uploaded in the admin panel (src/lib/media.ts), served from /media/…. KV rather
+  // than R2 only because R2 is not enabled on this account; media.ts is the one file to change.
+  "kv_namespaces": [
+    {
+      "binding": "MEDIA",
+      "id": "b8ef5aedaef7428c8f026168cd62cc7f"
+    }
   ]
   // Secrets are not kept here. Set the POK card keys with `wrangler secret put POK_KEY_ID` (and
   // POK_KEY_SECRET, POK_MERCHANT_ID); POK_ENV=staging points them at POK's test API. Local values

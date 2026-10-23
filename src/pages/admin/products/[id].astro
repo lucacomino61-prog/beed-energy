@@ -2,16 +2,16 @@
 // Product editor (admin). The spec form is generated from the chosen category's template: numbers with a unit
 // suffix, selects for list values, checkboxes for yes/no, text. Changing the category re-renders the spec form
 // (GET ?category= on a new product, or the "update the spec fields" button, pressed by script on change).
+// Photos have their own forms beside it (upload, make main, remove), handled first in the POST below.
 import Admin from '../../../layouts/Admin.astro';
 import Field from '../_parts/Field.astro';
 import Errors from '../_parts/Errors.astro';
 import St from '../_parts/St.astro';
 import { adminCtx, allCategories, fbool, fnum, fstr, idParam, offersForProductAdmin, productSpecValues, type Errors as Errs, forbiddenPage } from '../../../lib/admin-panel';
-import { Forbidden, isAdmin, saveProduct, type ProductInput } from '../../../lib/admin';
-import { attributes } from '../../../lib/catalog';
+import { Forbidden, addProductImages, isAdmin, removeProductImage, saveProduct, setMainProductImage, type PhotoResult, type ProductInput } from '../../../lib/admin';
+import { attributes, productImages } from '../../../lib/catalog';
 import { csrfOk } from '../../../lib/auth';
 import { get } from '../../../lib/db';
-import { drawProduct } from '../../../lib/drawing';
 import { eur, lek } from '../../../lib/money';
 import { date, href } from '../../../lib/i18n';
 
@@ -34,12 +34,33 @@ let specs: Record<string, string> = existing ? await productSpecValues(existing.
 let catId: number | null = Number(url.searchParams.get('category')) || existing?.category_id || null;
 let errors: Errs = {};
 let unsaved = false;
+let photoResult: PhotoResult | null = null;
 
 if (Astro.request.method === 'POST') {
   const f = await Astro.request.formData();
+  const op = String(f.get('op') ?? '');
   if (!csrfOk(user, f)) {
     errors._form = t.err.csrf;
     Astro.response.status = 403;
+  } else if (existing && op.startsWith('photo-')) {
+    const back = (ok: string) => Astro.redirect(`/admin/products/${existing.id}?ok=${ok}#photos`, 303);
+    try {
+      if (op === 'photo-add') {
+        const files = f.getAll('photos').filter((x): x is File => x instanceof File && x.size > 0);
+        photoResult = await addProductImages(user, existing.id, files);
+        if (!photoResult.rejected.length) return back('photosAdded');
+        Astro.response.status = 422;
+      } else if (op === 'photo-main') {
+        await setMainProductImage(user, existing.id, Number(f.get('image')));
+        return back('photoMain');
+      } else if (op === 'photo-del') {
+        await removeProductImage(user, existing.id, Number(f.get('image')));
+        return back('photoRemoved');
+      }
+    } catch (e) {
+      if (e instanceof Forbidden) return forbiddenPage(Astro);
+      throw e;
+    }
   } else {
     for (const k of FIELDS) v[k] = fstr(f, k, k.startsWith('body') ? 20000 : 2000);
     featured = fbool(f, 'featured');
@@ -49,7 +70,6 @@ if (Astro.request.method === 'POST') {
       const vals = f.getAll(key).map(String);
       specs[key.slice(5)] = (vals[vals.length - 1] ?? '').trim();
     }
-    const op = fstr(f, 'op', 10);
     if (op === 'recat') {
       unsaved = true;
     } else {
@@ -86,12 +106,8 @@ const cats = await allCategories();
 const cat = catId ? cats.find((x: any) => x.id === catId) : null;
 const attrs = cat ? await attributes(cat.id) : [];
 const offers = existing ? await offersForProductAdmin(existing.id) : [];
-const num = (s: string) => {
-  const n = Number(String(s).replace(/\s/g, '').replace(',', '.'));
-  return s !== '' && Number.isFinite(n) && n > 0 ? n : null;
-};
 const title = existing ? `${existing.brand} ${existing.model}` : t.product.newTitle;
-const drawing = drawProduct({ category: cat?.slug_en ?? '', w: num(v.width_mm), h: num(v.height_mm), d: num(v.depth_mm), dims: true, title });
+const photos = existing ? await productImages(existing.id) : [];
 const labels: Record<string, string> = {
   slug: t.product.slug, brand: t.product.brand, model: t.product.model, name_sq: t.product.name_sq, name_en: t.product.name_en, category_id: t.product.category,
   width_mm: t.product.width, height_mm: t.product.height, depth_mm: t.product.depth, weight_kg: t.product.weight, warranty_years: t.product.warranty,
@@ -100,10 +116,11 @@ const labels: Record<string, string> = {
 };
 const action = existing ? `/admin/products/${existing.id}` : '/admin/products/new';
 ---
-<Admin lang={lang} t={t} user={user} url={url} title={title} section="products" flash={flash}
+<Admin lang={lang} t={t} user={user} url={url} title={title} section="products" help="product" flash={flash}
   sheet={[[t.product.category, cat ? (lang === 'sq' ? cat.name_sq : cat.name_en) : '—'], [t.product.status, t.pstatus[v.status] ?? '—'], ...(existing ? [[t.products.updated, date(existing.updated_at, lang)] as [string, string]] : [])]}>
   <div slot="head" class="adm-head-tools">
     {existing && <St s={existing.status} label={t.pstatus[existing.status]} />}
+    {existing && <a class="btn btn--s" href="#photos">{t.product.photos} ({photos.length})</a>}
     {existing?.status === 'published' && <a class="btn btn--s btn--ghost" href={href(lang, 'product', { slug: existing.slug })}>{t.product.viewPublic}</a>}
     <a class="btn btn--s btn--ghost" href="/admin/products">{t.common.back}</a>
   </div>
@@ -235,17 +252,51 @@ const action = existing ? `/admin/products/${existing.id}` : '/admin/products/ne
       </div>
     </form>
 
-    <aside class="adm-aside" aria-label={t.product.drawing}>
-      <div>
-        <h2 class="adm-h3">{t.product.drawing}</h2>
-        <div class="drawing-box" data-drawing data-cat={cat?.slug_en ?? ''} data-title={title} set:html={drawing} />
-        <dl class="titleblock drawing-tb">
-          <div><dt>{t.product.width}</dt><dd>{v.width_mm || '—'} mm</dd></div>
-          <div><dt>{t.product.height}</dt><dd>{v.height_mm || '—'} mm</dd></div>
-          <div><dt>{t.product.depth}</dt><dd>{v.depth_mm || '—'} mm</dd></div>
-        </dl>
-        <p class="hint small muted" style="margin-top: 0.5rem">{t.product.drawingHint}</p>
-      </div>
+    <aside class="adm-aside" aria-label={t.product.photos}>
+      <section class="photos" id="photos" aria-labelledby="photos-h">
+        <h2 class="adm-h3" id="photos-h">{t.product.photos}</h2>
+        {photoResult && photoResult.rejected.length > 0 && (
+          <div class="form-errors" role="alert" tabindex="-1" data-errors>
+            <p><strong>{t.product.rejectedTitle}</strong></p>
+            <ul>{photoResult.rejected.map((r) => <li>{t.product.rejected(r.name, r.reason)}</li>)}</ul>
+          </div>
+        )}
+        {!existing ? <p class="muted small">{t.product.saveFirst}</p> : (
+          <>
+            {photos.length === 0 ? <p class="muted small">{t.product.photosEmpty}</p> : (
+              <ol class="photos__grid" role="list">
+                {photos.map((ph, i) => (
+                  <li class="photos__item">
+                    <img src={ph.path} alt={lang === 'sq' ? ph.alt_sq : ph.alt_en} width={ph.width ?? undefined} height={ph.height ?? undefined} loading="lazy" decoding="async" />
+                    <div class="photos__bar">
+                      {i === 0 ? <span class="tag photos__main">{t.product.mainPhoto}</span> : (
+                        <form method="post" action={action}>
+                          <input type="hidden" name="_csrf" value={user.csrf} />
+                          <input type="hidden" name="image" value={ph.id} />
+                          <button class="btn btn--s btn--ghost" type="submit" name="op" value="photo-main" aria-label={`${t.product.makeMain}: ${t.product.photoN(i + 1)}`}>{t.product.makeMain}</button>
+                        </form>
+                      )}
+                      <form method="post" action={action}>
+                        <input type="hidden" name="_csrf" value={user.csrf} />
+                        <input type="hidden" name="image" value={ph.id} />
+                        <button class="btn btn--s btn--ghost" type="submit" name="op" value="photo-del" data-confirm={`${t.product.removePhoto}: ${t.product.photoN(i + 1)}?`} aria-label={`${t.product.removePhoto}: ${t.product.photoN(i + 1)}`}>{t.product.removePhoto}</button>
+                      </form>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+            <form class="photos__up" method="post" action={action} enctype="multipart/form-data" data-photo-upload data-busy={t.product.uploading}>
+              <input type="hidden" name="_csrf" value={user.csrf} />
+              <input type="hidden" name="op" value="photo-add" />
+              <label class="label" for="f-photos">{t.product.uploadLabel}</label>
+              <input class="input" id="f-photos" type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple required aria-describedby="f-photos-h" />
+              <p class="hint" id="f-photos-h">{t.product.photosHint}</p>
+              <button class="btn" type="submit">{t.product.upload}</button>
+            </form>
+          </>
+        )}
+      </section>
       {existing?.reference_price_eur && (
         <div class="box">
           <h2>{t.product.reference}</h2>

@@ -3,7 +3,7 @@
 // the best value marked with a copper ◆ and the words "më i miri / best" (never colour alone).
 // "Show differences only" is a GET parameter that compare.ts applies without a reload.
 import Site from '../layouts/Site.astro';
-import ProductDrawing from '../components/ProductDrawing.astro';
+import ProductPhoto from '../components/ProductPhoto.astro';
 import TitleBlock from '../components/TitleBlock.astro';
 import { attributes, attrLabel, bestOf, categoryById, formatSpec, offersFor, productCardsByIds, type ProductCard } from '../lib/catalog';
 import { COMPARE_MAX } from '../lib/basket';
@@ -129,7 +129,7 @@ const lowest = mins.length ? Math.min(...mins) : null;
                 <td class="compare__corner"><span class="key">{catName}</span></td>
                 {items.map((p) => (
                   <th scope="col" class="compare__head" data-col={p.id}>
-                    <div class="compare__fig"><ProductDrawing category={cat!.slug_en} w={p.width_mm} h={p.height_mm} d={p.depth_mm} specs={p.specs} decorative /></div>
+                    <div class="compare__fig"><ProductPhoto src={p.image} brand={p.brand} model={p.model} /></div>
                     <p class="pcard__brand" translate="no">{p.brand}</p>
                     <a class="compare__name" href={href(lang, 'product', { slug: p.slug })}>{nameOf(p)}</a>
                     <form method="post" action={removeAction(p.id)} data-cmp-remove>

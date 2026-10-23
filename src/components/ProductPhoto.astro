@@ -1,0 +1,7 @@
+---
+// A product's photo, or its brand and model set as type until it has one (src/lib/photo.ts).
+import { photoHtml, type PhotoInput } from '../lib/photo';
+type Props = PhotoInput & { class?: string };
+const { class: cls, ...p } = Astro.props;
+---
+<Fragment set:html={cls ? photoHtml(p).replace('class="ph', `class="${cls} ph`) : photoHtml(p)} />

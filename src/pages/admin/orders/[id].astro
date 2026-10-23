@@ -97,7 +97,7 @@ const city = lang === 'sq' ? o.city_sq : o.city_en;
 const customerLink = href(o.lang === 'en' ? 'en' : 'sq', 'order', { code: o.code }, { k: o.token });
 const canPay = admin && !cancelled && o.payment_status !== 'paid' && o.payment_method !== 'card';
 ---
-<Admin lang={lang} t={t} user={user} url={url} title={t.order.titleOf(o.code)} docTitle={o.code} section="orders" flash={flash}
+<Admin lang={lang} t={t} user={user} url={url} title={t.order.titleOf(o.code)} docTitle={o.code} section="orders" help="order" flash={flash}
   sheet={[[t.sheet.status, t.status[o.status] ?? o.status], [t.order.payment, t.payStatus[o.payment_status] ?? o.payment_status], [t.order.created, date(o.created_at, lang, true)]]}>
   <div slot="head" class="adm-head-tools">
     <St s={o.status} label={t.status[o.status] ?? o.status} />

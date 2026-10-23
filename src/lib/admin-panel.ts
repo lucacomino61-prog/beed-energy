@@ -196,7 +196,7 @@ export async function threadMessages(u: User, type: 'rfq' | 'order', id: number)
 
 // ---------- products ----------
 
-export async function productsList(f: { cat: number | null; status: string; q: string; page: number }, sellerId: number | null) {
+export async function productsList(f: { cat: number | null; status: string; q: string; page: number; photo?: '' | 'none' | 'some' }, sellerId: number | null) {
   const where: string[] = [];
   const params: (string | number)[] = [];
   if (f.cat) {
@@ -211,6 +211,7 @@ export async function productsList(f: { cat: number | null; status: string; q: s
     where.push("(p.brand || ' ' || p.model || ' ' || p.slug || ' ' || p.name_sq || ' ' || p.name_en) LIKE ?");
     params.push(`%${f.q}%`);
   }
+  if (f.photo) where.push(`${f.photo === 'none' ? 'NOT ' : ''}EXISTS (SELECT 1 FROM product_images pi WHERE pi.product_id = p.id)`);
   const w = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const total = (await get<{ n: number }>(`SELECT COUNT(*) AS n FROM products p ${w}`, ...params))!.n;
   const rows = await all<any>(
@@ -218,6 +219,8 @@ export async function productsList(f: { cat: number | null; status: string; q: s
             c.name_sq AS cat_sq, c.name_en AS cat_en, c.slug_en AS cat_slug,
             (SELECT COUNT(*) FROM offers o WHERE o.product_id = p.id AND o.active = 1) AS offers,
             (SELECT MIN(o.price_all) FROM offers o WHERE o.product_id = p.id AND o.active = 1) AS low,
+            (SELECT pi.path FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort, pi.id LIMIT 1) AS image,
+            (SELECT COUNT(*) FROM product_images pi WHERE pi.product_id = p.id) AS photos,
             ${sellerId ? '(SELECT o.id FROM offers o WHERE o.product_id = p.id AND o.seller_id = ?)' : 'NULL'} AS my_offer
        FROM products p JOIN categories c ON c.id = p.category_id ${w}
       ORDER BY c.sort, p.brand, p.model LIMIT ? OFFSET ?`,

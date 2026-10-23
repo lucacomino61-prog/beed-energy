@@ -2,8 +2,7 @@
 // this file only adds what the pages show around it: cities, seller details per parcel, drawings,
 // the free-delivery threshold, bank details and the order's parcels.
 import { all, get, setting } from './db';
-import { categories } from './catalog';
-import { drawProduct } from './drawing';
+import { photoHtml } from './photo';
 import type { Quote, QuotedLine } from './cart';
 import type { Lang } from './i18n';
 import type { AstroCookies } from 'astro';
@@ -58,14 +57,9 @@ export async function demoOffers(offerIds: number[]): Promise<Set<number>> {
   );
 }
 
-let catSlugs: Map<number, string> | null = null;
-async function categorySlug(id: number): Promise<string> {
-  if (!catSlugs) catSlugs = new Map((await categories()).map((c) => [c.id, c.slug_en]));
-  return catSlugs.get(id) ?? '';
-}
-
-export async function lineDrawing(l: Pick<QuotedLine, 'categoryId' | 'width_mm' | 'height_mm' | 'depth_mm' | 'brand' | 'model'>): Promise<string> {
-  return drawProduct({ category: await categorySlug(l.categoryId), w: l.width_mm, h: l.height_mm, d: l.depth_mm, dims: false, title: `${l.brand} ${l.model}` });
+/** A basket line's picture: the product's main photo, or its brand and model until it has one. */
+export function linePhoto(l: Pick<QuotedLine, 'image' | 'brand' | 'model'>): string {
+  return photoHtml({ src: l.image, brand: l.brand, model: l.model });
 }
 
 export const productName = (l: { brand: string; model: string; name_sq: string; name_en: string }, lang: Lang) =>
@@ -127,7 +121,8 @@ export async function parcelFees(orderId: number, deliveryAll: number): Promise<
 /** Order lines with the product slug for links, grouped by seller, with each parcel's delivery fee. */
 export async function orderParcels(orderId: number) {
   const items = await all<any>(
-    `SELECT i.*, p.slug, p.name_sq, p.name_en, p.category_id, p.width_mm, p.height_mm, p.depth_mm, p.brand, p.model
+    `SELECT i.*, p.slug, p.name_sq, p.name_en, p.category_id, p.width_mm, p.height_mm, p.depth_mm, p.brand, p.model,
+            (SELECT path FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort, pi.id LIMIT 1) AS image
        FROM order_items i LEFT JOIN products p ON p.id = i.product_id WHERE i.order_id = ? ORDER BY i.id`,
     orderId,
   );
@@ -144,9 +139,9 @@ export async function orderParcels(orderId: number) {
   return groups;
 }
 
-export async function orderDrawing(it: any): Promise<string> {
-  if (!it.category_id) return '';
-  return drawProduct({ category: await categorySlug(it.category_id), w: it.width_mm, h: it.height_mm, d: it.depth_mm, dims: false, title: it.product_name });
+/** An order line's picture; the product may since have been archived, in which case the stand-in shows. */
+export function orderPhoto(it: { image?: string | null; brand?: string | null; model?: string | null; product_name: string }): string {
+  return photoHtml({ src: it.image, brand: it.brand ?? it.product_name, model: it.model ?? '' });
 }
 
 /**

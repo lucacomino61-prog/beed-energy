@@ -81,7 +81,6 @@ html.js .co-nojs-hint { display: none; }
 .bline__fig { grid-area: fig; align-self: start; aspect-ratio: 1; display: grid; place-items: center; padding: 0.5rem; border: 1px solid var(--line); color: var(--ink); background:
   linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 12px 12px,
   linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 12px 12px; background-color: var(--paper); }
-.bline__fig svg { width: 100%; height: 100%; }
 .bline__info { grid-area: info; display: grid; gap: 0.25rem; min-width: 0; }
 .bline__brand { font: 500 0.6875rem var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
 .bline__name { font-weight: 650; font-size: 1.0625rem; line-height: 1.25; overflow-wrap: anywhere; }

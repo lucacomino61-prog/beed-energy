@@ -41,6 +41,8 @@ export type Category = {
   sort: number;
   product_count?: number;
   min_price?: number | null;
+  /** A photo for the category's row in the shop: the main photo of one of its products. */
+  cover?: string | null;
 };
 
 export type SpecValue = number | string | boolean | null;
@@ -97,7 +99,9 @@ export async function categories(): Promise<Category[]> {
     `SELECT c.*,
             (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.status = 'published') AS product_count,
             (SELECT MIN(o.price_all) FROM offers o JOIN products p ON p.id = o.product_id
-              WHERE p.category_id = c.id AND p.status = 'published' AND o.active = 1) AS min_price
+              WHERE p.category_id = c.id AND p.status = 'published' AND o.active = 1) AS min_price,
+            (SELECT pi.path FROM product_images pi JOIN products p ON p.id = pi.product_id
+              WHERE p.category_id = c.id AND p.status = 'published' ORDER BY p.featured DESC, pi.sort, pi.id LIMIT 1) AS cover
        FROM categories c WHERE c.active = 1 ORDER BY c.sort, c.id`,
   );
 }

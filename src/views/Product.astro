@@ -2,13 +2,13 @@
 // Product page: the "Fleta teknike" (drawing + title block), the offers table sorted by total delivered,
 // specifications, price history, price alert, related products and the phone action bar.
 import Site from '../layouts/Site.astro';
-import ProductDrawing from '../components/ProductDrawing.astro';
+import ProductPhoto from '../components/ProductPhoto.astro';
 import ProductCard from '../components/ProductCard.astro';
 import OffersTable from '../components/OffersTable.astro';
 import PriceHistory from '../components/PriceHistory.astro';
 import SpecSheet from '../components/SpecSheet.astro';
 import TitleBlock from '../components/TitleBlock.astro';
-import { attributes, categoryById, offersFor, priceHistory, productCardsByIds, productSpecs, related } from '../lib/catalog';
+import { attributes, categoryById, offersFor, priceHistory, productCardsByIds, productImages, productSpecs, related } from '../lib/catalog';
 import { readCompare } from '../lib/basket';
 import { href, type Lang } from '../lib/i18n';
 import { cities as allCities, drawingNo, fitDesc, fitTitle, offerRows, parseSources, price, priceLong, unitPrice } from '../lib/shop-data';
@@ -27,6 +27,8 @@ const cat = (await categoryById(p.category_id))!;
 const card = (await productCardsByIds([p.id]))[0];
 const specs = await productSpecs(p.id, p.category_id);
 const attrs = await attributes(p.category_id);
+const photos = await productImages(p.id);
+const altOf = (ph: { alt_sq: string; alt_en: string }) => (lang === 'sq' ? ph.alt_sq : ph.alt_en) || name;
 const name: string = lang === 'sq' ? p.name_sq : p.name_en;
 const catName = lang === 'sq' ? cat.name_sq : cat.name_en;
 const summary: string = (lang === 'sq' ? p.summary_sq : p.summary_en) || '';
@@ -75,6 +77,7 @@ const jsonld: Record<string, unknown>[] = [
     sku: dno,
     category: catName,
     url: origin + path,
+    ...(photos.length ? { image: photos.map((ph) => origin + ph.path) } : {}),
     ...(p.weight_kg ? { weight: { '@type': 'QuantitativeValue', value: p.weight_kg, unitCode: 'KGM' } } : {}),
     ...(rows.length && lowPrice !== null
       ? {
@@ -121,13 +124,21 @@ const quoteHref = href(lang, 'quote', {}, { produkt: p.slug });
     </header>
 
     <section class="wrap sheet" aria-labelledby="product-title">
-      <figure class="sheet__drawing" data-fan-source>
-        <div class="sheet__paper">
-          <span class="sheet__corner sheet__corner--tl key" aria-hidden="true">{dno}</span>
-          <span class="sheet__corner sheet__corner--tr key" aria-hidden="true">{P.noScale}</span>
-          <ProductDrawing category={cat.slug_en} w={p.width_mm} h={p.height_mm} d={p.depth_mm} specs={card?.specs ?? {}} dims title={P.drawingAlt(name)} class="sheet__svg" />
+      <figure class="sheet__drawing gallery" data-fan-source>
+        <div class="sheet__paper gallery__main">
+          <ProductPhoto src={photos[0]?.path} alt={photos[0] ? altOf(photos[0]) : name} brand={p.brand} model={p.model} width={photos[0]?.width} height={photos[0]?.height} eager />
         </div>
-        <figcaption class="sheet__note small muted">{P.drawingNote}</figcaption>
+        {photos.length > 1 && (
+          <ul class="gallery__thumbs" role="list" aria-label={lang === 'sq' ? 'Fotot e produktit' : 'Product photos'}>
+            {photos.map((ph, i) => (
+              <li>
+                <a class="gallery__thumb" href={ph.path} data-gallery-thumb data-alt={altOf(ph)} data-w={ph.width ?? ''} data-h={ph.height ?? ''} aria-current={i === 0 ? 'true' : undefined}>
+                  <img src={ph.path} alt={`${lang === 'sq' ? 'Foto' : 'Photo'} ${i + 1}`} loading="lazy" decoding="async" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
       </figure>
 
       <div class="sheet__info">

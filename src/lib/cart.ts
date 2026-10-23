@@ -16,6 +16,8 @@ export const DEFAULT_DELIVERY: DeliverySettings = { zoneSurcharge: { '1': 0, '2'
 
 export type QuotedLine = {
   offerId: number;
+  /** The product's main photo, or null (src/lib/photo.ts draws the stand-in). */
+  image: string | null;
   productId: number;
   slug: string;
   name_sq: string;
@@ -76,7 +78,7 @@ export async function quote(input: CartLineInput[], opts: { cityId?: number | nu
     ? await all<any>(
         `SELECT o.id AS offerId, o.price_all, o.stock_qty, o.lead_days, o.min_qty, o.delivery_fee_all, o.free_delivery_over_all, o.active,
                 p.id AS productId, p.slug, p.name_sq, p.name_en, p.brand, p.model, p.category_id, p.status,
-                p.width_mm, p.height_mm, p.depth_mm,
+                p.width_mm, p.height_mm, p.depth_mm, (SELECT path FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort, pi.id LIMIT 1) AS image,
                 s.id AS sellerId, s.name AS sellerName, s.slug AS sellerSlug, s.commission_pct, s.status AS sellerStatus, s.delivery_zones
            FROM offers o JOIN products p ON p.id = o.product_id JOIN sellers s ON s.id = o.seller_id
           WHERE o.id IN (${ids.map(() => '?').join(',')})`,
@@ -104,6 +106,7 @@ export async function quote(input: CartLineInput[], opts: { cityId?: number | nu
     else if (!pickup && !zones.includes(String(zone))) problem = 'zone';
     lines.push({
       offerId: r.offerId,
+      image: r.image ?? null,
       productId: r.productId,
       slug: r.slug,
       name_sq: r.name_sq,

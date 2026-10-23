@@ -8,7 +8,7 @@ import '../styles/checkout.css';
 import { date, href, other, type Lang } from '../lib/i18n';
 import { lek, lekLong } from '../lib/money';
 import { tco } from '../i18n/checkout';
-import { bankDetails, orderDrawing, orderParcels, phoneDisplay } from '../lib/checkout-view';
+import { bankDetails, orderParcels, orderPhoto, phoneDisplay } from '../lib/checkout-view';
 import type { OrderState } from '../lib/checkout-flow';
 
 interface Props { lang: Lang; state: OrderState }
@@ -28,13 +28,6 @@ const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
 ) : (async () => {
   const k = o.token as string;
   const parcels = await orderParcels(o.id);
-  // The drawings are looked up by line below: the JSX map callback that renders them is not async,
-  // and orderDrawing has to read the item's category to pick the right drawing.
-  const drawings = new Map<number, string>(
-    await Promise.all(
-      parcels.flatMap((p: any) => p.items).map(async (it: any) => [it.id, await orderDrawing(it)] as const),
-    ),
-  );
   const pagesa = Astro.url.searchParams.get('pagesa');
   const paid = o.payment_status === 'paid';
   const isCard = o.payment_method === 'card';
@@ -126,7 +119,7 @@ const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
                   <ul class="parcel__lines" role="list">
                     {p.items.map((it: any) => (
                       <li class="bline bline--order">
-                        <span class="bline__fig" aria-hidden="true" set:html={drawings.get(it.id) ?? ""} />
+                        <span class="bline__fig" aria-hidden="true" set:html={orderPhoto(it)} />
                         <div class="bline__info">
                           {it.brand && <p class="bline__brand">{it.brand}</p>}
                           <p class="bline__name">{it.slug ? <a href={href(lang, 'product', { slug: it.slug })}>{(lang === 'sq' ? it.name_sq : it.name_en) || it.product_name}</a> : it.product_name}</p>
