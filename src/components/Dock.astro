@@ -1,0 +1,22 @@
+---
+// Phone-only bottom dock (Fluid Glass's docked pill): search, categories, compare, basket within thumb reach.
+import { href, type Lang, type RouteKey } from '../lib/i18n';
+import { tc } from '../i18n/common';
+interface Props { lang: Lang; current?: RouteKey; cartCount: number; compareCount: number; }
+const { lang, current, cartCount, compareCount } = Astro.props;
+const t = tc(lang);
+---
+<nav class="dock" aria-label={lang === 'sq' ? 'Shpejt' : 'Quick'}>
+  <a href={href(lang, 'search')} aria-current={current === 'search' ? 'page' : undefined}>
+    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8.5" cy="8.5" r="5.5" /><path d="m13 13 4.5 4.5" /></svg>{t.dock.search}
+  </a>
+  <button type="button" data-menu-open aria-controls="site-menu" aria-expanded="false">
+    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4h14M3 10h14M3 16h9" /></svg>{t.dock.categories}
+  </button>
+  <a href={href(lang, 'compare')} aria-current={current === 'compare' ? 'page' : undefined}>
+    <span class="count" data-compare-count data-zero={compareCount === 0 ? 'true' : 'false'}><span aria-hidden="true" data-n>{compareCount}</span></span>{t.dock.compare}
+  </a>
+  <a href={href(lang, 'cart')} aria-current={current === 'cart' ? 'page' : undefined}>
+    <span class="count" data-cart-count data-zero={cartCount === 0 ? 'true' : 'false'}><span aria-hidden="true" data-n>{cartCount}</span></span>{t.dock.cart}
+  </a>
+</nav>

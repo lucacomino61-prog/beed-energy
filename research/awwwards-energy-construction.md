@@ -101,7 +101,7 @@ Split: 11 energy/climate (E1 to E11; E6 is also a building-materials company), 9
 - **Signature:** one product → a fleet. Scale is shown by multiplying the product on scroll.
 - **Micro-interactions:** Awwwards lists an "Energy Stream Interaction" (mouse-driven light streaks) and two illustrations ("Power Quality", "Grid Volatility").
 - **Type / colour:** Univers Next Pro (H1 64px, weight 300) + ABC Monument Grotesk Mono. Palette #FFF313 / #000000.
-- **Stack:** Nuxt + Lenis detected; Awwwards: WebGL, 3D, Figma. rAF ≈129/s.
+- **Stack:** fingerprint: Nuxt (Vue) + **Storyblok** CMS, GSAP (bundled), Lenis, three.js r180; 16.4 of its 21.7 MB first load is video. Awwwards: WebGL, 3D, Figma. rAF ≈129 to 140/s.
 - **For BeeD:** "one product, many offers" is exactly price comparison: a single product card can fan out into the seller offers behind it.
 
 ### E3. Breakthrough Energy
@@ -159,7 +159,7 @@ Split: 11 energy/climate (E1 to E11; E6 is also a building-materials company), 9
 - **Signature:** the product as the camera: one pinned object carries the whole story.
 - **Micro-interactions:** Awwwards lists on-scroll product presentation, on-scroll title animation, project simulation form, product card.
 - **Type / colour:** Altform (one family, weights up to 900). Palette #053725 / #F9F7E7.
-- **Stack:** WordPress 7.1.3 (generator tag) + Lenis detected; Awwwards: WordPress, GSAP, Blender. rAF ≈126/s.
+- **Stack:** fingerprint: WordPress 7.1.3 + jQuery 3.7.1, GSAP (bundled) with split text, Lenis, Taxi.js page transitions; no canvas (the product scenes are pre-rendered images, made in Blender per Awwwards). First load 7.35 MB, 47 requests (second-lightest of the five measured, after Edifis). rAF ≈126 to 134/s.
 - **For BeeD:** proof that a bilingual site with a pinned-product story and a "simulate my project" form wins at SOTD level; a solar-kit configurator could play the same role.
 
 ### E6. Heidelberg Materials: CCUS experience
@@ -249,7 +249,7 @@ Split: 11 energy/climate (E1 to E11; E6 is also a building-materials company), 9
 - **For BeeD:** the value chain as chapter order (generation → grid → customer) and an "energy-saving mode" switch that turns off heavy visuals; for an energy brand that switch is on-message.
 
 ### E11. Prometheus Fuels
-- **URL:** https://www.prometheusfuels.com/ (now redirects towards prometheusfuels.ai) · Awwwards: https://www.awwwards.com/sites/prometheus-fuels
+- **URL:** https://www.prometheusfuels.com/ (redirects to the apex domain) · Awwwards: https://www.awwwards.com/sites/prometheus-fuels
 - **Award:** SOTD 4 May 2021 + Developer Award; the card in Awwwards' Sites of the Year list carries a **"Site Of The Year 2021"** badge (that list shows several 2021 SOTY badges, so which annual category it won is UNVERIFIED). **Jury 8.40** (8.50 / 7.77 / **8.94 Creativity** / 8.79); Dev 7.61. Highest score in this set.
 - **Agency:** Active Theory.
 - **What it is (Awwwards description):** a stylised interactive WebGL story explaining how the company makes fuel from CO₂ in the air.
@@ -266,7 +266,7 @@ Split: 11 energy/climate (E1 to E11; E6 is also a building-materials company), 9
 - **URL:** https://belgradearbor.rs/en · Awwwards: https://www.awwwards.com/sites/belgrade-arbor
 - **Award:** SOTD 17 Oct 2026 + Developer Award (the newest winner in this set). **Jury 7.22** (7.38 / 6.84 / 7.38 / 7.41); Dev 7.33.
 - **Agency:** Square43 Studio.
-- **What it is:** a residential, office and retail complex in New Belgrade. It is the only Balkan winner found, and bilingual.
+- **What it is:** a residential, office and retail complex in New Belgrade. It is the only Balkan Site of the Day found in this research (the only other Balkan entry, Dager Engineering of Bulgaria, has an Honorable Mention), and it is bilingual.
 - **Bilingual:** `hreflang` en + sr + x-default.
 - **Scroll story (captured, 16 frames, page 20,123 px):**
   1. **Preloader:** cream screen, gold tree-canopy logo, a percentage counter (0% → 53% at 1.5 s) on a hairline progress bar; then two vertical hairlines open like a curtain onto the hero.
@@ -275,14 +275,14 @@ Split: 11 energy/climate (E1 to E11; E6 is also a building-materials company), 9
   4. Second statement (an urban ecosystem), more polygon images.
   5. Large serif headline about a new chapter in prestige living, word-by-word reveal; CTA to the apartments.
   6. Location: a curtain/window video with "LOCATION" in giant gold serif.
-  7. What's around: a typographic list of nearby places (railway station, school, a shopping centre, Airport City, a food market, Nikola Tesla airport) next to an **isometric line map** with pins; picking a place shows its travel time.
+  7. What's around: a large serif list of nearby places (Railway Station, Savremena Elementary School, West 65, Airport City, Hangar Food Market, Airport Nikola Tesla) next to an **isometric line map** with pins. The active place turns italic with a marker bar, its pin turns dark with a photo thumbnail, and a car icon shows the drive time (9 min for the airport).
   8. Residences: unit types (studio to four-bedroom) as a large serif list with a hover image, closing on an availability line ("80 units available", developer's figure) and a "Submit a request" button.
   9. Offices and retail: giant serif chapter title over a fabric close-up; wings A/B/V + retail as a list (e.g. 11 retail and hospitality units, developer's figure).
   10. Lifestyle chapter, amenities, aerial view.
 - **Menu:** a floating dark pill, top centre: "MENU" · logo · "INQUIRE". Full-screen menu: Home, 3D Experience, Residences, Business, Retail Spaces, Location, Amenities, Contact, About the investor.
 - **Signature:** brand-derived image masks (the canopy façade turned into crop shapes) plus a "what's around" map.
 - **Type / colour:** Editorial Old (serif display, H1 ≈151px) + Work Sans. Palette #F4F0DB / #2E3A26 (cream / forest green), gold accents.
-- **Stack:** Next.js + three.js + Lenis detected; Awwwards: Next.js, GSAP, Three.js. rAF ≈187/s.
+- **Stack:** fingerprint: Next.js (app router) + React, GSAP (bundled) + ScrollTrigger, Lenis, three.js r184, Keen Slider, Tailwind; Awwwards: Next.js, GSAP, Three.js. rAF ≈187 to 256/s.
 - **For BeeD:** a regional reference (Serbian market, en/sr) showing that a Balkan client can carry a SOTD-level bilingual site; the "what's around" map translates to "sellers and installers near you".
 
 ### C2. ERA Residence
@@ -309,7 +309,7 @@ Split: 11 energy/climate (E1 to E11; E6 is also a building-materials company), 9
 - **URL:** https://www.marvellco.com.au/ · Awwwards: https://www.awwwards.com/sites/marvell-tile-stone
 - **Award:** SOTD 7 May 2026 + Developer Award. **Jury 7.26** (7.31 / 7.25 / 7.10 / 7.42); Dev 7.13.
 - **Agency:** Humaan.
-- **What it is:** a Perth tiling and natural-stone firm (installer/supplier). It is the closest "materials trade" business in the set.
+- **What it is:** a Perth tiling and natural-stone company (its page title calls them artisans). It is the closest "materials trade" business in the set.
 - **Story (captured):**
   1. **Preloader:** near-black screen with a faint grid; a two-line phrase about traditional craftsmanship **swaps line by line** into the company name.
   2. The background turns warm white; the name stays centred in white.
@@ -322,7 +322,7 @@ Split: 11 energy/climate (E1 to E11; E6 is also a building-materials company), 9
 
 ### C4. Fluid Glass
 - **URL:** https://fluid.glass/ · Awwwards: https://www.awwwards.com/sites/fluid-glass
-- **Award:** SOTD 30 Mar 2026 + Developer Award + Business & Services Honors (Mar 2026). **Jury 7.77** (7.96 / 7.60 / 7.63 / 7.88); **Dev 8.00** (highest Dev score among the construction sites).
+- **Award:** SOTD 30 Mar 2026 + Developer Award + Business & Services Honors (Mar 2026). **Jury 7.77** (7.96 / 7.60 / 7.63 / 7.88); **Dev 8.00** (the highest Developer score in the whole set).
 - **Agency:** Exo Ape.
 - **What it is:** UK maker and installer of bespoke architectural and structural glazing (sliding doors, steel-look windows, extensions, rooflights).
 - **Scroll story (captured on a virtual scroller, 15 frames):**
@@ -346,7 +346,7 @@ Split: 11 energy/climate (E1 to E11; E6 is also a building-materials company), 9
 - **Agency:** Series Eight.
 - **What it is:** a Singapore manufacturer (since 1994) of engineered-stone gratings, drain covers and breeze blocks, **with an online shop**.
 - **Scroll story (captured, 16 frames, page 15,240 px; the WebGL hero did not render headless):**
-  1. Hero (stone grating in 3D per Awwwards' "Scroll Animations"), client logos.
+  1. Hero: a WebGL canvas (blank in headless) under an H1 about decorative stone grating, then client logos.
   2. "Made to matter": giant type assembling word by word.
   3. Shop teaser: design your feature wall, now orderable online.
   4. Awards, why Jonite.
@@ -356,9 +356,10 @@ Split: 11 energy/climate (E1 to E11; E6 is also a building-materials company), 9
   8. **Samples:** order a sample box (three stone swatches).
   9. Custom solutions (colours, shapes, branding), case studies by sector, insights (articles).
 - **Menu:** top bar: Products ▾, Specs, Case Studies, About ▾, Contact, Shop; a thin announcement bar above. **Fixed bottom bar:** Request samples · Contact us · Chat on WhatsApp.
+- **Product page (fingerprint run, Tessera Collection):** a "back to breeze blocks" mono breadcrumb, a giant collection title, two buttons side by side (**"Request a quote"** outlined, **"Shop now"** filled), then a **four-column spec strip** with mono labels: Compliance (fire rating), Suitable for (indoor/outdoor), Materials (aggregate and recycled-content percentages), Formats (variants, colours, custom). The script found no visible price and 3 add-to-cart controls on that page; JSON-LD `ProductGroup` + `BreadcrumbList`.
 - **Signature:** a manufacturer site that is also a shop: specs, samples, visualiser and checkout in one flow. Awwwards elements include product categories, category page, **technical specifications**, custom solutions, collections, case studies.
 - **Type / colour:** PP Neue Montreal + Silka Mono. Palette #0E0E0E / #E6E7E8, khaki-olive sections.
-- **Stack:** GSAP 3.13 + ScrollTrigger + Lenis + Swiper detected, SEOmatic tag; Awwwards: **Shopify + Craft CMS**, Figma. rAF ≈320/s.
+- **Stack:** fingerprint: **Shopify + Craft CMS**, Alpine.js, GSAP 3.13 + ScrollTrigger + Lenis + Barba.js + Swiper, Tailwind; Awwwards also lists Figma. rAF ≈320/s.
 - **For BeeD:** the nearest thing in the set to BeeD's product side: category → spec sheet → sample/quote → buy online, with a WhatsApp bar.
 
 ### C6. Composites.archi
@@ -416,7 +417,7 @@ Split: 11 energy/climate (E1 to E11; E6 is also a building-materials company), 9
 - **Menu:** hamburger top right opening a **3D interactive full-screen menu** (Awwwards element); fullscreen page transitions; button micro-interactions.
 - **Signature:** sticky stat stack with paired images; the 3D menu.
 - **Type / colour:** Neue Haas Grotesk Display + Akkurat Mono. Palette #1B2C50 / #C7CBCB (navy / concrete grey).
-- **Stack:** Nuxt + three.js + Swiper + Prismic detected. rAF ≈67/s.
+- **Stack:** fingerprint: Nuxt (Vue) + Prismic, GSAP (bundled) + ScrollTrigger, three.js r146, Swiper; 3.57 MB first load, the lightest measured. rAF ≈67/s (close to a single loop).
 - **For BeeD:** a bilingual (EN/FR) construction-sector winner; its stat stack is the right way to show marketplace numbers once they are real.
 
 ### C9. Decor Systems
@@ -483,7 +484,7 @@ Scores from each site's Awwwards page (2026-10-23); HM pages show no jury score.
 | Populous (stadium architects) | SOTD 20 Sep 2024 + Dev | 7.26 | Locomotive | 3D globe of projects, menu and filters. |
 | Lyon Béton (concrete objects, WooCommerce shop) | SOTD 8 May 2024 + Dev | 7.37 | Rémi Clauss | Cart, configurator, pro-corner login. |
 | Mighty Buildings (3D-printed homes) | HM 9 May 2024 | none | Baunfire | |
-| Kōzōwood (timber housing) | SOTD 5 Feb 2024 + Dev | 7.52 | Bürocratik | |
+| Kōzōwood (timber housing) | SOTD 5 Feb 2024 + Dev + Honors Jan 2024 | 7.52 | Bürocratik | |
 | Autex Acoustics (acoustic panels) | SOTD 25 Sep 2023 + Dev | 7.48 | Obys | Live site in Oct 2026 runs on WordPress with a region modal (NZ/AU/US/UK/IE) that blocked scrolling in our capture; may not be the 2023 build. |
 | Modelec (electrical fittings maker) | SOTD 25 Aug 2023 + Dev | 7.34 | Rezo Zero | WebGL product configurator. |
 | Units: Future Living (modular units) | SOTD 7 Oct 2023 | 7.27 | Radiance | |
@@ -501,15 +502,15 @@ Scores from each site's Awwwards page (2026-10-23); HM pages show no jury score.
 Counted across the 20 profiles (live captures, 2026-10-23):
 
 - **Full-bleed asset beauty shot or video as the hero** (data hall, drone on a power line, EV at a house, glass extension, building render, wall unit in a room): **10 of the 18** winning builds we could see (NRG, ON Energy, Heimdall, Caeli, Zaptec, Belgrade Arbor, ERA, Marvell, Fluid Glass, Jonite). The other 8 open on type or an abstract scene (Heidelberg, Aramco, State of the Transition, Enpower, Composites.archi, Sculpting Harmony, Edifis, Decor Systems). The jury noticed: the asset-hero group averages **7.36 Creativity / 7.36 overall**, the type-or-abstract group **7.93 Creativity / 7.63 overall**; the seven highest Creativity sub-scores (excluding the offline Prometheus build) all belong to the second group. Small sample and our own classification, but the direction is clear: the asset beauty shot is the category default and it does not score.
-- **Grand two-to-four-word abstractions in giant type** (power, passion, revolution, era, harmony puns): almost every site. Energy copy leans on "power" wordplay (Enpower, Heimdall, NRG, ON). Refuse the pun.
+- **Grand two-to-four-word abstractions in giant type** (power, passion, revolution, era, harmony): most of the sites. Energy copy leans on "power" wordplay (Enpower, Heimdall, NRG, ON). Refuse the pun.
 - **Green means sustainable, yellow/lime means energy:** green-led palettes at Caeli (#053725), Belgrade Arbor (#2E3A26), Heidelberg (#00DD39 / #004E2B); yellow/lime/orange accents at ON (#FFF313), NRG (#FFC20E), Breakthrough (#DFFF5C), Heimdall (#FF5C39). Albanian buyers will see the same green and lime on every solar installer's site.
 - **Nature as alibi:** forest or mountain scenes closing the story (Caeli, Heimdall, Zaptec, Fluid Glass footer).
 - **The three-number stat row** (GW, %, ft², tenants, projects): ON, Heimdall, Edifis, Belgrade Arbor. Fine when numbers are real; a cliché when they are vanity.
-- **Customer-logo wall + one big testimonial:** Heimdall, ON, Edifis, Fluid Glass.
-- **Giant wordmark footer:** Caeli, Edifis, Fluid Glass, Jonite.
+- **Customer logos and one big testimonial:** Heimdall (logos + quote), ON Energy (customer quote), Edifis (tenant logos + quote), Fluid Glass (Google reviews).
+- **Giant wordmark footer:** Caeli, Edifis, Fluid Glass.
 - **3D object floating on black** (ON, Heimdall): the "serious tech" look of 2025-26.
 
-Stock imagery none of these winners used, and BeeD should avoid as well: blue-sky solar panel close-ups, wind turbines at sunset, green leaves or leaf-plug icons, hard hats and handshakes, a globe held in hands, light bulbs with plants inside. The winners replaced them with renders of their own product, archive material or the real site.
+None of the winning builds we captured used the sector's stock clichés, and BeeD should not either: blue-sky solar-panel close-ups, wind turbines at sunset, green leaves or leaf-plug icons, hard hats and handshakes, a globe held in hands, light bulbs with plants inside. The winners used renders of their own product, archive material or their real sites instead. The only solar-farm-at-sunset hero we met was on the template that replaced Prometheus Fuels' winning build.
 
 ### 5.2 Techniques worth borrowing (18)
 
@@ -524,10 +525,10 @@ Stock imagery none of these winners used, and BeeD should avoid as well: blue-sk
 | 7 | **Configurator / visualiser** | Jonite wall visualiser (C5), Caeli "simulate my project" (E5); Modelec WebGL configurator (longlist) | A solar sizing tool (monthly kWh → kWp → panels, inverter, battery from real listings) or an area calculator (m² → boxes of tiles, bags of adhesive). Only with transparent formulas and cited irradiation data. |
 | 8 | **Technical calculator in the utility nav** | Decor Systems "Group Fire Rating Calculator" (C9) | "Llogaritës" for installers: cable cross-section, panel string size, tile quantity. Tools bring trade users back. |
 | 9 | **Sticky stat stack paired with images** | Edifis (C8) | Marketplace figures (sellers, products, regions served) as sticky rows, each with a real photo. Only after launch, from the database, never invented. |
-| 10 | **Availability chips on cards** ("occupied until 2033", "80 units available") | Edifis (C8), Belgrade Arbor (C1) | Stock and lead time per seller offer ("Në gjendje", "Me porosi: 5 to 7 ditë") on cards and in the comparison table. |
+| 10 | **Availability chips on cards** ("occupied until 2033", "80 units available") | Edifis (C8), Belgrade Arbor (C1) | Stock and lead time per seller offer ("Në gjendje", "Me porosi: 5-7 ditë") on cards and in the comparison table. |
 | 11 | **"What's around" map with travel times** | Belgrade Arbor (C1), ERA coastline route (C2) | Sellers, warehouses and installers on a map of Albania with delivery times by city (Tirana, Durrës, Shkodër, Vlorë, Korçë…). |
 | 12 | **Word-swap preloader** (a phrase swaps into the brand name) | Marvell (C3); percentage + curtain at Belgrade Arbor (C1) | A bilingual swap is natural: "Ndërtim" ↔ "Construction", "Energji" ↔ "Energy" → "BeeD Energy". Under 1.5 s, once per session, with a hard time-out (see the Breakthrough lesson). |
-| 13 | **Energy-saving mode switch** | Enpower Trading (E10) | A "Modalitet kursimi" toggle that turns off WebGL/video: on-message for an energy brand, kind to mobile data in Albania and to `prefers-reduced-motion`. |
+| 13 | **Energy-saving mode switch** | Enpower Trading (E10) | A "Modaliteti i kursimit" toggle that turns off WebGL/video: on-message for an energy brand, kind to mobile data in Albania and to `prefers-reduced-motion`. |
 | 14 | **Bottom-docked pill navigation** | Fluid Glass (C4); floating top pills at Heimdall (E4) and Belgrade Arbor (C1) | On phones: a bottom dock (Kërko · Kategori · Krahaso · Shporta) within thumb reach; the shop must be usable one-handed. |
 | 15 | **Fixed action bar: samples / quote / WhatsApp** | Jonite (C5), Decor Systems (C9) | On product pages: "Kërko ofertë" (RFQ), "Pyet shitësin" (message the seller), and a chat link, which matches the brief's "direct communication between parties". |
 | 16 | **Chapters with an index and a resume interstitial** | Sculpting Harmony (C7) | The story home page gets a chapter index and a permanent "go to shop" exit, so buyers are never trapped in the story. |
@@ -536,7 +537,7 @@ Stock imagery none of these winners used, and BeeD should avoid as well: blue-sk
 
 ### 5.3 Scroll-storytelling patterns for data-heavy stories
 
-1. **Value-chain chapter order.** Enpower orders its chapters Solar → Wind → Hydro → Transmission → Aggregation → Customer → Future market; Aramco orders by deep time (geology → first well → today → tomorrow). For BeeD: Sun/resource → Product → Seller → Installer → Home/Business → Grid, one chapter each, so each one ends on its shop category.
+1. **Value-chain chapter order.** Enpower orders its chapters Solar → Wind → Hydro → Transmission → Aggregation → Customer → Future market; Aramco orders by deep time (geology → the search → a dated chapter, 4 March 1938 → today → tomorrow). For BeeD: Sun/resource → Product → Seller → Installer → Home/Business → Grid, one chapter each, so each one ends on its shop category.
 2. **Pinned number, moving context.** ON Energy pins big numbers with superscript units (GW, %) in cards; Heimdall pairs each number with a one-line label and a single graphic. Numbers count up once, then stay still; units small and raised; the source in a footnote line under the card.
 3. **Sticky stat stack.** Edifis: each stat is its own sticky row; the paired image grows as the row reaches the top. Good for 3 to 5 numbers.
 4. **Phase timeline with nodes.** NRG: a five-phase process where each phase expands into a checklist of 10+ items; the menu doubles as the progress list. Works for "how to build/renovate with BeeD" and for order tracking later.
@@ -549,7 +550,7 @@ Stock imagery none of these winners used, and BeeD should avoid as well: blue-sk
 
 ### 5.4 Stack observations (for the build)
 
-- **Lenis** smooth scrolling was detected on **12 of the 19** winning builds still online (NRG, ON Energy, Breakthrough, Heimdall, Caeli, Enpower, Belgrade Arbor, ERA, Fluid Glass, Jonite, Composites.archi, Sculpting Harmony; detection = Lenis's `html.lenis` class or a global). **GSAP** is named by Awwwards or detected on 7 (Breakthrough, Caeli, Belgrade Arbor, ERA 3.15, Fluid Glass, Jonite 3.13, Sculpting Harmony via ScrollTrigger).
+- **Lenis** smooth scrolling was detected on **12 of the 19** winning builds still online (NRG, ON Energy, Breakthrough, Heimdall, Caeli, Enpower, Belgrade Arbor, ERA, Fluid Glass, Jonite, Composites.archi, Sculpting Harmony; detection = Lenis's `html.lenis` class or a global). **GSAP** is named by Awwwards or detected on 9 (Breakthrough, Caeli, Belgrade Arbor, ERA 3.15, Fluid Glass, Jonite 3.13, Sculpting Harmony via ScrollTrigger, and bundled in ON Energy and Edifis per the fingerprint runs).
 - **Frameworks:** Nuxt 6 (ON Energy, Fluid Glass, Edifis, Sculpting Harmony, Heidelberg, Composites.archi), Next.js 4 (Belgrade Arbor, Marvell, Zaptec, Enpower), Webflow 2 (Heimdall, ERA), WordPress 1 (Caeli), Gatsby 1 (Decor Systems), Vue 1 (Breakthrough). The only real shop stack among the profiles is **Shopify + Craft CMS** (Jonite); in the longlist Lyon Béton runs WooCommerce.
 - **three.js** was detected on 9 of 19 (Heimdall, Enpower, Belgrade Arbor, Edifis, Sculpting Harmony, Heidelberg, Aramco, State of the Transition, Composites.archi), mostly for one hero object or one signature scene, not for the whole page.
 - **Loop count:** rAF calls per second ranged from 61 (Marvell, a single loop) and 67 (Edifis) to about 840 (Sculpting Harmony). Most sites ran 2 to 5 loops at once (100 to 320/s). This supports the project rule of one animation engine and one loop.
@@ -562,6 +563,20 @@ Stock imagery none of these winners used, and BeeD should avoid as well: blue-sk
 - No energy winner localises for a small market in its own language as the default. Caeli (French) and Belgrade Arbor (Serbian alternate) are the nearest precedents; an Albanian-first site is unclaimed ground.
 - Accessibility and resilience are weak spots in the category: a stuck loader (Breakthrough), blocking locale modals (Zaptec, Autex), low-contrast hero text (Marvell). A SOTD-level site whose shop also works with JavaScript off and loads fast would stand out on Usability: it is the lowest of the four jury sub-scores on 15 of the 20 profiled sites (range 6.72 to 7.77).
 
+### 5.6 Build fingerprints (awwwards-blueprints `fingerprint.mjs`, cold cache, this machine)
+
+| Site | Framework / CMS | Motion + render | First load | Lab LCP / CLS | Reduced-motion rules | A11y quick check |
+|---|---|---|---|---|---|---|
+| Jonite (C5), with product page | Shopify + Craft CMS, Alpine.js, Tailwind | GSAP 3.13 + ScrollTrigger, Lenis, Barba.js, Swiper | 23.5 MB, 530 requests (17.7 MB images) | 2.48 s / 0.111 | 5 | skip link yes, landmarks yes, 0 unnamed buttons |
+| Belgrade Arbor (C1) | Next.js app router, Tailwind | GSAP (bundled) + ScrollTrigger, Lenis, three.js r184, Keen Slider | 17.5 MB, 86 requests (12.6 MB video) | 1.29 s / 0.069 | 0 | no skip link, 9 unnamed buttons |
+| ON Energy (E2) | Nuxt (Vue) + Storyblok | GSAP (bundled), Lenis, three.js r180 | 21.7 MB, 428 requests (16.4 MB video) | 1.64 s / 0.000 | 0 | no skip link, 2 unnamed buttons |
+| Caeli Énergie (E5) | WordPress + jQuery 3.7.1, Tailwind | GSAP (bundled) + split text, Lenis, Taxi.js | 7.35 MB, 47 requests (6.4 MB images) | 2.19 s / 0.040 | 0 | no skip link, only header/footer landmarks |
+| Edifis (C8) | Nuxt (Vue) + Prismic | GSAP (bundled) + ScrollTrigger, three.js r146, Swiper | **3.57 MB**, 95 requests | 16.3 s / 1.908 (the intro loader and late hero inflate both) | **20** | no skip link, 4 images without alt, 5 unnamed buttons |
+
+Decor Systems (C9) timed out in the fingerprint run (30 s navigation time-out) and is not in the table.
+
+What this says for BeeD: three of the five are heavy (17 to 24 MB first load, mostly video and images), while Caeli (7.4 MB) and Edifis (3.6 MB) won with far less; only Edifis ships a meaningful set of `prefers-reduced-motion` rules (20), three ship none. On Albanian mobile connections a marketplace cannot afford that weight on product and category pages; keep heavy media to the story home, stream it, and give the shop a light budget. Jonite shows the right shop basics (skip link, landmarks, named buttons, JSON-LD `ProductGroup` + `BreadcrumbList`).
+
 ---
 
 ## 6. Sources (all read 2026-10-23)
@@ -570,6 +585,6 @@ Awwwards listings: https://www.awwwards.com/websites/sites_of_the_day/ (pages 1 
 
 Awwwards site pages (score, sub-scores, elements, palette, technologies): https://www.awwwards.com/sites/<slug> for every slug linked above.
 
-Live sites: the URLs in each profile, captured with headless Chrome (frames and JSON in the scratchpad `research/story/<name>/`, not in the project).
+Live sites: the URLs in each profile, captured with headless Chrome. Evidence (not in the project): frames, contact sheets and JSON in `C:/Users/User/AppData/Local/Temp/claude/C--Users-User-Documents-LC/fa85b45b-d856-4812-a1c9-44840e102171/scratchpad/research/story/<name>/`, fingerprint JSON and screenshots in `…/scratchpad/research/fingerprints/`, raw Awwwards HTML in `…/scratchpad/research/raw/`. The scratchpad is temporary.
 
 Other: Moxion Power shutdown: https://techcrunch.com/2025/09/26/battery-startup-moxion-went-bankrupt-now-its-founder-is-back-to-finish-what-we-started and https://latitudemedia.com/news/portable-battery-startup-moxion-is-bankrupt-what-happened

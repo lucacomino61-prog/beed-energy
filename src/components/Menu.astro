@@ -1,0 +1,51 @@
+---
+// Full-screen menu: every category with its live product count and lowest price (Decor Systems' counts, see DESIGN.md).
+import BrandMark from './BrandMark.astro';
+import { categories } from '../lib/catalog';
+import { href, type Lang } from '../lib/i18n';
+import { lek } from '../lib/money';
+import { tc } from '../i18n/common';
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+const t = tc(lang);
+const cats = categories();
+---
+<div class="menu on-ink" id="site-menu" hidden data-menu role="dialog" aria-modal="true" aria-label={t.nav.menu}>
+  <div class="menu__top">
+    <a class="brand" href={href(lang, 'home')}><BrandMark /><span translate="no">Bee<b>D</b> Energy</span></a>
+    <button class="btn btn--ghost btn--s" type="button" data-menu-close>{t.nav.close} <span aria-hidden="true">✕</span></button>
+  </div>
+  <div class="menu__grid">
+    <div class="menu__cats">
+      <h2 class="eyebrow" style="grid-column:1/-1;margin-bottom:.5rem">{t.menu.heading} · {cats.length}</h2>
+      {cats.map((c, i) => (
+        <a class="menu__cat" href={href(lang, 'category', { slug: lang === 'sq' ? c.slug_sq : c.slug_en })}>
+          <span class="n">{String(i + 1).padStart(2, '0')}</span>
+          <span class="name">{lang === 'sq' ? c.name_sq : c.name_en}</span>
+          <span class="meta">{t.menu.products(c.product_count ?? 0)}<br />{c.min_price ? `${t.menu.from} ${lek(c.min_price, lang)}` : t.menu.empty}</span>
+        </a>
+      ))}
+    </div>
+    <div class="menu__side">
+      <nav class="menu__big" aria-label={t.nav.menu}>
+        <a href={href(lang, 'shop')}>{t.nav.shop}</a>
+        <a href={href(lang, 'calculator')}>{t.nav.calculator}</a>
+        <a href={href(lang, 'quote')}>{t.nav.quote}</a>
+        <a href={href(lang, 'sellers')}>{t.nav.sellers}</a>
+        <a href={href(lang, 'sell')}>{t.nav.sell}</a>
+      </nav>
+      <form class="stack-s" action={href(lang, 'search')} method="get" role="search">
+        <label class="eyebrow" for="menu-q">{t.nav.search}</label>
+        <div class="row" style="flex-wrap:nowrap">
+          <input class="input" id="menu-q" name="q" type="search" autocomplete="off" placeholder={lang === 'sq' ? 'p.sh. invertor hibrid, lesh guri…' : 'e.g. hybrid inverter, stone wool…'} style="background:transparent;color:inherit;border-color:var(--line-on-ink)" />
+          <button class="btn btn--copper" type="submit">{t.nav.search}</button>
+        </div>
+      </form>
+      <ul class="stack-s" style="list-style:none;padding:0">
+        <li><a class="link-arrow" href={href(lang, 'about')}><span>{t.nav.about}</span><span class="arrow" aria-hidden="true">→</span></a></li>
+        <li><a class="link-arrow" href={href(lang, 'contact')}><span>{t.nav.contact}</span><span class="arrow" aria-hidden="true">→</span></a></li>
+      </ul>
+      <button class="saver" type="button" aria-pressed="false" data-saver><span class="saver__track" aria-hidden="true"></span><span>{t.saver.label}</span></button>
+    </div>
+  </div>
+</div>

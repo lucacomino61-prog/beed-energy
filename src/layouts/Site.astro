@@ -1,0 +1,105 @@
+---
+// Public layout: head (meta, hreflang, fonts, motion state before first paint), header, menu, dock, compare tray, footer.
+import '../styles/tokens.css';
+import '../styles/base.css';
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Menu from '../components/Menu.astro';
+import Dock from '../components/Dock.astro';
+import Footer from '../components/Footer.astro';
+import Tray from '../components/Tray.astro';
+import Loader from '../components/Loader.astro';
+import { cartCount, readCart, readCompare } from '../lib/basket';
+import { LOCALE, type Lang, type RouteKey } from '../lib/i18n';
+import { tc } from '../i18n/common';
+
+interface Props {
+  lang: Lang;
+  title: string;
+  description: string;
+  alternate: string; // same page in the other language
+  current?: RouteKey;
+  tone?: 'paper' | 'ink'; // header colour over the first screen
+  noindex?: boolean;
+  jsonld?: Record<string, unknown>[];
+  loader?: boolean;
+  hideTray?: boolean;
+  bodyClass?: string;
+}
+const { lang, title, description, alternate, current, tone = 'paper', noindex = false, jsonld = [], loader = false, hideTray = false, bodyClass } = Astro.props;
+const t = tc(lang);
+const site = Astro.site?.origin ?? Astro.url.origin;
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+const canonical = site + path + (Astro.url.searchParams.has('p') && current === 'compare' ? `?p=${Astro.url.searchParams.get('p')}` : '');
+const altUrl = site + alternate.split('?')[0];
+const sqUrl = lang === 'sq' ? site + path : altUrl;
+const enUrl = lang === 'en' ? site + path : altUrl;
+const cart = readCart(Astro.cookies);
+const cmp = readCompare(Astro.cookies);
+const fullTitle = title.includes('BeeD') ? title : `${title} · BeeD Energy`;
+const org = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'BeeD Energy',
+  legalName: 'BeeD Consulting sh.p.k.',
+  taxID: 'M41722050A',
+  address: { '@type': 'PostalAddress', addressLocality: 'Tiranë', addressCountry: 'AL' },
+  url: site,
+};
+---
+<!doctype html>
+<html lang={lang} data-motion="on" id="top">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang="sq" href={sqUrl} />
+    <link rel="alternate" hreflang="en" href={enUrl} />
+    <link rel="alternate" hreflang="x-default" href={sqUrl} />
+    {noindex && <meta name="robots" content="noindex, follow" />}
+    <meta name="theme-color" content="#f6f2ea" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="BeeD Energy" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={LOCALE[lang].replace('-', '_')} />
+    <meta property="og:image" content={`${site}/og.png`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="/fonts/archivo-latin.v1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/geist-mono-latin.v1.woff2" as="font" type="font/woff2" crossorigin />
+    <style is:inline>@view-transition { navigation: auto; }</style>
+    <script is:inline>
+      (function () {
+        var d = document.documentElement;
+        d.classList.add('js');
+        var off = false;
+        try { off = localStorage.getItem('beed-motion') === 'off'; } catch (e) {}
+        if (!off && window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) off = true;
+        d.setAttribute('data-motion', off ? 'off' : 'on');
+      })();
+    </script>
+    <script type="application/ld+json" set:html={JSON.stringify(org)} />
+    {jsonld.map((j) => <script type="application/ld+json" set:html={JSON.stringify(j)} />)}
+    <slot name="head" />
+  </head>
+  <body class={bodyClass} data-lang={lang}>
+    <a class="skip-link" href="#main">{t.skip}</a>
+    {loader && <Loader lang={lang} />}
+    <Header lang={lang} alternate={alternate} current={current} cartCount={cartCount(cart)} compareCount={cmp.length} tone={tone} />
+    <Menu lang={lang} />
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <Footer lang={lang} />
+    <Tray lang={lang} ids={cmp} hide={hideTray} />
+    <Dock lang={lang} current={current} cartCount={cartCount(cart)} compareCount={cmp.length} />
+    <div class="toasts" aria-live="polite" data-toasts data-msg={JSON.stringify({ added: t.toast.added, view: t.toast.view, error: t.toast.error, compared: t.toast.compared, full: t.tray.full, reset: t.tray.reset, saverOn: t.saver.on, saverOff: t.saver.off, cartHref: lang === 'sq' ? '/shporta' : '/en/cart', compareHref: lang === 'sq' ? '/krahaso' : '/en/compare', cartCount: lang === 'sq' ? 'artikuj në shportë' : 'items in the basket' })}></div>
+    <script>
+      import '../scripts/site';
+    </script>
+  </body>
+</html>

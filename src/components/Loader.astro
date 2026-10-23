@@ -1,0 +1,17 @@
+---
+// Brand loader (Marvell's word swap + Belgrade Arbor's ground line): Ndërtim → Construction → Energji → Energy → BeeD Energy.
+// Shown once per session, only on the home page, skippable, hard time-out in site.ts. Hidden without scripts.
+import { type Lang } from '../lib/i18n';
+import { tc } from '../i18n/common';
+interface Props { lang: Lang; }
+const t = tc(Astro.props.lang);
+---
+<div class="loader" data-loader hidden aria-hidden="true">
+  <button class="btn btn--ghost btn--s loader__skip" type="button" data-loader-skip>{t.loader.skip}</button>
+  <div class="loader__word" data-loader-word>
+    {t.loader.words.map((w) => <span>{w}</span>)}
+    <span>Bee<b>D</b></span>
+  </div>
+  <div class="loader__ground"><i data-loader-line></i></div>
+  <div class="loader__meta"><span>{t.loader.loading}</span><span data-loader-pct>0%</span></div>
+</div>

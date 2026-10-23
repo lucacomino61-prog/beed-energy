@@ -1,0 +1,32 @@
+---
+// Compare tray: the products picked for comparison, rendered from the cookie so it is in the HTML.
+import { productCardsByIds } from '../lib/catalog';
+import { href, type Lang } from '../lib/i18n';
+import { tc } from '../i18n/common';
+interface Props { lang: Lang; ids: number[]; hide?: boolean; }
+const { lang, ids, hide = false } = Astro.props;
+const t = tc(lang);
+const items = productCardsByIds(ids);
+---
+<aside class="tray" data-tray hidden={hide || items.length === 0} aria-label={t.tray.title} data-label-remove={t.tray.remove}>
+  <div class="row between">
+    <strong class="eyebrow" style="color:inherit">{t.tray.title} · <span data-tray-n>{items.length}</span>/4</strong>
+    <form method="post" action="/api/compare" data-compare-form>
+      <input type="hidden" name="action" value="clear" />
+      <button class="btn btn--ghost btn--s" type="submit">{t.tray.clear}</button>
+    </form>
+  </div>
+  <div class="tray__items" data-tray-items>
+    {items.map((p) => (
+      <span class="tray__item">
+        {p.brand} {p.model}
+        <form method="post" action="/api/compare" data-compare-form>
+          <input type="hidden" name="action" value="remove" />
+          <input type="hidden" name="productId" value={p.id} />
+          <button type="submit" aria-label={`${t.tray.remove}: ${p.brand} ${p.model}`}>✕</button>
+        </form>
+      </span>
+    ))}
+  </div>
+  <a class="btn btn--copper btn--s" href={href(lang, 'compare', {}, { p: ids.join(',') })} data-tray-go>{t.tray.go} <span class="arrow" aria-hidden="true">→</span></a>
+</aside>

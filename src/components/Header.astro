@@ -1,0 +1,32 @@
+---
+import BrandMark from './BrandMark.astro';
+import { href, type Lang, type RouteKey } from '../lib/i18n';
+import { tc } from '../i18n/common';
+interface Props { lang: Lang; alternate: string; current?: RouteKey; cartCount: number; compareCount: number; tone?: 'paper' | 'ink'; }
+const { lang, alternate, current, cartCount, compareCount, tone = 'paper' } = Astro.props;
+const t = tc(lang);
+const other = lang === 'sq' ? 'en' : 'sq';
+---
+<header class="site-header" data-tone={tone} data-header>
+  <a class="brand" href={href(lang, 'home')} aria-label={lang === 'sq' ? 'BeeD Energy, ballina' : 'BeeD Energy, home'}>
+    <BrandMark /><span translate="no">Bee<b>D</b> Energy</span>
+  </a>
+  <nav class="nav" aria-label={lang === 'sq' ? 'Kryesore' : 'Main'}>
+    <a class="nav-wide" href={href(lang, 'shop')} aria-current={current === 'shop' || current === 'category' ? 'page' : undefined}>{t.nav.shop}</a>
+    <a class="nav-wide" href={href(lang, 'calculator')} aria-current={current === 'calculator' ? 'page' : undefined}>{t.nav.calculator}</a>
+    <a class="nav-wide" href={href(lang, 'quote')} aria-current={current === 'quote' ? 'page' : undefined}>{t.nav.quote}</a>
+    <a class="nav-phone-hide" href={href(lang, 'compare')} aria-current={current === 'compare' ? 'page' : undefined}>
+      {t.nav.compare} <span class="count" data-compare-count data-zero={compareCount === 0 ? 'true' : 'false'}><span class="visually-hidden">{t.compareCount(compareCount)}</span><span aria-hidden="true" data-n>{compareCount}</span></span>
+    </a>
+    <a class="nav-phone-hide" href={href(lang, 'cart')} aria-current={current === 'cart' ? 'page' : undefined}>
+      {t.nav.cart} <span class="count" data-cart-count data-zero={cartCount === 0 ? 'true' : 'false'}><span class="visually-hidden">{t.cartCount(cartCount)}</span><span aria-hidden="true" data-n>{cartCount}</span></span>
+    </a>
+    <span class="lang"><a href={alternate} hreflang={other} lang={other} title={t.lang.switchTo}><span class="visually-hidden">{t.lang.switchTo}: </span>{other.toUpperCase()}</a></span>
+    <button class="saver nav-wide" type="button" aria-pressed="false" data-saver title={t.saver.hint}>
+      <span class="saver__track" aria-hidden="true"></span><span>{t.saver.label}</span>
+    </button>
+    <button class="navbtn menu-btn" type="button" aria-expanded="false" aria-controls="site-menu" data-menu-open>
+      <span class="bars" aria-hidden="true"><span></span><span></span></span><span>{t.nav.menu}</span>
+    </button>
+  </nav>
+</header>

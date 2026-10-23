@@ -1,0 +1,56 @@
+---
+import { categories } from '../lib/catalog';
+import { href, type Lang } from '../lib/i18n';
+import { tc } from '../i18n/common';
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+const t = tc(lang);
+const cats = categories().slice(0, 8);
+const year = new Date().getFullYear();
+---
+<footer class="site-footer" data-tone="ink">
+  <div class="footer__grid">
+    <div class="stack-m" style="grid-column: span 2; max-width: 34rem">
+      <p class="lede" style="color:inherit">{t.footer.about}</p>
+      <p class="small mono">{t.footer.operator}</p>
+      <p class="small mono">{t.footer.prices}</p>
+    </div>
+    <div>
+      <h2>{t.footer.shop}</h2>
+      <ul>
+        {cats.map((c) => <li><a href={href(lang, 'category', { slug: lang === 'sq' ? c.slug_sq : c.slug_en })}>{lang === 'sq' ? c.name_sq : c.name_en}</a></li>)}
+        <li><a href={href(lang, 'shop')}>{tc(lang).menu.allShop} →</a></li>
+      </ul>
+    </div>
+    <div>
+      <h2>{t.footer.company}</h2>
+      <ul>
+        <li><a href={href(lang, 'about')}>{t.nav.about}</a></li>
+        <li><a href={href(lang, 'sellers')}>{t.nav.sellers}</a></li>
+        <li><a href={href(lang, 'sell')}>{t.nav.sell}</a></li>
+        <li><a href={href(lang, 'quote')}>{t.nav.quote}</a></li>
+        <li><a href={href(lang, 'calculator')}>{t.nav.calculator}</a></li>
+        <li><a href={href(lang, 'contact')}>{t.nav.contact}</a></li>
+      </ul>
+    </div>
+    <div>
+      <h2>{t.footer.legal}</h2>
+      <ul>
+        <li><a href={href(lang, 'terms')}>{t.footer.terms}</a></li>
+        <li><a href={href(lang, 'terms') + '#kthimet'}>{t.footer.returns}</a></li>
+        <li><a href={href(lang, 'terms') + '#dergesa'}>{t.footer.delivery}</a></li>
+        <li><a href={href(lang, 'terms') + '#pagesat'}>{t.footer.payments}</a></li>
+        <li><a href={href(lang, 'privacy')}>{t.footer.privacy}</a></li>
+      </ul>
+    </div>
+  </div>
+  <p class="footer__word" aria-hidden="true">Bee<b>D</b> Energy</p>
+  <div class="footer__bottom">
+    <span>© {year} BeeD Consulting sh.p.k.</span>
+    <span>{t.footer.demo}</span>
+    <span class="row" style="gap:.25rem">
+      <button class="saver" type="button" aria-pressed="false" data-saver><span class="saver__track" aria-hidden="true"></span><span>{t.saver.label}</span></button>
+      <a href="#top" class="link-arrow small">{t.footer.top} ↑</a>
+    </span>
+  </div>
+</footer>
