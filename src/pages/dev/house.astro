@@ -1,0 +1,21 @@
+---
+// Development check page for the house drawing (assembled and exploded). 404 outside dev.
+import '../../styles/tokens.css';
+import '../../styles/base.css';
+import '../../styles/global.css';
+import '../../styles/house.css';
+import { houseSvg } from '../../lib/house';
+if (!import.meta.env.DEV) return new Response(null, { status: 404 });
+const h = houseSvg({ title: 'house' });
+const live = Number(Astro.url.searchParams.get('live') ?? 0);
+const svgLive = live ? h.svg.replace(new RegExp(`data-layer="${live}"`, 'g'), `data-layer="${live}" class-live`) : h.svg;
+---
+<html lang="en"><head><meta charset="utf-8" /><title>House</title>
+<style>body{display:grid;grid-template-columns:1fr 1fr;gap:2rem;padding:2rem;background:var(--paper)} figure{margin:0;border:1px solid var(--line);padding:1rem}</style></head>
+<body>
+  <figure><Fragment set:html={svgLive} /><figcaption class="mono small">assembled</figcaption></figure>
+  <figure class="ex"><Fragment set:html={h.svg.replace('class="house"', 'class="house house--exploded"')} /><figcaption class="mono small">exploded</figcaption></figure>
+  <script is:inline>
+    document.querySelectorAll('[class-live]').forEach(function (g) { g.classList.add('is-live'); });
+  </script>
+</body></html>

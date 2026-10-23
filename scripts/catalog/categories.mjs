@@ -8,12 +8,12 @@ const a = (key, sq, en, unit = '', type = 'number', flags = {}) => ({
 });
 const yesNo = 'bool';
 const warranty = a('warranty_years', 'Garancia e produktit', 'Product warranty', 'vjet', 'number', { b: 'higher', f: true });
-const ip = a('ip_rating', 'Mbrojtja IP', 'IP rating', '', 'text', { f: true });
+const ip = a('ip_rating', 'Shkalla e mbrojtjes (IP)', 'IP rating', '', 'text', { f: true });
 
 export const CATEGORIES = [
   {
     slug_sq: 'panele-diellore', slug_en: 'solar-panels', name_sq: 'Panele diellore', name_en: 'Solar panels', group_key: 'energy',
-    research: 'solar-panels', unit_basis: 'power_wp', unit_label_sq: 'L/Wp', unit_label_en: 'ALL/Wp',
+    research: 'solar-panels', unit_basis: 'power_wp', unit_label_sq: 'lekë/Wp', unit_label_en: 'ALL/Wp',
     intro_sq: 'Module fotovoltaike nga prodhues me fletë teknike publike. Krahasoni fuqinë, efikasitetin dhe çmimin për vat.',
     intro_en: 'Photovoltaic modules from makers with public datasheets. Compare power, efficiency and the price per watt.',
     attrs: [
@@ -22,11 +22,11 @@ export const CATEGORIES = [
       a('cell_type', 'Teknologjia e qelizës', 'Cell technology', '', 'text', { f: true }),
       a('cell_count', 'Numri i qelizave', 'Cell count', '', 'number'),
       a('bifacial', 'Bifacial', 'Bifacial', '', yesNo, { f: true }),
-      a('voc_v', 'Tensioni pa ngarkesë (Voc)', 'Open-circuit voltage (Voc)', 'V', 'number', { d: 2 }),
-      a('isc_a', 'Rryma e lidhjes së shkurtër (Isc)', 'Short-circuit current (Isc)', 'A', 'number', { d: 2 }),
-      a('vmp_v', 'Tensioni në fuqi maksimale (Vmp)', 'Voltage at max power (Vmp)', 'V', 'number', { d: 2 }),
-      a('imp_a', 'Rryma në fuqi maksimale (Imp)', 'Current at max power (Imp)', 'A', 'number', { d: 2 }),
-      a('temp_coeff_pmax_pct_per_c', 'Koeficienti termik i Pmax', 'Temperature coefficient of Pmax', '%/°C', 'number', { b: 'higher', d: 2 }),
+      a('voc_v', 'Tensioni i qarkut të hapur (Voc)', 'Open-circuit voltage (Voc)', 'V', 'number', { d: 2 }),
+      a('isc_a', 'Rryma e qarkut të shkurtër (Isc)', 'Short-circuit current (Isc)', 'A', 'number', { d: 2 }),
+      a('vmp_v', 'Tensioni në fuqinë maksimale (Vmp)', 'Voltage at max power (Vmp)', 'V', 'number', { d: 2 }),
+      a('imp_a', 'Rryma në fuqinë maksimale (Imp)', 'Current at max power (Imp)', 'A', 'number', { d: 2 }),
+      a('temp_coeff_pmax_pct_per_c', 'Koeficienti i temperaturës (Pmax)', 'Temperature coefficient of Pmax', '%/°C', 'number', { b: 'higher', d: 2 }),
       a('max_system_voltage_v', 'Tensioni maksimal i sistemit', 'Max system voltage', 'V', 'number'),
       a('product_warranty_years', 'Garancia e produktit', 'Product warranty', 'vjet', 'number', { b: 'higher', f: true }),
       a('performance_warranty_years', 'Garancia e performancës', 'Performance warranty', 'vjet', 'number', { b: 'higher' }),
@@ -34,15 +34,15 @@ export const CATEGORIES = [
     ],
   },
   {
-    slug_sq: 'invertore', slug_en: 'inverters', name_sq: 'Invertorë', name_en: 'Inverters', group_key: 'energy',
-    research: 'inverters', unit_basis: 'rated_ac_power_kw', unit_label_sq: 'L/kW', unit_label_en: 'ALL/kW',
-    intro_sq: 'Invertorë në rrjet dhe hibridë, njëfazorë e trefazorë. Shikoni sa MPPT kanë dhe nëse pranojnë bateri.',
+    slug_sq: 'invertere', slug_en: 'inverters', name_sq: 'Inverterë', name_en: 'Inverters', group_key: 'energy',
+    research: 'inverters', unit_basis: 'rated_ac_power_kw', unit_label_sq: 'lekë/kW', unit_label_en: 'ALL/kW',
+    intro_sq: 'Inverterë të lidhur me rrjetin (on-grid) dhe hibridë, njëfazorë dhe trefazorë. Shikoni sa MPPT kanë dhe nëse mund të lidhen me bateri.',
     intro_en: 'Grid-tied and hybrid inverters, single and three phase. Check the MPPT count and whether a battery fits.',
     attrs: [
       a('rated_ac_power_kw', 'Fuqia nominale AC', 'Rated AC power', 'kW', 'number', { f: true, h: true, b: 'higher', d: 1, r: true }),
       a('max_pv_power_kwp', 'Fuqia maksimale PV', 'Max PV power', 'kWp', 'number', { b: 'higher', d: 1 }),
-      a('phases', 'Fazat', 'Phases', '', 'number', { f: true, h: true }),
-      a('mppt_count', 'Numri i MPPT', 'MPPT count', '', 'number', { f: true, b: 'higher' }),
+      a('phases', 'Numri i fazave', 'Phases', '', 'number', { f: true, h: true }),
+      a('mppt_count', 'Numri i MPPT-ve', 'MPPT count', '', 'number', { f: true, b: 'higher' }),
       a('max_dc_voltage_v', 'Tensioni maksimal DC', 'Max DC voltage', 'V', 'number'),
       a('max_efficiency_pct', 'Efikasiteti maksimal', 'Max efficiency', '%', 'number', { h: true, b: 'higher', d: 1 }),
       a('euro_efficiency_pct', 'Efikasiteti evropian', 'European efficiency', '%', 'number', { b: 'higher', d: 1 }),
@@ -53,17 +53,17 @@ export const CATEGORIES = [
     ],
   },
   {
-    slug_sq: 'bateri', slug_en: 'batteries', name_sq: 'Bateri ruajtëse', name_en: 'Storage batteries', group_key: 'energy',
-    research: 'batteries', unit_basis: 'usable_capacity_kwh', unit_label_sq: 'L/kWh', unit_label_en: 'ALL/kWh',
-    intro_sq: 'Bateri litium për shtëpi dhe biznes. Krahasoni kapacitetin e përdorshëm dhe çmimin për kWh.',
+    slug_sq: 'bateri', slug_en: 'batteries', name_sq: 'Bateri për ruajtjen e energjisë', name_en: 'Storage batteries', group_key: 'energy',
+    research: 'batteries', unit_basis: 'usable_capacity_kwh', unit_label_sq: 'lekë/kWh', unit_label_en: 'ALL/kWh',
+    intro_sq: 'Bateri litiumi për shtëpi dhe biznese. Krahasoni kapacitetin e përdorshëm dhe çmimin për kWh.',
     intro_en: 'Lithium batteries for homes and businesses. Compare usable capacity and the price per kWh.',
     attrs: [
       a('usable_capacity_kwh', 'Kapaciteti i përdorshëm', 'Usable capacity', 'kWh', 'number', { f: true, h: true, b: 'higher', d: 2, r: true }),
       a('nominal_voltage_v', 'Tensioni nominal', 'Nominal voltage', 'V', 'number', { d: 1 }),
-      a('chemistry', 'Kimia', 'Chemistry', '', 'text', { f: true }),
-      a('cycle_life', 'Cikle jetëgjatësie', 'Cycle life', '', 'number', { b: 'higher', h: true }),
-      a('depth_of_discharge_pct', 'Thellësia e shkarkimit', 'Depth of discharge', '%', 'number', { b: 'higher' }),
-      a('max_continuous_power_kw', 'Fuqia e vazhdueshme', 'Continuous power', 'kW', 'number', { b: 'higher', d: 2 }),
+      a('chemistry', 'Teknologjia e qelizave', 'Cell chemistry', '', 'text', { f: true }),
+      a('cycle_life', 'Jetëgjatësia (cikle)', 'Cycle life', '', 'number', { b: 'higher', h: true }),
+      a('depth_of_discharge_pct', 'Thellësia e shkarkimit (DoD)', 'Depth of discharge (DoD)', '%', 'number', { b: 'higher' }),
+      a('max_continuous_power_kw', 'Fuqia e vazhdueshme e shkarkimit', 'Continuous discharge power', 'kW', 'number', { b: 'higher', d: 2 }),
       a('modular_min_kwh', 'Kapaciteti minimal i sistemit', 'Minimum system capacity', 'kWh', 'number', { d: 1 }),
       a('modular_max_kwh', 'Kapaciteti maksimal i sistemit', 'Maximum system capacity', 'kWh', 'number', { b: 'higher', d: 1 }),
       ip,
@@ -73,11 +73,11 @@ export const CATEGORIES = [
   {
     slug_sq: 'karikues-makinash', slug_en: 'ev-chargers', name_sq: 'Karikues për makina elektrike', name_en: 'EV chargers', group_key: 'energy',
     research: 'ev-chargers', unit_basis: null,
-    intro_sq: 'Karikues muri për makina elektrike, me lidhje Type 2.',
+    intro_sq: 'Karikues muri për makina elektrike, me lidhës Type 2.',
     intro_en: 'Wall chargers for electric cars with a Type 2 connection.',
     attrs: [
       a('max_power_kw', 'Fuqia maksimale', 'Max power', 'kW', 'number', { f: true, h: true, b: 'higher', d: 1, r: true }),
-      a('phases', 'Fazat', 'Phases', '', 'number', { f: true }),
+      a('phases', 'Numri i fazave', 'Phases', '', 'number', { f: true }),
       a('connector', 'Lidhësi', 'Connector', '', 'text', { f: true }),
       a('current_a', 'Rryma maksimale', 'Max current', 'A', 'number', { b: 'higher' }),
       a('smart_features', 'Funksione inteligjente', 'Smart features', '', 'text', { c: true }),
@@ -88,7 +88,7 @@ export const CATEGORIES = [
   {
     slug_sq: 'sisteme-montimi', slug_en: 'mounting-systems', name_sq: 'Sisteme montimi', name_en: 'Mounting systems', group_key: 'energy',
     research: 'mounting', unit_basis: null,
-    intro_sq: 'Struktura për çati me tjegulla, çati të sheshta dhe llamarinë.',
+    intro_sq: 'Struktura për çati me tjegulla, çati të sheshta dhe çati me llamarinë.',
     intro_en: 'Structures for tiled, flat and metal roofs.',
     attrs: [
       a('roof_type', 'Lloji i çatisë', 'Roof type', '', 'text', { f: true, h: true }),
@@ -102,18 +102,18 @@ export const CATEGORIES = [
   {
     slug_sq: 'aksesore-pv', slug_en: 'pv-accessories', name_sq: 'Aksesorë fotovoltaikë', name_en: 'PV accessories', group_key: 'energy',
     research: 'pv-accessories', unit_basis: null,
-    intro_sq: 'Lidhës, kabllo dhe çelësa DC për instalime fotovoltaike.',
+    intro_sq: 'Lidhës MC4, kabllo diellore dhe ndërprerës DC për impiante fotovoltaike.',
     intro_en: 'Connectors, cable and DC switches for PV installations.',
     attrs: [
       a('rated_voltage_v', 'Tensioni nominal', 'Rated voltage', 'V', 'number', { f: true, h: true }),
       a('rated_current_a', 'Rryma nominale', 'Rated current', 'A', 'number', { h: true, b: 'higher' }),
-      a('cross_section_mm2', 'Seksioni', 'Cross-section', 'mm²', 'number', { d: 1 }),
+      a('cross_section_mm2', 'Seksioni tërthor', 'Cross-section', 'mm²', 'number', { d: 1 }),
       ip,
     ],
   },
   {
     slug_sq: 'pompa-nxehtesie', slug_en: 'heat-pumps', name_sq: 'Pompa nxehtësie', name_en: 'Heat pumps', group_key: 'efficiency',
-    research: 'heat-pumps', unit_basis: 'heating_capacity_kw', unit_label_sq: 'L/kW', unit_label_en: 'ALL/kW',
+    research: 'heat-pumps', unit_basis: 'heating_capacity_kw', unit_label_sq: 'lekë/kW', unit_label_en: 'ALL/kW',
     intro_sq: 'Pompa nxehtësie ajër–ujë për ngrohje, ftohje dhe ujë të ngrohtë.',
     intro_en: 'Air-to-water heat pumps for heating, cooling and hot water.',
     attrs: [
@@ -122,14 +122,14 @@ export const CATEGORIES = [
       a('scop_average_climate', 'SCOP (klimë mesatare)', 'SCOP (average climate)', '', 'number', { b: 'higher', d: 2 }),
       a('energy_class_35c', 'Klasa energjetike (35 °C)', 'Energy class (35 °C)', '', 'text', { f: true }),
       a('refrigerant', 'Gazi ftohës', 'Refrigerant', '', 'text', { f: true }),
-      a('phases', 'Fazat', 'Phases', '', 'number', { f: true }),
-      a('sound_power_db', 'Fuqia e zhurmës', 'Sound power', 'dB(A)', 'number', { b: 'lower' }),
+      a('phases', 'Numri i fazave', 'Phases', '', 'number', { f: true }),
+      a('sound_power_db', 'Fuqia akustike', 'Sound power', 'dB(A)', 'number', { b: 'lower' }),
       warranty,
     ],
   },
   {
     slug_sq: 'kondicionere', slug_en: 'air-conditioners', name_sq: 'Kondicionerë inverter', name_en: 'Inverter air conditioners', group_key: 'efficiency',
-    research: 'air-conditioners', unit_basis: 'cooling_capacity_kw', unit_label_sq: 'L/kW', unit_label_en: 'ALL/kW',
+    research: 'air-conditioners', unit_basis: 'cooling_capacity_kw', unit_label_sq: 'lekë/kW', unit_label_en: 'ALL/kW',
     intro_sq: 'Kondicionerë split me teknologji inverter. Krahasoni SEER dhe SCOP.',
     intro_en: 'Inverter split air conditioners. Compare SEER and SCOP.',
     attrs: [
@@ -145,23 +145,23 @@ export const CATEGORIES = [
   },
   {
     slug_sq: 'ngrohes-uji-diellor', slug_en: 'solar-water-heaters', name_sq: 'Ngrohës uji diellorë', name_en: 'Solar water heaters', group_key: 'efficiency',
-    research: 'solar-water-heaters', unit_basis: 'tank_litres', unit_label_sq: 'L/litër', unit_label_en: 'ALL/litre',
+    research: 'solar-water-heaters', unit_basis: 'tank_litres', unit_label_sq: 'lekë/litër', unit_label_en: 'ALL/litre',
     intro_sq: 'Sisteme termosifoni me kolektor dhe depozitë, të zakonshme në çatitë shqiptare.',
     intro_en: 'Thermosiphon systems with collector and tank, a common sight on Albanian roofs.',
     attrs: [
-      a('tank_litres', 'Depozita', 'Tank', 'L', 'number', { f: true, h: true, b: 'higher', r: true }),
+      a('tank_litres', 'Vëllimi i depozitës', 'Tank volume', 'L', 'number', { f: true, h: true, b: 'higher', r: true }),
       a('collector_area_m2', 'Sipërfaqja e kolektorit', 'Collector area', 'm²', 'number', { h: true, b: 'higher', d: 2 }),
       a('collector_count', 'Numri i kolektorëve', 'Collectors', '', 'number'),
       a('system_type', 'Lloji i sistemit', 'System type', '', 'text', { f: true }),
-      a('tank_material', 'Materiali i depozitës', 'Tank lining', '', 'text'),
+      a('tank_material', 'Materiali i depozitës', 'Tank material', '', 'text'),
       a('electric_backup_w', 'Rezistenca elektrike', 'Electric backup', 'W', 'number'),
       warranty,
     ],
   },
   {
     slug_sq: 'izolim-termik', slug_en: 'insulation', name_sq: 'Izolim termik', name_en: 'Thermal insulation', group_key: 'efficiency',
-    research: 'insulation', unit_basis: 'pack_area_m2', unit_label_sq: 'L/m²', unit_label_en: 'ALL/m²',
-    intro_sq: 'Lesh guri, lesh xhami, EPS, XPS dhe sisteme veshjeje termike për fasada.',
+    research: 'insulation', unit_basis: 'pack_area_m2', unit_label_sq: 'lekë/m²', unit_label_en: 'ALL/m²',
+    intro_sq: 'Lesh guri, lesh xhami, EPS, XPS dhe sisteme termoizolimi për fasada (kapotë).',
     intro_en: 'Stone wool, glass wool, EPS, XPS and external thermal insulation systems for facades.',
     attrs: [
       a('material', 'Materiali', 'Material', '', 'text', { f: true, h: true }),
@@ -179,7 +179,7 @@ export const CATEGORIES = [
     intro_en: 'PVC profile systems with declared U-values.',
     attrs: [
       a('profile_depth_mm', 'Thellësia e profilit', 'Profile depth', 'mm', 'number', { h: true }),
-      a('chambers', 'Dhomat', 'Chambers', '', 'number', { f: true, b: 'higher' }),
+      a('chambers', 'Numri i dhomave', 'Chambers', '', 'number', { f: true, b: 'higher' }),
       a('uf_w_m2k', 'Uf i profilit', 'Frame Uf', 'W/m²K', 'number', { h: true, b: 'lower', d: 2 }),
       a('uw_w_m2k', 'Uw i dritares', 'Window Uw', 'W/m²K', 'number', { b: 'lower', d: 2 }),
       a('seals', 'Guarnicionet', 'Seals', '', 'text'),
@@ -202,14 +202,14 @@ export const CATEGORIES = [
     ],
   },
   {
-    slug_sq: 'matje-energjie', slug_en: 'energy-monitoring', name_sq: 'Matës energjie', name_en: 'Energy meters', group_key: 'energy',
+    slug_sq: 'mates-energjie', slug_en: 'energy-monitoring', name_sq: 'Matës energjie', name_en: 'Energy meters', group_key: 'energy',
     research: 'energy-monitoring', unit_basis: null,
     intro_sq: 'Matës inteligjentë për të parë prodhimin dhe konsumin në kohë reale.',
     intro_en: 'Smart meters to see production and consumption in real time.',
     attrs: [
-      a('phases', 'Fazat', 'Phases', '', 'number', { f: true, h: true }),
+      a('phases', 'Numri i fazave', 'Phases', '', 'number', { f: true, h: true }),
       a('max_current_a', 'Rryma maksimale', 'Max current', 'A', 'number', { b: 'higher' }),
-      a('connectivity', 'Lidhja', 'Connectivity', '', 'text', { h: true }),
+      a('connectivity', 'Komunikimi', 'Connectivity', '', 'text', { h: true }),
       a('accuracy_class', 'Klasa e saktësisë', 'Accuracy class', '', 'text'),
     ],
   },
@@ -223,7 +223,7 @@ export const CATEGORIES = [
       a('luminous_flux_lm', 'Fluksi ndriçues', 'Luminous flux', 'lm', 'number', { b: 'higher' }),
       a('efficacy_lm_w', 'Efikasiteti ndriçues', 'Efficacy', 'lm/W', 'number', { h: true, b: 'higher' }),
       a('cct_k', 'Temperatura e ngjyrës', 'Colour temperature', 'K', 'number', { f: true }),
-      a('cri', 'Indeksi i ngjyrave (CRI)', 'Colour rendering (CRI)', '', 'number', { b: 'higher' }),
+      a('cri', 'Indeksi i riprodhimit të ngjyrave (CRI)', 'Colour rendering (CRI)', '', 'number', { b: 'higher' }),
       a('lifetime_h', 'Jetëgjatësia', 'Lifetime', 'h', 'number', { b: 'higher' }),
       ip,
     ],

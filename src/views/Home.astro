@@ -1,0 +1,265 @@
+---
+// Home: the poster, then "Shtëpia hapet" — the house opens one layer per chapter (DESIGN.md signature),
+// then the manifesto, how it works, featured products, Albania in numbers, the calculator and the seller band.
+import Site from '../layouts/Site.astro';
+import '../styles/house.css';
+import '../styles/home.css';
+import { houseSvg } from '../lib/house';
+import { LAYERS, NUMBERS, type Fact } from '../content/story';
+import { categories, featuredProducts } from '../lib/catalog';
+import { drawProduct } from '../lib/drawing';
+import { all, get } from '../lib/db';
+import { href, type Lang } from '../lib/i18n';
+import { lek, num } from '../lib/money';
+import { th } from '../i18n/home';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+const t = th(lang);
+const other = lang === 'sq' ? 'en' : 'sq';
+
+const cats = categories();
+const bySlug = new Map(cats.map((c) => [c.slug_en, c]));
+const counts = get<{ products: number; offers: number }>(
+  `SELECT (SELECT COUNT(*) FROM products WHERE status = 'published') AS products,
+          (SELECT COUNT(*) FROM offers o JOIN sellers s ON s.id = o.seller_id WHERE o.active = 1 AND s.status = 'active') AS offers`,
+)!;
+
+// Facts computed from datasheets in the catalogue (the best value per category, with its product).
+const best = (cat: string, key: string, dir: 'MIN' | 'MAX') =>
+  get<{ v: number; slug: string; brand: string; model: string }>(
+    `SELECT ps.value_num AS v, p.slug, p.brand, p.model FROM product_specs ps
+       JOIN spec_attributes a ON a.id = ps.attribute_id JOIN products p ON p.id = ps.product_id JOIN categories c ON c.id = p.category_id
+      WHERE c.slug_en = ? AND a.key = ? AND ps.value_num > 0 AND p.status = 'published' ORDER BY ps.value_num ${dir === 'MIN' ? 'ASC' : 'DESC'} LIMIT 1`,
+    cat,
+    key,
+  );
+const lambda = best('insulation', 'thermal_conductivity_w_mk', 'MIN');
+const uw = best('windows', 'uw_w_m2k', 'MIN') ?? best('windows', 'uf_w_m2k', 'MIN');
+const cop = best('heat-pumps', 'cop_a7w35', 'MAX');
+
+type Shown = { value: string; text: string; source?: { label: string; url: string }; product?: { slug: string; name: string } };
+function factFor(f: (typeof LAYERS)[number]['fact']): Shown {
+  if (f === 'insulation') {
+    if (!lambda) return t.insulationNone;
+    const r = t.insulation(num(lambda.v, 3, lang), num(0.1 / lambda.v, 2, lang));
+    return { ...r, product: { slug: lambda.slug, name: `${lambda.brand} ${lambda.model}` } };
+  }
+  if (f === 'windows') {
+    if (!uw) return t.windowsNone;
+    return { ...t.windows(num(uw.v, 2, lang)), product: { slug: uw.slug, name: `${uw.brand} ${uw.model}` } };
+  }
+  if (f === 'heat') {
+    if (!cop) return t.heatNone;
+    return { ...t.heat(num(cop.v, 2, lang)), product: { slug: cop.slug, name: `${cop.brand} ${cop.model}` } };
+  }
+  const x = f as Fact;
+  return { value: x.value[lang], text: x.text[lang], source: x.source };
+}
+
+const house = houseSvg({ title: t.drawingAlt });
+const cities = all<{ slug: string; name_sq: string; name_en: string; pv_yield: number }>('SELECT slug, name_sq, name_en, pv_yield FROM cities WHERE pv_yield IS NOT NULL ORDER BY pv_yield DESC');
+const tirana = cities.find((c) => c.slug === 'tirane') ?? cities[0];
+const featured = featuredProducts(8);
+const catOf = new Map(cats.map((c) => [c.id, c]));
+const manifestoWords = t.manifesto.split(' ');
+
+const jsonld = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'BeeD Energy',
+    inLanguage: lang,
+    potentialAction: { '@type': 'SearchAction', target: `${Astro.url.origin}${href(lang, 'search')}?q={q}`, 'query-input': 'required name=q' },
+  },
+];
+---
+<Site lang={lang} title={t.title} description={t.description} alternate={href(other, 'home')} current="home" loader jsonld={jsonld}>
+  <section class="stage" data-stage aria-labelledby="stage-title">
+    <div class="stage__intro" data-intro>
+      <p class="eyebrow">{t.eyebrow}</p>
+      <h1 class="poster stage__poster" id="stage-title">
+        {t.poster.map((w, i) => <span class="stage__line" style={`--i:${i}`}>{w}</span>)}
+      </h1>
+      <p class="lede">{t.lede}</p>
+      <div class="row stage__cta">
+        <a class="btn btn--copper" href={href(lang, 'shop')}>{t.shop} <span class="arrow" aria-hidden="true">→</span></a>
+        <a class="btn btn--ghost" href={href(lang, 'quote')}>{t.quote}</a>
+      </div>
+      <p class="mono small stage__stats">{t.stats(cats.length, counts.products, counts.offers)}</p>
+      <p class="mono small stage__hint" aria-hidden="true">↓ {t.scrollHint}</p>
+    </div>
+
+    <figure class="stage__drawing" data-drawing>
+      <div class="stage__sheet">
+        <Fragment set:html={house.svg.replace('class="house"', 'class="house house--stage" data-house')} />
+      </div>
+      <figcaption class="stage__caption mono">
+        <span>{t.drawingTitle}</span>
+        <span data-caption-layer aria-live="polite"></span>
+      </figcaption>
+      <nav class="stage__keys" aria-label={t.layers}>
+        {LAYERS.map((l) => <a href={`#shtresa-${l.n}`} class="stage__key" data-key-link={l.n} title={l.name[lang]}><span>{String(l.n).padStart(2, '0')}</span></a>)}
+      </nav>
+    </figure>
+
+    <ol class="chapters" aria-label={t.layers}>
+      {LAYERS.map((l) => {
+        const fact = factFor(l.fact);
+        return (
+          <li class="chapter" id={`shtresa-${l.n}`} data-chapter={l.n}>
+            <p class="chapter__key mono"><span class="tag tag--copper">{String(l.n).padStart(2, '0')} / 07</span> {l.short[lang]}</p>
+            <h2 class="title chapter__title">{l.name[lang]}</h2>
+            <p class="chapter__fact"><strong class="chapter__value mono">{fact.value}</strong> {fact.text}</p>
+            {fact.source && <p class="small muted mono chapter__src">{t.source}: <a href={fact.source.url} rel="noopener" target="_blank">{fact.source.label}</a></p>}
+            {fact.product && <p class="small muted mono chapter__src">{t.datasheet}: <a href={href(lang, 'product', { slug: fact.product.slug })}>{fact.product.name}</a></p>}
+            {l.extra && <p class="chapter__extra"><span class="mono">{l.extra.value[lang]}</span> {l.extra.text[lang]} <a class="small mono muted" href={l.extra.source.url} rel="noopener" target="_blank">↗ {l.extra.source.label}</a></p>}
+            <ul class="chapter__cats" aria-label={t.inShop}>
+              {l.categories.map((s) => {
+                const c = bySlug.get(s);
+                if (!c) return null;
+                return (
+                  <li>
+                    <a href={href(lang, 'category', { slug: lang === 'sq' ? c.slug_sq : c.slug_en })}>
+                      <span class="chapter__cat">{lang === 'sq' ? c.name_sq : c.name_en}</span>
+                      <span class="mono small">{t.products(c.product_count ?? 0)} · {c.min_price ? `${t.from} ${lek(c.min_price, lang)}` : t.noOffers}</span>
+                      <span class="arrow" aria-hidden="true">→</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </li>
+        );
+      })}
+      <li class="chapter chapter--final" id="ndize" data-chapter="8">
+        <p class="chapter__key mono"><span class="tag tag--ink">{t.final.key}</span></p>
+        <h2 class="title title--xl chapter__title">{t.final.title}</h2>
+        <p>{t.final.text}</p>
+        {tirana && (
+          <div class="final" data-final data-cities={JSON.stringify(cities.map((c) => ({ s: c.slug, y: Math.round(c.pv_yield * 5) })))}>
+            <label class="eyebrow" for="final-city">{t.final.city}</label>
+            <select class="select final__select" id="final-city" data-final-city>
+              {cities.map((c) => <option value={c.slug} selected={c.slug === tirana.slug}>{lang === 'sq' ? c.name_sq : c.name_en}</option>)}
+            </select>
+            <p class="final__out"><span class="final__num mono" data-final-num>{num(Math.round(tirana.pv_yield * 5), 0, lang)}</span> <span class="mono">{t.final.perYear}</span></p>
+            <p class="small muted mono">{t.final.note}</p>
+          </div>
+        )}
+        <a class="btn btn--copper" href={href(lang, 'calculator')}>{t.final.calc} <span class="arrow" aria-hidden="true">→</span></a>
+      </li>
+    </ol>
+  </section>
+
+  <section class="manifesto wrap section" aria-label="Manifest">
+    <p class="manifesto__text" data-manifesto>
+      {manifestoWords.map((w) => <span class="w">{w} </span>)}
+    </p>
+  </section>
+
+  <section class="how on-ink section" aria-labelledby="how-title">
+    <div class="wrap">
+      <p class="eyebrow">{t.how.eyebrow}</p>
+      <h2 class="title title--xl" id="how-title">{t.how.title}</h2>
+      <div class="how__grid">
+        <div>
+          <h3 class="eyebrow how__who">{t.how.buyers}</h3>
+          <ol class="how__steps">
+            {t.how.b.map(([h, p], i) => <li data-reveal><span class="mono how__n">0{i + 1}</span><h4>{h}</h4><p>{p}</p></li>)}
+          </ol>
+        </div>
+        <div>
+          <h3 class="eyebrow how__who">{t.how.sellers}</h3>
+          <ol class="how__steps">
+            {t.how.s.map(([h, p], i) => <li data-reveal><span class="mono how__n">0{i + 1}</span><h4>{h}</h4><p>{p}</p></li>)}
+          </ol>
+          <a class="link-arrow" href={href(lang, 'sell')}><span>{t.how.sell}</span><span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {featured.length > 0 && (
+    <section class="wrap section featured" aria-labelledby="featured-title">
+      <div class="row between featured__head">
+        <div>
+          <p class="eyebrow">{t.featured.eyebrow}</p>
+          <h2 class="title" id="featured-title">{t.featured.title}</h2>
+        </div>
+        <a class="link-arrow" href={href(lang, 'shop')}><span>{t.featured.all}</span><span class="arrow" aria-hidden="true">→</span></a>
+      </div>
+      <ul class="featured__grid">
+        {featured.map((p) => {
+          const c = catOf.get(p.category_id);
+          return (
+            <li class="pcard" data-reveal>
+              <div class="pcard__fig"><Fragment set:html={drawProduct({ category: c?.slug_en ?? '', w: p.width_mm, h: p.height_mm, d: p.depth_mm, specs: p.specs, dims: false, title: `${p.brand} ${p.model}` })} /></div>
+              <div class="pcard__body">
+                <p class="pcard__brand">{p.brand} · {c ? (lang === 'sq' ? c.name_sq : c.name_en) : ''}</p>
+                <h3 class="pcard__name"><a href={href(lang, 'product', { slug: p.slug })}>{lang === 'sq' ? p.name_sq : p.name_en}</a></h3>
+                <div class="pcard__foot">
+                  <span class="price">{p.min_price ? `${t.from} ${lek(p.min_price, lang)}` : t.noOffers}</span>
+                  <span class="mono small muted">{p.offer_count} {lang === 'sq' ? 'oferta' : p.offer_count === 1 ? 'offer' : 'offers'}</span>
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  )}
+
+  <section class="numbers section" aria-labelledby="numbers-title">
+    <div class="wrap numbers__wrap">
+      <div class="numbers__head">
+        <p class="eyebrow">{t.numbers.eyebrow}</p>
+        <h2 class="title title--xl" id="numbers-title">{t.numbers.title}</h2>
+      </div>
+      <ol class="numbers__list">
+        {NUMBERS.map((n, i) => (
+          <li class="numbers__item" style={`--i:${i}`}>
+            <span class="numbers__value">{n.value[lang]}</span>
+            <span class="numbers__text">{n.text[lang]}</span>
+            <a class="mono small muted" href={n.source.url} rel="noopener" target="_blank">↗ {n.source.label}</a>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <section class="calc-teaser wrap section" aria-labelledby="calc-title">
+    <div class="calc-teaser__copy">
+      <p class="eyebrow">{t.calc.eyebrow}</p>
+      <h2 class="title title--xl" id="calc-title">{t.calc.title}</h2>
+      <p class="lede">{t.calc.text}</p>
+      <a class="btn" href={href(lang, 'calculator')}>{t.calc.open} <span class="arrow" aria-hidden="true">→</span></a>
+    </div>
+    <table class="table calc-teaser__table">
+      <caption class="visually-hidden">{t.calc.per}</caption>
+      <thead><tr><th scope="col">{t.final.city}</th><th scope="col" class="num">{t.calc.per}</th><th scope="col" aria-hidden="true"></th></tr></thead>
+      <tbody>
+        {cities.map((c) => (
+          <tr>
+            <th scope="row"><a href={href(lang, 'calculator', {}, { qyteti: c.slug })}>{lang === 'sq' ? c.name_sq : c.name_en}</a></th>
+            <td class="num mono">{num(c.pv_yield, 0, lang)}</td>
+            <td class="calc-teaser__bar" aria-hidden="true"><i style={`--w:${((c.pv_yield - 1300) / 250).toFixed(3)}`}></i></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="sell-band on-ink" aria-labelledby="sell-title">
+    <div class="wrap sell-band__inner">
+      <h2 class="poster poster--s" id="sell-title">{t.sellBand.title}</h2>
+      <div class="stack-m">
+        <p class="lede" style="color:inherit">{t.sellBand.text}</p>
+        <a class="btn btn--copper" href={href(lang, 'sell')}>{t.sellBand.cta} <span class="arrow" aria-hidden="true">→</span></a>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    import '../scripts/home';
+  </script>
+</Site>

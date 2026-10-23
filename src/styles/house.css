@@ -1,0 +1,39 @@
+/* The house drawing (src/lib/house.ts). Ink lines on paper; the live layer turns copper. */
+.house { width: 100%; height: auto; overflow: visible; color: var(--ink); }
+.house path, .house circle { vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
+.house .face { fill: var(--paper); stroke: currentColor; stroke-width: 1.15; }
+.house .face--top { fill: var(--paper-2); }
+.house .face--x { fill: var(--paper-3); }
+.house .face--roof { fill: var(--paper-2); }
+.house .board { fill: var(--paper); stroke: currentColor; stroke-width: 1; }
+.house .board--x { fill: var(--paper-2); }
+.house .unit { fill: var(--paper); stroke: currentColor; stroke-width: 1.05; }
+.house .unit--x { fill: var(--paper-3); }
+.house .unit--top { fill: var(--paper-2); }
+.house .glass { fill: var(--paper-2); stroke: currentColor; stroke-width: 0.7; transition: fill 400ms var(--ease-out); }
+.house .panel { fill: var(--ink); stroke: currentColor; stroke-width: 0.9; }
+.house .panel + .hair, .house .panel ~ .hair { stroke: var(--paper); }
+.house .hair { fill: none; stroke: currentColor; stroke-width: 0.5; opacity: 0.45; }
+.house .thin { fill: none; stroke: currentColor; stroke-width: 0.85; }
+.house .dash { fill: none; stroke: currentColor; stroke-width: 0.7; stroke-dasharray: 3 3; opacity: 0.6; }
+.house .wire { fill: none; stroke: var(--copper-deep); stroke-width: 1.2; }
+.house .site { fill: none; stroke: currentColor; stroke-width: 0.6; stroke-dasharray: 2 5; opacity: 0.5; }
+.house .dimline { fill: none; stroke: currentColor; stroke-width: 0.6; opacity: 0.7; }
+.house .dimtext { font: 500 13px var(--font-mono); fill: currentColor; opacity: 0.75; }
+.house .key circle { fill: var(--ink); stroke: var(--paper); stroke-width: 1.5; }
+.house .key text { font: 600 11.5px var(--font-mono); fill: var(--paper); }
+
+/* parts move with their transform; the exploded offset lives in --dx/--dy */
+.house .part { transition: opacity 300ms var(--ease-out); }
+.house[data-dim] .part:not(.is-live) { opacity: 0.32; }
+.house .part.is-live { color: var(--copper-deep); }
+.house .part.is-live .key circle { fill: var(--copper); stroke: var(--ink); }
+.house .part.is-live .key text { fill: var(--ink); }
+.house .part.is-live .panel { fill: var(--copper-deep); }
+.house[data-lit] .glass { fill: var(--copper); }
+.house[data-lit] .wire { stroke: var(--copper); stroke-width: 1.8; }
+
+/* Static exploded drawing: no scripts, reduced motion or energy saving */
+.house--exploded .part,
+html:not(.js) .house--stage .part,
+html[data-motion="off"] .house--stage .part { transform: translate(var(--dx), var(--dy)); }

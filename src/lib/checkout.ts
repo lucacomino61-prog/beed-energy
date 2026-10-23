@@ -25,13 +25,13 @@ const MSG = {
   sq: {
     name: 'Shkruani emrin dhe mbiemrin.',
     phone: 'Shkruani një numër telefoni shqiptar, p.sh. 069 123 4567.',
-    email: 'Kjo adresë email nuk duket e plotë.',
-    emailNeeded: 'Për faturë biznesi na duhet një email.',
+    email: 'Kontrolloni adresën e emailit, p.sh. emri@shembull.al.',
+    emailNeeded: 'Për faturën e biznesit duhet një adresë emaili.',
     company: 'Shkruani emrin e shoqërisë.',
-    nipt: 'NIPT-i ka një shkronjë, 8 shifra dhe një shkronjë, p.sh. L12345678A.',
+    nipt: 'NIPT-i ka 10 shenja: një shkronjë, 8 shifra dhe një shkronjë në fund, p.sh. L12345678A.',
     city: 'Zgjidhni qytetin.',
-    address: 'Shkruani adresën: rruga, numri, pallati ose shenja dalluese.',
-    terms: 'Pranoni kushtet e shitjes për të vazhduar.',
+    address: 'Shkruani adresën: rrugën, numrin e pallatit ose të shtëpisë dhe një pikë referimi.',
+    terms: 'Pranoni kushtet e blerjes për të vazhduar.',
     payment: 'Zgjidhni mënyrën e pagesës.',
   },
   en: {
