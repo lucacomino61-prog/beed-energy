@@ -150,24 +150,52 @@ function seedDemo() {
     const r = q(`SELECT ps.value_num FROM product_specs ps JOIN spec_attributes a ON a.id = ps.attribute_id WHERE ps.product_id = ? AND a.key = ?`).get(p.id, p.unit_basis);
     return r?.value_num ?? null;
   };
+  // Net (VAT-free) euro price from the research note: Alma Solar quotes Luxembourg VAT (17%).
+  const netEur = (p) => {
+    if (!p.reference_price_eur) return null;
+    const note = (p.reference_price_source ?? '').toLowerCase();
+    if (note.includes('luxembourg')) return p.reference_price_eur / 1.17;
+    if (note.includes('incl')) return p.reference_price_eur / 1.2;
+    return p.reference_price_eur;
+  };
   const perUnit = new Map();
   for (const p of prods) {
     const u = unitVal(p);
-    if (p.reference_price_eur && u) perUnit.set(p.cat, [...(perUnit.get(p.cat) ?? []), p.reference_price_eur / u]);
+    const n = netEur(p);
+    if (n && u) perUnit.set(p.cat, [...(perUnit.get(p.cat) ?? []), n / u]);
   }
   const median = (xs) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] : null);
+  // Module prices: sun.store pv.index, September 2026 (B2B, €/Wp): TOPCon bifacial 0.114, TOPCon 0.12, back contact 0.128, full black 0.129.
+  const specOf = (p, key) => q(`SELECT ps.value_num, ps.value_text FROM product_specs ps JOIN spec_attributes a ON a.id = ps.attribute_id WHERE ps.product_id = ? AND a.key = ?`).get(p.id, key);
+  const moduleEurPerWp = (p) => {
+    const tech = String(specOf(p, 'cell_type')?.value_text ?? '').toLowerCase();
+    const bif = specOf(p, 'bifacial')?.value_num === 1;
+    if (tech.includes('back contact') || tech.includes('abc') || tech.includes('hjt') || tech.includes('heterojunction')) return 0.128;
+    if (/black/.test(p.model.toLowerCase() + p.slug)) return 0.129;
+    if (tech.includes('topcon') && bif) return 0.114;
+    return 0.12;
+  };
 
   let offers = 0;
   for (const p of prods) {
-    let baseEur = p.reference_price_eur;
-    if (!baseEur) {
+    // Demo shelf price in lekë incl. 20% VAT. Retail references get +8% (import, transport, margin);
+    // B2B index prices get +35% to reach a retail shelf. Both are demo assumptions (NEEDS_VERIFICATION.md).
+    let net = netEur(p);
+    let margin = 1.08;
+    if (!net && p.cat === 'solar-panels') {
+      const wp = unitVal(p);
+      if (wp) {
+        net = moduleEurPerWp(p) * wp;
+        margin = 1.35;
+      }
+    }
+    if (!net) {
       const m = median(perUnit.get(p.cat) ?? []);
       const u = unitVal(p);
-      if (m && u) baseEur = m * u;
+      if (m && u) net = m * u;
     }
-    if (!baseEur) continue; // no honest basis: the product shows "request a quote"
-    const vatIncl = (p.reference_price_source ?? '').toLowerCase().includes('incl') ? 1 : 1.2;
-    const baseAll = baseEur * fx * vatIncl * 1.06; // import, transport and margin to an Albanian shelf price (demo assumption)
+    if (!net) continue; // no honest basis: the product shows "request a quote"
+    const baseAll = net * fx * 1.2 * margin;
     const fit = sellers.filter((s) => s.kind !== 'contractor' || ['cement-and-masonry', 'insulation'].includes(p.cat));
     const n = 2 + Math.floor(rnd() * 3);
     for (const s of pickN(fit, n)) {
