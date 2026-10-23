@@ -1,0 +1,8 @@
+---
+import Order from '../../views/Order.astro';
+import { orderPage } from '../../lib/checkout-flow';
+
+const state = await orderPage(Astro, 'sq');
+if (state instanceof Response) return state;
+---
+<Order lang="sq" state={state} />

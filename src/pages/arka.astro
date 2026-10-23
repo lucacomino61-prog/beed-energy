@@ -1,0 +1,8 @@
+---
+import Checkout from '../views/Checkout.astro';
+import { checkoutPage } from '../lib/checkout-flow';
+
+const state = await checkoutPage(Astro, 'sq');
+if (state instanceof Response) return state;
+---
+<Checkout lang="sq" state={state} />

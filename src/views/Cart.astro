@@ -1,0 +1,259 @@
+---
+// Basket: one parcel per seller, re-priced on the server by quote(). Works without scripts
+// (every control is a form post to /api/cart or a GET for the city); scripts update it in place.
+import Site from '../layouts/Site.astro';
+import '../styles/checkout.css';
+import { readCart } from '../lib/basket';
+import { quote } from '../lib/cart';
+import { href, other, type Lang } from '../lib/i18n';
+import { lek } from '../lib/money';
+import { tco } from '../i18n/checkout';
+import { tc } from '../i18n/common';
+import { cities, cityName, cityParam, demoOffers, freeOver, groupBySeller, lineDrawing, productName, readCity, sellerInfo } from '../lib/checkout-view';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const t = tco(lang);
+const tcm = tc(lang);
+const lines = readCart(Astro.cookies);
+const allCities = cities();
+const city = readCity(Astro.url, allCities);
+const q = quote(lines, { cityId: city?.id ?? null });
+const groups = groupBySeller(q);
+const sellers = sellerInfo(groups.map((g) => g.sellerId));
+const thresholds = freeOver(q.lines.map((l) => l.offerId));
+const demo = demoOffers(q.lines.map((l) => l.offerId));
+const anyDemo = demo.size > 0;
+const addedId = Number(Astro.url.searchParams.get('shtuar'));
+const added = addedId ? q.lines.find((l) => l.offerId === addedId) : undefined;
+const cityLabel = city ? cityName(city, lang) : t.cart.city.none;
+const itemCount = q.lines.reduce((s, l) => s + l.qty, 0);
+const parcelCount = q.parcels.length;
+const cq = (l: Lang) => (city ? { [cityParam(l)]: city.slug } : undefined);
+const checkoutHref = href(lang, 'checkout', {}, cq(lang));
+const alternate = href(other(lang), 'cart', {}, cq(other(lang)));
+const fee = (n: number) => (n === 0 ? t.sum.free : lek(n, lang));
+const S = 987654; // sentinel replaced in the browser
+const clientWords = {
+  stockN: t.cart.problem.stock(S),
+  stock0: t.cart.problem.stock(0),
+  min: t.cart.problem.min(S),
+  zone: t.cart.problem.zone('{city}'),
+  gone: t.cart.problem.gone,
+  setTo: t.cart.problem.setTo(S),
+  others: t.cart.problem.others,
+  toFree: t.cart.toFree('{amount}'),
+  parcelOf: t.cart.parcelOf(1, 2).replace('01', '{i}').replace('02', '{n}'),
+  free: t.sum.free,
+  updated: t.cart.updated,
+  error: t.cart.error,
+  count1: tcm.cartCount(1),
+  countN: tcm.cartCount(S),
+  sentinel: String(S),
+  noCity: t.cart.city.none,
+  param: cityParam(lang),
+  lang,
+};
+const cityName_ = city ? cityName(city, lang) : allCities.find((c) => c.zone === 1) ? cityName(allCities.find((c) => c.zone === 1)!, lang) : '';
+---
+<Site lang={lang} title={t.cart.title} description={t.cart.description} alternate={alternate} current="cart" noindex hideTray>
+  <div class="wrap sheet-head co-head">
+    <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
+      <ol class="crumbs"><li><a href={href(lang, 'home')}>{t.home}</a></li><li aria-current="page">{t.cart.h1}</li></ol>
+    </nav>
+    <h1 class="title title--xl co-title">{t.cart.h1}</h1>
+    {q.lines.length > 0 && (
+      <dl class="titleblock co-tb" data-basket-tb>
+        <div><dt>{t.cart.tb.items}</dt><dd data-tb="items">{itemCount}</dd></div>
+        <div><dt>{t.cart.tb.parcels}</dt><dd data-tb="parcels">{parcelCount}</dd></div>
+        <div><dt>{t.cart.tb.city}</dt><dd data-tb="city">{cityLabel}</dd></div>
+        <div><dt>{t.cart.tb.total}</dt><dd data-tb="total">{lek(q.total, lang)}</dd></div>
+      </dl>
+    )}
+  </div>
+
+  <div class="wrap co-body" data-basket-root>
+    {added && (
+      <p class="notice notice--ok co-added" role="status">{t.cart.added(productName(added, lang))}</p>
+    )}
+
+    {q.lines.length === 0 ? (
+      <div class="empty co-empty">
+        <h2 class="title">{t.cart.empty.title}</h2>
+        <p class="muted">{t.cart.empty.text}</p>
+        <div class="row" style="justify-content:center">
+          <a class="btn" href={href(lang, 'shop')}>{t.cart.empty.shop} <span class="arrow" aria-hidden="true">→</span></a>
+          <a class="btn btn--ghost" href={href(lang, 'calculator')}>{t.cart.empty.calc}</a>
+        </div>
+      </div>
+    ) : (
+      <div class="co-grid">
+        <div class="co-main">
+          <div class="co-phonego">
+            <p><span class="small muted">{t.sum.total}</span> <span class="price" data-sum="total">{lek(q.total, lang)}</span></p>
+            <a class="btn btn--s" href={checkoutHref} data-go>{t.cart.checkout}</a>
+          </div>
+          <p class="lede co-intro">{t.cart.intro}</p>
+          {anyDemo && <p class="small muted co-demo"><span class="tag tag--demo">{t.sample}</span> {t.sampleNote}</p>}
+          {groups.map((g, gi) => {
+            const s = sellers.get(g.sellerId);
+            const p = g.parcel;
+            const over = thresholds.get(g.sellerId);
+            const missing = p && !p.free && over ? over - p.subtotal : 0;
+            const sid = `parcel-${g.sellerId}`;
+            return (
+              <section class="parcel" aria-labelledby={sid} data-seller={g.sellerId} data-free-over={over ?? ''}>
+                <header class="parcel__head">
+                  <p class="key parcel__key" data-parcel-key>{t.cart.parcelOf(gi + 1, groups.length)}</p>
+                  <h2 class="parcel__seller" id={sid}>
+                    <span class="visually-hidden">{t.cart.seller}: </span>
+                    {s ? <a href={href(lang, 'seller', { slug: s.slug })}>{s.name}</a> : g.lines[0].sellerName}
+                  </h2>
+                  <p class="parcel__tags">
+                    {s?.verified && <span class="tag tag--ok">✓ {t.verified}</span>}
+                    {g.lines.some((l) => demo.has(l.offerId)) && <span class="tag tag--demo">{t.sample}</span>}
+                    {g.lead > 0 && <span class="mono small muted">{t.cart.lead(g.lead)}</span>}
+                  </p>
+                </header>
+                <ol class="parcel__lines" role="list">
+                  {g.lines.map((l) => {
+                    const name = productName(l, lang);
+                    const tier = l.unitPrice < l.listPrice;
+                    const qid = `qty-${l.offerId}`;
+                    const pid = `prob-${l.offerId}`;
+                    return (
+                      <li class="bline" data-line={l.offerId} data-problem={l.problem ?? ''}>
+                        <a class="bline__fig" href={href(lang, 'product', { slug: l.slug })} tabindex="-1" aria-hidden="true" set:html={lineDrawing(l)} />
+                        <div class="bline__info">
+                          <p class="bline__brand">{l.brand}</p>
+                          <h3 class="bline__name"><a href={href(lang, 'product', { slug: l.slug })}>{name}</a></h3>
+                          <p class="bline__unit">
+                            <span class="muted small">{t.cart.unitPrice}</span>{' '}
+                            <span class="price" data-unit>{lek(l.unitPrice, lang)}</span>
+                            <s class="price muted small" data-list hidden={!tier}><span class="visually-hidden">{t.cart.listPrice}: </span>{lek(l.listPrice, lang)}</s>
+                            <span class="tag" data-tier hidden={!tier}>{t.cart.tier}</span>
+                          </p>
+                          <div class="bline__problem" id={pid} data-problem-box hidden={!l.problem}>
+                            {l.problem && (
+                              <Fragment>
+                                <p><span aria-hidden="true">⚠ </span>{
+                                  l.problem === 'stock' ? t.cart.problem.stock(l.stock)
+                                  : l.problem === 'min' ? t.cart.problem.min(l.minQty)
+                                  : l.problem === 'zone' ? t.cart.problem.zone(cityName_)
+                                  : t.cart.problem.gone
+                                }</p>
+                                <div class="row">
+                                  {((l.problem === 'stock' && l.stock > 0) || l.problem === 'min') && (
+                                    <form method="post" action="/api/cart" data-basket-form>
+                                      <input type="hidden" name="action" value="set" />
+                                      <input type="hidden" name="offerId" value={l.offerId} />
+                                      <input type="hidden" name="qty" value={l.problem === 'stock' ? l.stock : l.minQty} />
+                                      <button class="btn btn--s" type="submit">{t.cart.problem.setTo(l.problem === 'stock' ? l.stock : l.minQty)}</button>
+                                    </form>
+                                  )}
+                                  {(l.problem === 'gone' || l.problem === 'zone' || (l.problem === 'stock' && l.stock === 0)) && (
+                                    <a class="link-arrow small" href={href(lang, 'product', { slug: l.slug })}><span>{t.cart.problem.others}</span> <span class="arrow" aria-hidden="true">→</span></a>
+                                  )}
+                                </div>
+                              </Fragment>
+                            )}
+                          </div>
+                        </div>
+                        <div class="bline__qty">
+                          <span class="visually-hidden" id={`${qid}-l`}>{t.cart.qtyOf(name)}</span>
+                          <div class="stepper" role="group" aria-labelledby={`${qid}-l`}>
+                            <form method="post" action="/api/cart" data-basket-form data-step="-1">
+                              <input type="hidden" name="action" value="set" />
+                              <input type="hidden" name="offerId" value={l.offerId} />
+                              <input type="hidden" name="qty" value={l.qty - 1} data-dec />
+                              <button type="submit" aria-label={t.cart.dec(name)}>−</button>
+                            </form>
+                            <form method="post" action="/api/cart" data-basket-form data-qty-form>
+                              <input type="hidden" name="action" value="set" />
+                              <input type="hidden" name="offerId" value={l.offerId} />
+                              <label class="visually-hidden" for={qid}>{t.cart.qtyOf(name)}</label>
+                              <input class="stepper__input" id={qid} name="qty" type="number" inputmode="numeric" min="0" max="9999" step="1" value={l.qty} data-qty aria-describedby={l.problem ? pid : undefined} aria-invalid={l.problem === 'stock' || l.problem === 'min' ? 'true' : undefined} />
+                              <button class="stepper__save" type="submit">{t.cart.update}</button>
+                            </form>
+                            <form method="post" action="/api/cart" data-basket-form data-step="1">
+                              <input type="hidden" name="action" value="set" />
+                              <input type="hidden" name="offerId" value={l.offerId} />
+                              <input type="hidden" name="qty" value={l.qty + 1} data-inc />
+                              <button type="submit" aria-label={t.cart.inc(name)}>+</button>
+                            </form>
+                          </div>
+                        </div>
+                        <p class="bline__total"><span class="visually-hidden">{t.cart.amount}: </span><span class="price" data-total>{lek(l.lineTotal, lang)}</span></p>
+                        <form class="bline__remove" method="post" action="/api/cart" data-basket-form data-remove>
+                          <input type="hidden" name="action" value="remove" />
+                          <input type="hidden" name="offerId" value={l.offerId} />
+                          <button class="linkbtn" type="submit" aria-label={t.cart.removeLabel(name)}>{t.cart.remove}</button>
+                        </form>
+                      </li>
+                    );
+                  })}
+                </ol>
+                {p && (
+                  <footer class="parcel__foot">
+                    <dl class="parcel__sum">
+                      <div><dt>{t.cart.parcelSubtotal}</dt><dd class="price" data-parcel-sub>{lek(p.subtotal, lang)}</dd></div>
+                      <div><dt>{t.sum.delivery}</dt><dd class="price" data-parcel-fee>{fee(p.fee)}</dd></div>
+                    </dl>
+                    <p class="small muted parcel__free" data-parcel-free hidden={!(missing > 0)}>{missing > 0 ? t.cart.toFree(lek(missing, lang)) : ''}</p>
+                  </footer>
+                )}
+              </section>
+            );
+          })}
+          <form method="post" action="/api/cart" class="co-clear" data-basket-form data-clear>
+            <input type="hidden" name="action" value="clear" />
+            <button class="linkbtn small" type="submit">{t.cart.clear}</button>
+          </form>
+        </div>
+
+        <aside class="co-side" aria-labelledby="bsum-h">
+          <div class="sumcard">
+            <h2 class="eyebrow" id="bsum-h">{t.sum.title}</h2>
+            <form class="sumcard__city" method="get" action={href(lang, 'cart')} data-city-form>
+              <div class="field">
+                <label for="bcity">{t.cart.city.label}</label>
+                <select class="select" id="bcity" name={cityParam(lang)} data-city aria-describedby="bcity-h">
+                  <option value="" selected={!city}>{t.cart.city.none}</option>
+                  {allCities.map((c) => <option value={c.slug} data-id={c.id} selected={city?.id === c.id}>{cityName(c, lang)}</option>)}
+                </select>
+                <p class="hint" id="bcity-h">{t.cart.city.hint}</p>
+              </div>
+              <button class="btn btn--ghost btn--s co-nojs" type="submit">{t.cart.city.apply}</button>
+            </form>
+            <dl class="totals">
+              <div><dt>{t.sum.subtotal}</dt><dd class="price" data-sum="subtotal">{lek(q.subtotal, lang)}</dd></div>
+              <div><dt>{t.sum.delivery}</dt><dd class="price" data-sum="delivery">{fee(q.delivery)}</dd></div>
+              <div class="totals__grand"><dt>{t.sum.total}</dt><dd class="price" data-sum="total">{lek(q.total, lang)}</dd></div>
+              <div class="totals__vat"><dt>{t.sum.vat}</dt><dd class="price" data-sum="vat">{lek(q.vat, lang)}</dd></div>
+            </dl>
+            <p class="notice notice--bad small" data-fix hidden={q.ok}><span aria-hidden="true">⚠ </span>{t.cart.fix}</p>
+            <a class="btn btn--block" href={checkoutHref} data-go>{t.cart.checkout} <span class="arrow" aria-hidden="true">→</span></a>
+            <p class="small muted">{t.cart.methods} {t.sum.allIn}</p>
+            <a class="link-arrow small" href={href(lang, 'shop')}><span>{t.cart.continue}</span></a>
+          </div>
+        </aside>
+      </div>
+    )}
+    <p class="visually-hidden" aria-live="polite" data-basket-status></p>
+  </div>
+
+  <template data-basket-empty>
+    <div class="empty co-empty">
+      <h2 class="title">{t.cart.empty.title}</h2>
+      <p class="muted">{t.cart.empty.text}</p>
+      <div class="row" style="justify-content:center">
+        <a class="btn" href={href(lang, 'shop')}>{t.cart.empty.shop} <span class="arrow" aria-hidden="true">→</span></a>
+        <a class="btn btn--ghost" href={href(lang, 'calculator')}>{t.cart.empty.calc}</a>
+      </div>
+    </div>
+  </template>
+  <script type="application/json" id="basket-words" set:html={JSON.stringify({ ...clientWords, city: cityName_ })} />
+  <script>
+    import '../scripts/cart';
+  </script>
+</Site>

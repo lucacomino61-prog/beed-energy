@@ -71,7 +71,7 @@ hr { border: 0; border-top: 1px solid var(--line); }
 .titleblock dd { margin: 0.15rem 0 0; font-family: var(--font-mono); font-size: 0.875rem; }
 
 .crumbs { display: flex; flex-wrap: wrap; gap: 0.35rem 0.6rem; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-2); }
-.crumbs a { text-decoration: none; }
+.crumbs a { text-decoration: none; display: inline-flex; align-items: center; min-height: 24px; }
 .crumbs a:hover { text-decoration: underline; }
 .crumbs li { list-style: none; display: flex; gap: 0.6rem; }
 .crumbs li + li::before { content: '/'; opacity: 0.5; }
@@ -109,7 +109,7 @@ hr { border: 0; border-top: 1px solid var(--line); }
 .tag--copper { border-color: var(--copper-deep); color: var(--copper-deep); }
 .on-ink .tag--copper { border-color: var(--copper); color: var(--copper); }
 .tag--ink { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-.tag--ok { border-color: var(--ok); color: var(--ok); }
+.tag--ok { border-color: var(--ok); color: oklch(44% 0.1 150); }
 .tag--warn { border-color: var(--warn); color: oklch(45% 0.12 60); }
 .tag--demo { border-style: dashed; color: var(--ink-2); }
 .dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: currentColor; display: inline-block; }

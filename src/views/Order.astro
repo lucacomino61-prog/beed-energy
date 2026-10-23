@@ -1,0 +1,188 @@
+---
+// Order page, reached only with the order's token (?k=). Title block, timeline, parcels per seller,
+// totals with VAT, delivery, payment instructions per method, invoice note, what happens next.
+// The route runs orderPage() (lib/checkout-flow.ts): 404 without the right token, POST = card retry.
+import Site from '../layouts/Site.astro';
+import '../styles/checkout.css';
+import { date, href, other, type Lang } from '../lib/i18n';
+import { lek } from '../lib/money';
+import { tco } from '../i18n/checkout';
+import { bankDetails, orderDrawing, orderParcels, phoneDisplay } from '../lib/checkout-view';
+import type { OrderState } from '../lib/checkout-flow';
+
+interface Props { lang: Lang; state: OrderState }
+const { lang, state } = Astro.props;
+const t = tco(lang);
+const o = state.order;
+const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
+---
+{!o ? (
+  <Site lang={lang} title={lang === 'sq' ? 'Porosia nuk u gjet në BeeD Energy' : 'Order not found on BeeD Energy'} description={lang === 'sq' ? 'Lidhja e porosisë nuk është e plotë ose ka skaduar. Hapeni lidhjen nga konfirmimi, ose na kontaktoni me kodin e porosisë.' : 'The order link is incomplete or wrong. Open the link from your confirmation, or contact us with the order number.'} alternate={href(other(lang), 'home')} noindex hideTray>
+    <div class="wrap sheet-head co-head">
+      <h1 class="title title--xl co-title">{notFoundTitle}</h1>
+      <p class="lede">{lang === 'sq' ? 'Lidhja e porosisë nuk është e plotë ose nuk është e saktë. Hapeni lidhjen nga konfirmimi, ose na kontaktoni me kodin e porosisë.' : 'The order link is incomplete or wrong. Open the link from your confirmation, or contact us with the order number.'}</p>
+      <p class="row" style="margin-top:1.5rem"><a class="btn" href={href(lang, 'contact')}>{t.order.contactLink}</a><a class="btn btn--ghost" href={href(lang, 'shop')}>{t.order.shop}</a></p>
+    </div>
+  </Site>
+) : (() => {
+  const k = o.token as string;
+  const parcels = orderParcels(o.id);
+  const pagesa = Astro.url.searchParams.get('pagesa');
+  const paid = o.payment_status === 'paid';
+  const isCard = o.payment_method === 'card';
+  const isPickup = o.delivery_method === 'pickup';
+  const cardFailed = isCard && !paid && (o.payment_status === 'failed' || pagesa === 'deshtoi' || pagesa === 'nisja');
+  const payLabel = o.payment_method === 'cod' && !paid ? t.payStatus.cod : t.payStatus[o.payment_status] ?? o.payment_status;
+  const bank = bankDetails();
+  const cityLabel = lang === 'sq' ? o.city_sq : o.city_en;
+  const steps = t.order.steps[o.payment_method === 'cod' ? (isPickup ? 'codPickup' : 'cod') : o.payment_method];
+  const events = (o.events as any[]).filter((e) => t.event[e.status]);
+  const alternate = href(other(lang), 'order', { code: o.code }, { k });
+  const fee = (n: number) => (n === 0 ? t.sum.free : lek(n, lang));
+  return (
+    <Site lang={lang} title={t.order.title(o.code)} description={t.order.description} alternate={alternate} noindex hideTray>
+      <div class="wrap sheet-head co-head">
+        <p class="eyebrow">{t.order.eyebrow}</p>
+        <h1 class="title title--xl co-title"><span class="visually-hidden">{t.order.tb.code} </span><span class="mono co-code">{o.code}</span></h1>
+        <p class="lede">{t.order.lead}</p>
+        <dl class="titleblock co-tb">
+          <div><dt>{t.order.tb.code}</dt><dd>{o.code}</dd></div>
+          <div><dt>{t.order.tb.date}</dt><dd>{date(o.created_at, lang, true)}</dd></div>
+          <div><dt>{t.order.tb.status}</dt><dd>{t.status[o.status] ?? o.status}</dd></div>
+          <div><dt>{t.order.tb.payment}</dt><dd>{payLabel}</dd></div>
+        </dl>
+      </div>
+
+      <div class="wrap co-body">
+        {pagesa === 'ok' && (paid
+          ? <p class="notice notice--ok co-alert" role="status"><span aria-hidden="true">✓ </span>{t.order.notice.ok}</p>
+          : <p class="notice co-alert" role="status">{t.order.notice.okPending}</p>)}
+        {pagesa === 'deshtoi' && !paid && <p class="notice notice--bad co-alert" role="alert"><span aria-hidden="true">⚠ </span>{t.order.notice.failed}</p>}
+        {pagesa === 'nisja' && !paid && <p class="notice notice--bad co-alert" role="alert"><span aria-hidden="true">⚠ </span>{t.order.notice.start}</p>}
+        <p class="small muted co-keep">{t.order.keep}</p>
+
+        <div class="co-grid">
+          <div class="co-main">
+            <section class="co-sec" aria-labelledby="o-pay">
+              <h2 class="co-sec__h" id="o-pay"><span class="key">01</span> {t.order.payment}</h2>
+              <p class="mono small muted">{t.method[o.payment_method]}</p>
+              {o.payment_method === 'cod' && <p class="co-big">{(isPickup ? t.order.codPickup : t.order.cod)(lek(o.total_all, lang))}</p>}
+              {o.payment_method === 'bank' && (
+                <div class="stack-m">
+                  {paid ? <p class="co-big">{t.payStatus.paid}</p> : bank ? (
+                    <Fragment>
+                      <h3 class="label">{t.order.bankTitle}</h3>
+                      <dl class="titleblock co-bank">
+                        {bank.beneficiary && <div><dt>{t.order.beneficiary}</dt><dd>{bank.beneficiary}</dd></div>}
+                        {bank.bank && <div><dt>{t.order.bank}</dt><dd>{bank.bank}</dd></div>}
+                        <div><dt>{t.order.iban}</dt><dd class="co-iban">{bank.iban}</dd></div>
+                        {bank.swift && <div><dt>{t.order.swift}</dt><dd>{bank.swift}</dd></div>}
+                        <div><dt>{t.order.amount}</dt><dd>{lek(o.total_all, lang)}</dd></div>
+                        <div><dt>{t.order.reference}</dt><dd>{o.code}</dd></div>
+                      </dl>
+                      <p>{t.order.referenceNote(o.code)}</p>
+                    </Fragment>
+                  ) : (
+                    <Fragment>
+                      <p class="co-big">{t.order.bankMissing}</p>
+                      <p>{t.order.referenceNote(o.code)} <span class="mono">{t.order.amount}: {lek(o.total_all, lang)}</span></p>
+                    </Fragment>
+                  )}
+                </div>
+              )}
+              {isCard && (
+                <div class="stack-m">
+                  <p class="co-big">{paid ? <Fragment><span aria-hidden="true">✓ </span>{t.order.cardPaid}</Fragment> : cardFailed ? t.order.cardFailed : t.order.cardPending}</p>
+                  {!paid && (
+                    <form method="post" action={Astro.url.pathname + `?k=${encodeURIComponent(k)}`}>
+                      <input type="hidden" name="action" value="retry" />
+                      <button class="btn" type="submit">{t.order.retry} · {lek(o.total_all, lang)}</button>
+                      {state.mode === 'test' && <p class="small" style="margin-top:.6rem"><span class="tag tag--ink">{t.co.cardTest}</span></p>}
+                    </form>
+                  )}
+                </div>
+              )}
+            </section>
+
+            <section class="co-sec" aria-labelledby="o-parcels">
+              <h2 class="co-sec__h" id="o-parcels"><span class="key">02</span> {t.order.parcels}</h2>
+              {parcels.map((p, i) => (
+                <div class="parcel parcel--order">
+                  <header class="parcel__head">
+                    <p class="key parcel__key">{t.cart.parcelOf(i + 1, parcels.length)}</p>
+                    <h3 class="parcel__seller"><span class="visually-hidden">{t.cart.seller}: </span>{p.seller}</h3>
+                  </header>
+                  <ul class="parcel__lines" role="list">
+                    {p.items.map((it: any) => (
+                      <li class="bline bline--order">
+                        <span class="bline__fig" aria-hidden="true" set:html={orderDrawing(it)} />
+                        <div class="bline__info">
+                          {it.brand && <p class="bline__brand">{it.brand}</p>}
+                          <p class="bline__name">{it.slug ? <a href={href(lang, 'product', { slug: it.slug })}>{(lang === 'sq' ? it.name_sq : it.name_en) || it.product_name}</a> : it.product_name}</p>
+                          <p class="small muted mono">{it.qty} × {lek(it.unit_price_all, lang)}</p>
+                        </div>
+                        <p class="bline__total"><span class="price">{lek(it.line_total_all, lang)}</span></p>
+                      </li>
+                    ))}
+                  </ul>
+                  <footer class="parcel__foot">
+                    <dl class="parcel__sum"><div><dt>{t.cart.parcelSubtotal}</dt><dd class="price">{lek(p.subtotal, lang)}</dd></div></dl>
+                  </footer>
+                </div>
+              ))}
+            </section>
+
+            <section class="co-sec" aria-labelledby="o-next">
+              <h2 class="co-sec__h" id="o-next"><span class="key">03</span> {t.order.next}</h2>
+              <ol class="co-steps">{steps.map((s) => <li>{s}</li>)}</ol>
+              <h3 class="label co-sub">{t.order.invoice.title}</h3>
+              <ul class="co-list small">
+                <li>{t.order.invoice.seller}</li>
+                {isCard && <li>{t.order.invoice.card}</li>}
+                {o.customer_type === 'business' && o.payment_method === 'bank' && <li>{t.order.invoice.b2b}</li>}
+              </ul>
+              <p class="small">{t.order.rights} <a href={`${href(lang, 'terms')}#kthimet`}>{t.order.rightsLink}</a></p>
+              <p class="small">{t.order.contact(o.code)} <a href={href(lang, 'contact')}>{t.order.contactLink}</a></p>
+            </section>
+          </div>
+
+          <aside class="co-side" aria-label={t.sum.title}>
+            <div class="sumcard">
+              <h2 class="eyebrow">{t.sum.title}</h2>
+              <dl class="totals">
+                <div><dt>{t.sum.subtotal}</dt><dd class="price">{lek(o.subtotal_all, lang)}</dd></div>
+                <div><dt>{t.sum.delivery}</dt><dd class="price">{fee(o.delivery_all)}</dd></div>
+                <div class="totals__grand"><dt>{t.sum.total}</dt><dd class="price">{lek(o.total_all, lang)}</dd></div>
+                <div class="totals__vat"><dt>{t.sum.vat}</dt><dd class="price">{lek(o.vat_all, lang)}</dd></div>
+              </dl>
+
+              <h2 class="eyebrow co-side__h">{t.order.deliveryTo}</h2>
+              <p class="mono small muted">{t.delivery[o.delivery_method]}</p>
+              <address class="co-addr">
+                {o.name}<br />
+                {o.company && <Fragment>{o.company}{o.nipt && <span class="mono"> · NIPT {o.nipt}</span>}<br /></Fragment>}
+                <span class="mono">{phoneDisplay(o.phone)}</span><br />
+                {o.email && <Fragment>{o.email}<br /></Fragment>}
+                {isPickup ? t.delivery.pickup : o.address}{cityLabel && <Fragment>, {cityLabel}</Fragment>}
+              </address>
+              {isPickup && <p class="small muted">{t.order.pickupNote}</p>}
+              {o.notes && <p class="small co-notes">“{o.notes}”</p>}
+
+              <h2 class="eyebrow co-side__h">{t.order.timeline}</h2>
+              <ol class="timeline">
+                {events.map((e) => (
+                  <li class:list={['timeline__item', e.status === 'cancelled' && 'is-bad']}>
+                    <span class="timeline__dot" aria-hidden="true"></span>
+                    <span class="timeline__label">{t.event[e.status]}</span>
+                    <time class="mono small muted" datetime={String(e.created_at).replace(' ', 'T') + 'Z'}>{date(e.created_at, lang, true)}</time>
+                    {e.note && e.status !== 'paid' && <span class="small">{e.note}</span>}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </Site>
+  );
+})()}

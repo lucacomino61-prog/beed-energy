@@ -1,7 +1,7 @@
 // Local test gateway, used only while POK keys are not set. It never touches a card:
 // "Pay" marks the order paid in the local database, "Decline" leaves it unpaid.
 import type { APIRoute } from 'astro';
-import { get } from '../../../lib/db';
+import { get, run } from '../../../lib/db';
 import { markPaid } from '../../../lib/orders';
 import { paymentMode } from '../../../lib/payments';
 import { href } from '../../../lib/i18n';
@@ -46,5 +46,6 @@ export const POST: APIRoute = async ({ request, redirect }) => {
   const o = find(code, k);
   if (!o) return new Response('Not found', { status: 404 });
   if (f.get('r') === 'pay' && o.payment_status !== 'paid') markPaid(o.id, `test-${Date.now()}`, 'test-gateway');
+  else if (f.get('r') !== 'pay' && o.payment_status === 'pending') run("UPDATE orders SET payment_status = 'failed', updated_at = datetime('now') WHERE id = ?", o.id);
   return redirect(href(o.lang, 'order', { code: o.code }, { k, pagesa: f.get('r') === 'pay' ? 'ok' : 'deshtoi' }), 303);
 };

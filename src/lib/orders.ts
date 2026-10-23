@@ -106,7 +106,7 @@ export function markPaid(orderId: number, ref: string, actor = 'gateway') {
 
 /** Albanian tax ID: one letter, eight digits, one letter (e.g. L12345678A). */
 export function validNipt(s: string): boolean {
-  return /^[A-Z]\d{8}[A-Z]$/.test(s.trim().toUpperCase());
+  return /^[A-M]\d{8}[A-Z]$/.test(s.trim().toUpperCase()); // first letter A–M per the tax office format (research/albania-construction-commerce.md §D)
 }
 
 /** Albanian phone numbers: mobiles 06x xxx xxxx, landlines, or +355 forms. */
