@@ -79,7 +79,7 @@
   overflow-wrap: anywhere; text-wrap: balance;
 }
 .adm-title .copper { color: var(--copper-deep); }
-.adm-tb { background: var(--paper); max-width: 60rem; }
+.adm-tb { background: var(--paper); } /* full content width: the title block lines up with the content edge */
 .adm-head-tools { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 1.25rem; }
 
 /* ---------- sections ---------- */

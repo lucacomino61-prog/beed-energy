@@ -27,7 +27,10 @@
 
 /* parts move with their transform; the exploded offset lives in --dx/--dy */
 .house .part { transition: opacity 300ms var(--ease-out); }
-.house[data-dim] .part:not(.is-live) { opacity: 0.32; }
+.house[data-dim] .part:not(.is-live):not(.part--keys) { opacity: 0.32; }
+/* keys stay solid while their layer is dimmed (a see-through key reads as a hole): paper disc, ink-2 rim and number */
+.house[data-dim] .part--keys:not(.is-live) .key circle { fill: var(--paper); stroke: var(--ink-2); }
+.house[data-dim] .part--keys:not(.is-live) .key text { fill: var(--ink-2); }
 .house .part.is-live { color: var(--copper-deep); }
 .house .part.is-live .key circle { fill: var(--copper); stroke: var(--ink); }
 .house .part.is-live .key text { fill: var(--ink); }

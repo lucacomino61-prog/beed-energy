@@ -174,6 +174,7 @@ export const shop = {
       related: 'Produkte të ngjashme',
       barFrom: 'nga',
       barAdd: 'Shto',
+      barQuote: 'Ofertë', // short label in the 320 px phone bar; its aria-label is the full requestQuote
       deliveryExtra: 'Dërgesa paguhet veçmas dhe llogaritet sipas qytetit.',
       deliveryFromBest: (p: string, city: string) => `Dërgesa në ${city}: ${p}`,
       bestTotal: (p: string) => `Me dërgesë: ${p}`,
@@ -391,6 +392,7 @@ export const shop = {
       related: 'Related products',
       barFrom: 'from',
       barAdd: 'Add',
+      barQuote: 'Quote',
       deliveryExtra: 'Delivery is charged separately and depends on the city.',
       deliveryFromBest: (p: string, city: string) => `Delivery to ${city}: ${p}`,
       bestTotal: (p: string) => `With delivery: ${p}`,

@@ -4,7 +4,7 @@ export const home = {
   sq: {
     title: 'BeeD Energy · Treg për ndërtimin dhe energjinë',
     description: 'Krahasoni oferta nga shitës shqiptarë për panele diellore, inverterë, bateri, izolim, dritare dhe materiale ndërtimi. Çmime në lekë me TVSH.',
-    eyebrow: 'Tregu për ndërtimin dhe energjinë · Shqipëri',
+    eyebrow: 'Tregu për ndërtimin dhe energjinë · Shqipëri',
     poster: ['Ndërto.', 'Izolo.', 'Ndize.'],
     lede: 'Gjithçka që i duhet një shtëpie për t’u ndërtuar dhe për të prodhuar energjinë e vet, nga furnitorë dhe instalues shqiptarë, me çmimet krah për krah.',
     shop: 'Hyr në dyqan',
@@ -73,7 +73,7 @@ export const home = {
   en: {
     title: 'BeeD Energy · The marketplace for building and energy',
     description: 'Compare offers from Albanian sellers for solar panels, inverters, batteries, insulation, windows and building materials. Prices in lekë incl. VAT.',
-    eyebrow: 'The marketplace for building and energy · Albania',
+    eyebrow: 'The marketplace for building and energy · Albania',
     poster: ['Build.', 'Insulate.', 'Switch on.'],
     lede: 'Everything a house needs to be built and to make its own energy, from Albanian suppliers and installers, with their prices side by side.',
     shop: 'Enter the shop',

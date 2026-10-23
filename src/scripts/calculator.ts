@@ -4,6 +4,7 @@
 import { calcResultsHtml } from '../lib/pages-calc-html';
 import type { CalcOutput } from '../lib/pages-solar';
 import type { Lang } from '../lib/i18n';
+import { rememberCity } from './city';
 
 const root = document.querySelector<HTMLElement>('[data-calc]');
 if (root) init(root);
@@ -66,6 +67,7 @@ function init(root: HTMLElement) {
   const update = async () => {
     const p = query();
     history.replaceState(null, '', `${location.pathname}?${p}`);
+    rememberCity(p.get('qyteti') ?? '');
     syncAlternate(p);
     highlight(p.get('qyteti') ?? '');
     ctrl?.abort();

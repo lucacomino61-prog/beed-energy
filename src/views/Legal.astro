@@ -6,7 +6,7 @@ import TitleBlock from '../components/TitleBlock.astro';
 import '../styles/pages.css';
 import { href, other, type Lang } from '../lib/i18n';
 import { setting } from '../lib/db';
-import { lek } from '../lib/money';
+import { lekLong } from '../lib/money';
 import { legal } from '../i18n/legal';
 import { tp } from '../i18n/pages';
 
@@ -16,7 +16,7 @@ const L = legal[lang];
 const d = L[doc];
 const w = tp(lang);
 const delivery = setting<{ codLimit?: number }>('delivery', {});
-const codNote = delivery.codLimit ? (lang === 'sq' ? ` Kufiri aktual: ${lek(delivery.codLimit, lang)}.` : ` Current limit: ${lek(delivery.codLimit, lang)}.`) : '';
+const codNote = delivery.codLimit ? (lang === 'sq' ? ` Kufiri aktual: ${lekLong(delivery.codLimit, lang)}.` : ` Current limit: ${lekLong(delivery.codLimit, lang)}.`) : '';
 const alternate = href(other(lang), doc);
 ---
 <Site lang={lang} title={d.title} description={d.description} alternate={alternate} current={doc}>

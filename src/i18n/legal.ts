@@ -215,6 +215,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
           list: [
             'beed_cart: përmbajtja e shportës (30 ditë).',
             'beed_cmp: produktet që po krahasoni.',
+            'beed_city: qyteti i dërgesës që zgjodhët, që shporta dhe arka ta kenë gati (30 ditë).',
             'Sesioni i panelit të administrimit, vetëm për shitësit dhe administratorët që hyjnë.',
             'beed-motion në ruajtjen lokale të shfletuesit: nëse keni ndezur “Kursim energjie”.',
           ],
@@ -446,6 +447,7 @@ export const legal: Record<Lang, { terms: LegalDoc; privacy: LegalDoc; operator:
           list: [
             'beed_cart: the basket’s contents (30 days).',
             'beed_cmp: the products you are comparing.',
+            'beed_city: the delivery city you chose, so the basket and checkout start with it (30 days).',
             'The admin panel session, only for sellers and administrators who sign in.',
             'beed-motion in the browser’s local storage: whether you switched on “Energy saving”.',
           ],

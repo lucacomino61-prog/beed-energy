@@ -4,14 +4,19 @@
 import { all, setting } from './db';
 import { DEFAULT_DELIVERY, type DeliverySettings } from './cart';
 import { unitPriceFor, type Offer } from './catalog';
-import { groupDigits, num } from './money';
+import { lek, lekLong, num } from './money';
 import type { Lang } from './i18n';
 
 const NBSP = ' ';
 
-/** "124 900 lekë" in Albanian, "124,900 ALL" in English. "L" alone is kept for litres. */
+/** Price tags, table cells and offer rows: "124 900 L" / "124,900 ALL" — money.ts lek(), the form the basket lines use. */
 export function price(n: number, lang: Lang): string {
-  return lang === 'sq' ? `${groupDigits(n)}${NBSP}lekë` : `${groupDigits(n, ',')}${NBSP}ALL`;
+  return lek(n, lang);
+}
+
+/** Sentences and totals: "124 900 lekë" / "124,900 ALL" — money.ts lekLong(). */
+export function priceLong(n: number, lang: Lang): string {
+  return lekLong(n, lang);
 }
 
 /** Price per unit basis, e.g. "11,9 lekë/Wp". Small values keep decimals. */

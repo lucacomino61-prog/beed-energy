@@ -1,7 +1,7 @@
 // The calculator's result block as an HTML string, so the server page and the browser script
 // (which re-renders after /api/solar answers) draw exactly the same thing. Pure: no database, no Node APIs.
 import { href, MONTHS, MONTHS_SHORT, type Lang } from './i18n';
-import { lek, num } from './money';
+import { lek, lekLong, num } from './money';
 import type { CalcOutput } from './pages-solar';
 import { tp } from '../i18n/pages';
 
@@ -52,9 +52,9 @@ export function calcResultsHtml(o: CalcOutput, lang: Lang): string {
     { k: t.kwp, v: `${num(o.kwp, 1, lang)} kWp`, n: t.panels(o.panels, o.panelWp) },
     { k: t.yearly, v: `${num(o.annualKwh, 0, lang)} kWh`, n: t.perKwp(num(o.city.yield, 0, lang)) },
     { k: t.selfUse, v: `${pct}%`, n: t.selfUseNote(o.input.battery) },
-    { k: t.saving, v: o.annualSaving === null ? '—' : lek(o.annualSaving, lang), n: o.annualSaving === null ? t.noSaving : t.savingNote, hot: true },
+    { k: t.saving, v: o.annualSaving === null ? '—' : lekLong(o.annualSaving, lang), n: o.annualSaving === null ? t.noSaving : t.savingNote, hot: true },
     { k: t.payback, v: o.paybackYears === null ? '—' : t.years(num(o.paybackYears, 1, lang)), n: t.paybackNote },
-    { k: t.lifetime, v: o.lifetimeSaving === null ? '—' : lek(o.lifetimeSaving, lang), n: t.lifetimeNote },
+    { k: t.lifetime, v: o.lifetimeSaving === null ? '—' : lekLong(o.lifetimeSaving, lang), n: t.lifetimeNote },
   ];
 
   let notes = '';
@@ -80,7 +80,7 @@ export function calcResultsHtml(o: CalcOutput, lang: Lang): string {
         return `<tr><th scope="row"><span class="eyebrow">${esc(t.roles[k.role])}</span><a href="${p}">${esc(k.name)}</a></th><td class="num">${k.qty}</td><td class="num price">${lek(k.unitPrice, lang)}</td><td class="num price">${lek(k.lineTotal, lang)}</td><td class="calc-kit__act"><form method="post" action="/api/cart" data-kit-line><input type="hidden" name="action" value="add"/><input type="hidden" name="offerId" value="${k.offerId}"/><input type="hidden" name="qty" value="${k.qty}"/><button class="btn btn--s btn--ghost" type="submit">${esc(t.addLine)}<span class="visually-hidden"> ${esc(k.name)}</span></button></form></td></tr>`;
       })
       .join('');
-    const total = o.kitTotal !== null ? `<tr class="calc-kit__total"><th scope="row" colspan="3">${esc(t.kitTotal)}</th><td class="num price">${lek(o.kitTotal, lang)}</td><td></td></tr>` : '';
+    const total = o.kitTotal !== null ? `<tr class="calc-kit__total"><th scope="row" colspan="3">${esc(t.kitTotal)}</th><td class="num price">${lekLong(o.kitTotal, lang)}</td><td></td></tr>` : '';
     kit = `<div class="table-scroll"><table class="table calc-kit__table"><caption class="visually-hidden">${esc(t.kit)}</caption><thead><tr><th scope="col">${esc(t.product)}</th><th scope="col" class="num">${esc(t.qty)}</th><th scope="col" class="num">${esc(t.unit)}</th><th scope="col" class="num">${esc(t.line)}</th><th scope="col"><span class="visually-hidden">${esc(t.addLine)}</span></th></tr></thead><tbody>${lines}${total}</tbody></table></div>${o.kitTotal === null ? `<p class="notice">${esc(t.kitIncomplete)}</p>` : ''}<div class="row calc-kit__all"><button class="btn btn--copper" type="button" data-kit-all hidden>${esc(t.addAll)} <span class="arrow" aria-hidden="true">→</span></button><a class="btn btn--ghost" href="${quoteHref}">${esc(t.quote)}</a></div>`;
   }
 

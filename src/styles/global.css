@@ -1,4 +1,4 @@
-/* BeeD Energy — shared components. Order: tokens.css → base.css → this file. Page styles live with their views. */
+/* BeeD Energy — shared components. Order: base.css → tokens.css (brand :root wins) → this file. Page styles live with their views. */
 
 html { background: var(--paper); }
 body {
@@ -171,6 +171,7 @@ hr { border: 0; border-top: 1px solid var(--line); }
 .table { width: 100%; border-collapse: collapse; font-size: 0.9375rem; }
 .table th { text-align: left; font: 500 0.6875rem/1.2 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--line-strong); white-space: nowrap; }
 .table td { padding: 0.85rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.table tbody th { border-bottom-color: var(--line); }
 .table .num { text-align: right; white-space: nowrap; }
 .table-scroll { overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
 
@@ -205,7 +206,7 @@ hr { border: 0; border-top: 1px solid var(--line); }
 }
 .site-header[data-tone="ink"] { background: oklch(18% 0.012 60 / 0.94); color: var(--paper); border-bottom-color: var(--line-on-ink); }
 html[data-header="hidden"] .site-header:not(:focus-within) { transform: translateY(-100%); }
-.brand { display: inline-flex; align-items: center; gap: 0.6rem; text-decoration: none; min-height: 44px; font-weight: 800; font-stretch: 75%; font-size: 1.375rem; letter-spacing: -0.01em; }
+.brand { display: inline-flex; align-items: center; gap: 0.6rem; text-decoration: none; min-height: 44px; font-weight: 800; font-stretch: 75%; font-size: 1.375rem; letter-spacing: -0.01em; white-space: nowrap; flex: none; }
 .brand svg { width: 30px; height: 30px; }
 .brand b { color: var(--copper-deep); font-weight: 800; }
 .site-header[data-tone="ink"] .brand b { color: var(--copper); }
@@ -221,6 +222,11 @@ html[data-header="hidden"] .site-header:not(:focus-within) { transform: translat
 .menu-btn .bars span { height: 1.5px; background: currentColor; transition: transform 220ms var(--ease-out); }
 @media (max-width: 960px) {
   .nav .nav-wide { display: none; }
+}
+/* very narrow phones: the menu button keeps its bars and its name for screen readers, the word goes */
+@media (max-width: 359.98px) {
+  .menu-btn__word { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+  .nav { gap: 0; }
 }
 
 /* energy-saving switch */
@@ -257,10 +263,13 @@ html[data-header="hidden"] .site-header:not(:focus-within) { transform: translat
   .dock a, .dock button { display: grid; place-items: center; gap: 2px; min-height: 52px; border-radius: var(--pill); text-decoration: none; font: 500 0.6875rem var(--font-mono); letter-spacing: 0.03em; background: none; border: 0; color: inherit; cursor: pointer; }
   .dock a[aria-current="page"] { background: oklch(30% 0.012 60); }
   .dock .count { height: 1.1rem; min-width: 1.3rem; font-size: 0.625rem; background: var(--copper); color: var(--ink); }
-  /* dock = 52 px buttons + 2 × 4 px padding, 10 px off the edge; content keeps 16 px clear of it */
-  :root { --dock-clear: calc(60px + 10px + env(safe-area-inset-bottom) + 16px); }
-  html { scroll-padding-bottom: var(--dock-clear); }
-  main { padding-bottom: var(--dock-clear); }
+  /* The phone's bottom stack: the dock (52 px buttons + 2 × 4 px padding, 10 px off the edge), on a product page the
+     action bar above it (--bar-h, shop.css), and the one-row compare tray on top when it shows (60 px + 8 px gap).
+     Content and the footer keep 16 px clear of the top of the stack. */
+  :root { --dock-clear: calc(60px + 10px + env(safe-area-inset-bottom) + 16px); --bar-h: 0px; --tray-h: 0px; --stack-clear: calc(var(--dock-clear) + var(--bar-h) + var(--tray-h)); }
+  html:has(.tray:not([hidden])) { --tray-h: 68px; }
+  html { scroll-padding-bottom: var(--stack-clear); }
+  main { padding-bottom: var(--stack-clear); }
   main:has(> section.on-ink:last-of-type) { padding-bottom: 0; } /* an ink band runs straight into the ink footer */
   .nav .nav-phone-hide { display: none; }
 }
@@ -270,13 +279,16 @@ html[data-header="hidden"] .site-header:not(:focus-within) { transform: translat
 .site-footer a { text-decoration: none; }
 @media (hover: hover) and (pointer: fine) { .site-footer a:hover { color: var(--copper); } }
 .footer__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr)); gap: 2rem var(--gutter); max-width: var(--max); margin-inline: auto; }
+.footer__about { grid-column: span 2; max-width: 34rem; }
+/* one column only (content < 2 × 13rem + gap): spanning 2 would add an implicit column and push the page sideways */
+@media (max-width: 520px) { .footer__about { grid-column: 1 / -1; } }
 .footer__grid h2 { font: 500 0.75rem var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: oklch(78% 0.02 70); margin-bottom: 0.9rem; }
 .footer__grid ul { list-style: none; padding: 0; display: grid; gap: 0.15rem; }
 .footer__grid li a { display: inline-flex; align-items: center; min-height: 36px; }
 .footer__word { max-width: var(--max); margin: clamp(3rem, 2rem + 4vw, 6rem) auto 0; font-stretch: 62%; font-weight: 800; text-transform: uppercase; line-height: 0.8; font-size: min(clamp(4.5rem, 0.5rem + 19vw, 21rem), 17.5vw); letter-spacing: -0.03em; color: var(--paper); white-space: nowrap; overflow: hidden; }
 .footer__word b { color: var(--copper); font-weight: 800; }
 .footer__bottom { max-width: var(--max); margin: 1.5rem auto 0; padding-top: 1.25rem; border-top: 1px solid var(--line-on-ink); display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; justify-content: space-between; align-items: center; font: 400 0.75rem var(--font-mono); color: oklch(78% 0.02 70); }
-@media (max-width: 760px) { .site-footer { padding-bottom: calc(2rem + var(--dock-clear)); } } /* its last row stays clear of the phone dock */
+@media (max-width: 760px) { .site-footer { padding-bottom: calc(2rem + var(--stack-clear)); } } /* its last row stays clear of the dock, action bar and tray */
 
 /* ---------- loader ---------- */
 .loader { position: fixed; inset: 0; z-index: 90; background: var(--ink); color: var(--paper); display: grid; place-items: center; }
@@ -299,7 +311,19 @@ html[data-header="hidden"] .site-header:not(:focus-within) { transform: translat
 .tray__items { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .tray__item { display: inline-flex; align-items: center; gap: 0.4rem; border: 1px solid var(--line-on-ink); padding: 0.25rem 0.25rem 0.25rem 0.55rem; font: 0.75rem var(--font-mono); }
 .tray__item button { background: none; border: 0; color: inherit; cursor: pointer; min-width: 32px; min-height: 32px; }
-@media (max-width: 760px) { .tray { bottom: calc(84px + env(safe-area-inset-bottom)); right: 10px; width: calc(100% - 20px); } }
+@media (max-width: 760px) {
+  /* one row, 8 px above the dock: "Krahasimi · 2/4", Pastro, Krahaso tani (the picked products are on the compare page) */
+  .tray { bottom: calc(78px + env(safe-area-inset-bottom)); right: 10px; width: calc(100% - 20px); display: flex; align-items: center; gap: 0.5rem; min-height: 60px; padding: 0.5rem 0.5rem 0.5rem 0.9rem; }
+  .tray > .row { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; gap: 0.5rem; }
+  .tray > .row > strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tray__items { display: none; }
+  .tray .btn { min-height: 44px; padding-inline: 0.75rem; }
+  .tray [data-tray-go] { flex: none; }
+}
+/* under 380 px the row keeps the count ("2/4"); the word stays for screen readers (the tray is also labelled) */
+@media (max-width: 379.98px) {
+  .tray__word { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+}
 
 /* ---------- toast ---------- */
 .toasts { position: fixed; z-index: 95; left: 50%; top: calc(var(--header-h) + 12px); transform: translateX(-50%); display: grid; gap: 0.5rem; width: min(26rem, calc(100% - 20px)); pointer-events: none; }

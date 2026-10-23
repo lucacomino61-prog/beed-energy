@@ -5,7 +5,7 @@
 import Site from '../layouts/Site.astro';
 import '../styles/checkout.css';
 import { href, other, type Lang } from '../lib/i18n';
-import { lek } from '../lib/money';
+import { lek, lekLong } from '../lib/money';
 import { paymentMode } from '../lib/payments';
 import { tco } from '../i18n/checkout';
 import { jsonForScript } from '../lib/html';
@@ -28,7 +28,8 @@ const limit = codLimit();
 const mode = paymentMode(); // 'off' in production without POK keys: no card option at all
 const pickupOn = pickupAvailable(); // settings → delivery → pickup from the seller
 const alternate = href(other(lang), 'checkout', {}, city ? { [cityParam(other(lang))]: city.slug } : undefined);
-const fee = (n: number) => (n === 0 ? t.sum.free : lek(n, lang));
+// Lines carry the short tag form (12 400 L); parcel fees, totals and sentences the long one (12 400 lekë).
+const fee = (n: number) => (n === 0 ? t.sum.free : lekLong(n, lang));
 
 type Key = keyof CheckoutValues;
 const ORDER: Key[] = ['customerType', 'name', 'phone', 'email', 'company', 'nipt', 'city', 'address', 'delivery', 'payment', 'terms'];
@@ -52,7 +53,7 @@ const clientWords = {
   lang,
 };
 ---
-<Site lang={lang} title={t.co.title} description={t.co.description} alternate={alternate} current="checkout" noindex hideTray bodyClass="is-checkout">
+<Site lang={lang} title={t.co.title} description={t.co.description} alternate={alternate} current="checkout" noindex hideTray nativeScroll bodyClass="is-checkout">
   <div class="wrap sheet-head co-head">
     <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
       <ol class="crumbs">
@@ -88,7 +89,7 @@ const clientWords = {
         <details class="sumcard sumcard--co" open data-sum-details>
           <summary class="sumcard__toggle">
             <span>{t.co.show}</span>
-            <span class="price" data-co="total-toggle">{lek(q.total, lang)}</span>
+            <span class="price" data-co="total-toggle">{lekLong(q.total, lang)}</span>
           </summary>
           <h2 class="eyebrow" id="cosum-h">{t.co.your}</h2>
           {groups.map((g, gi) => {
@@ -120,10 +121,10 @@ const clientWords = {
             );
           })}
           <dl class="totals">
-            <div><dt>{t.sum.subtotal}</dt><dd class="price" data-co="subtotal">{lek(q.subtotal, lang)}</dd></div>
+            <div><dt>{t.sum.subtotal}</dt><dd class="price" data-co="subtotal">{lekLong(q.subtotal, lang)}</dd></div>
             <div><dt>{t.sum.delivery}</dt><dd class="price" data-co="delivery">{fee(q.delivery)}</dd></div>
-            <div class="totals__grand"><dt>{t.sum.total}</dt><dd class="price" data-co="total">{lek(q.total, lang)}</dd></div>
-            <div class="totals__vat"><dt>{t.sum.vat}</dt><dd class="price" data-co="vat">{lek(q.vat, lang)}</dd></div>
+            <div class="totals__grand"><dt>{t.sum.total}</dt><dd class="price" data-co="total">{lekLong(q.total, lang)}</dd></div>
+            <div class="totals__vat"><dt>{t.sum.vat}</dt><dd class="price" data-co="vat">{lekLong(q.vat, lang)}</dd></div>
           </dl>
           <a class="link-arrow small" href={href(lang, 'cart', {}, city ? { [cityParam(lang)]: city.slug } : undefined)}><span>{t.co.edit}</span></a>
         </details>
@@ -248,7 +249,7 @@ const clientWords = {
                 <span>
                   <strong>{t.method.cod}</strong>
                   <span class="hint small muted">{t.co.codHint}</span>
-                  <span class="hint small co-codoff" id="cod-off" data-cod-off hidden={q.codAllowed}>{t.co.codOff(lek(limit, lang))}</span>
+                  <span class="hint small co-codoff" id="cod-off" data-cod-off hidden={q.codAllowed}>{t.co.codOff(lekLong(limit, lang))}</span>
                 </span>
               </label>
               <label class="choice">
@@ -279,8 +280,8 @@ const clientWords = {
 
           <div class="co-final">
             <dl class="totals totals--final">
-              <div class="totals__grand"><dt>{t.sum.total}</dt><dd class="price" data-co="total">{lek(q.total, lang)}</dd></div>
-              <div class="totals__vat"><dt>{t.sum.vat}</dt><dd class="price" data-co="vat">{lek(q.vat, lang)}</dd></div>
+              <div class="totals__grand"><dt>{t.sum.total}</dt><dd class="price" data-co="total">{lekLong(q.total, lang)}</dd></div>
+              <div class="totals__vat"><dt>{t.sum.vat}</dt><dd class="price" data-co="vat">{lekLong(q.vat, lang)}</dd></div>
             </dl>
             <p class="small muted">{t.sum.allIn} <span>{t.sum.delivery}: <span data-co="delivery">{fee(q.delivery)}</span>.</span></p>
             <ul class="co-legal small" role="list">

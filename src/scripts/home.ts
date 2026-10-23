@@ -67,12 +67,15 @@ function keyOf(n: number): SVGCircleElement | null {
 type R = { x0: number; y0: number; x1: number; y1: number };
 const overlap = (a: R, b: R) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
 
-/** Where the label goes: the empty corner of the sheet that the layer's exploded parts cover least, nearest the key. */
-function pickCorner(n: number): Corner {
-  if (!house || !sheet || !hudLabel) return 'tl';
+type Place = { corner: Corner; dx: number; dy: number };
+
+/** Where the label goes: the empty corner of the sheet (or a slot slid along an edge from it) that the layer's
+ *  exploded parts cover least, never on a key or a dimension, nearest the key. dx/dy: the slide in px. */
+function pickCorner(n: number): Place {
+  if (!house || !sheet || !hudLabel) return { corner: 'tl', dx: 0, dy: 0 };
   const sr = sheet.getBoundingClientRect();
   const m = house.getScreenCTM();
-  if (!m) return 'tl';
+  if (!m) return { corner: 'tl', dx: 0, dy: 0 };
   const toSheet = (x: number, y: number) => ({ x: m.a * x + m.c * y + m.e - sr.left, y: m.b * x + m.d * y + m.f - sr.top });
   const rects: { r: R; w: number }[] = parts.map((p) => {
     const b = p.el.getBBox();
@@ -82,27 +85,68 @@ function pickCorner(n: number): Corner {
     const c = toSheet(b.x + b.width + o.x, b.y + b.height + o.y);
     return { r: { x0: a.x, y0: a.y, x1: c.x, y1: c.y }, w: live ? 4 : 1 };
   });
+  // The label must never sit on a key (01–07) or on the 10 000 / 8 000 dimensions: they count heavily.
+  // Keys: their on-screen disc (KEY_PX, set by scaleKeys) + 4 px, moved with the live layer's offset.
+  const HEAVY = 400; // one px² of a key outweighs a label-sized patch of house
+  for (const p of parts) {
+    const live = p.layer === n;
+    for (const c of p.el.querySelectorAll<SVGCircleElement>('.key circle')) {
+      const b = c.getBBox();
+      const ctr = toSheet(b.x + b.width / 2 + (live ? p.dx : 0), b.y + b.height / 2 + (live ? p.dy : 0));
+      const r = KEY_PX + 4;
+      rects.push({ r: { x0: ctr.x - r, y0: ctr.y - r, x1: ctr.x + r, y1: ctr.y + r }, w: HEAVY });
+    }
+  }
+  for (const t of house.querySelectorAll<SVGTextElement>('.dimtext')) {
+    const b = t.getBoundingClientRect();
+    if (!b.width) continue;
+    rects.push({ r: { x0: b.left - sr.left - 4, y0: b.top - sr.top - 4, x1: b.right - sr.left + 4, y1: b.bottom - sr.top + 4 }, w: HEAVY });
+  }
   const k = hudKey ? hudKey.getBBox() : null;
   const kPart = hudKey ? parts.find((p) => p.el === hudKey!.closest('.part')) : undefined;
   const kp = k ? toSheet(k.x + k.width / 2 + (kPart?.dx ?? 0), k.y + k.height / 2 + (kPart?.dy ?? 0)) : { x: sr.width / 2, y: sr.height / 2 };
   const lw = hudLabel.offsetWidth;
   const lh = hudLabel.offsetHeight;
   const inset = 12;
-  let best: Corner = 'tl';
+  let best: Place = { corner: 'tl', dx: 0, dy: 0 };
   let bestScore = Infinity;
+  // Each corner, and the label slid from it along its top/bottom or left/right edge in 8 px steps (or 8 px closer
+  // to the sheet's edge): on a phone sheet every bare corner covers a key, but a slot between them is usually free.
+  const STEP = 8;
   for (const c of ['tl', 'tr', 'bl', 'br'] as Corner[]) {
-    const x0 = c[1] === 'l' ? inset : sr.width - inset - lw;
-    const y0 = c[0] === 't' ? inset : sr.height - inset - lh;
-    const box = { x0, y0, x1: x0 + lw, y1: y0 + lh };
-    const cover = rects.reduce((s, { r, w }) => s + overlap(box, r) * w, 0);
-    const dist = Math.hypot((x0 + lw / 2) - kp.x, (y0 + lh / 2) - kp.y);
-    const score = cover + dist * 4;
-    if (score < bestScore) {
-      bestScore = score;
-      best = c;
+    const cx = c[1] === 'l' ? inset : sr.width - inset - lw;
+    const cy = c[0] === 't' ? inset : sr.height - inset - lh;
+    const roomX = Math.max(0, sr.width - 2 * inset - lw);
+    const roomY = Math.max(0, sr.height - 2 * inset - lh);
+    const along = (room: number) => { const a = [-STEP, 0]; for (let s = STEP; s <= room; s += STEP) a.push(s); return a; };
+    const slides: [number, number][] = [];
+    // inward steps along one edge while the other axis stays in the edge band (-8 or 0)
+    for (const xs of along(roomX)) for (const ys of along(roomY)) if (xs <= 0 || ys <= 0) slides.push([c[1] === 'l' ? xs : -xs, c[0] === 't' ? ys : -ys]);
+    for (const [dx, dy] of slides) {
+      const x0 = cx + dx;
+      const y0 = cy + dy;
+      const box = { x0, y0, x1: x0 + lw, y1: y0 + lh };
+      const cover = rects.reduce((s, { r, w }) => s + overlap(box, r) * w, 0);
+      const dist = Math.hypot((x0 + lw / 2) - kp.x, (y0 + lh / 2) - kp.y);
+      // a small price for leaving the corner keeps the label in one when a corner is free
+      const score = cover + dist * 4 + (dx || dy ? 60 : 0);
+      if (score < bestScore) {
+        bestScore = score;
+        best = { corner: c, dx, dy };
+      }
     }
   }
   return best;
+}
+
+/** Put the label in its corner (slid along the edge when that keeps it off the keys and dimensions). */
+function placeHud(n: number) {
+  if (!hud) return;
+  const place = pickCorner(n);
+  hudCorner = place.corner;
+  hud.dataset.corner = hudCorner;
+  hud.style.setProperty('--hud-dx', `${place.dx}px`);
+  hud.style.setProperty('--hud-dy', `${place.dy}px`);
 }
 
 /** Draw the leader: from the label's corner along its edge, then 45° to the key's rim. */
@@ -157,8 +201,7 @@ function showHud(n: number) {
     if (hudSlots.meta) hudSlots.meta.textContent = ch!.dataset.hudMeta ?? '';
     hud.hidden = false;
     hudKey = keyOf(n);
-    hudCorner = pickCorner(n);
-    hud.dataset.corner = hudCorner;
+    placeHud(n);
     placeLeader();
   };
   const wasOn = !hud.hidden && Number(gsap.getProperty(hud, 'opacity')) > 0.05;
@@ -180,6 +223,10 @@ function setLayer(n: number) {
   if (n === 0) stage?.removeAttribute('data-active');
   chapters.forEach((c) => c.classList.toggle('is-active', Number(c.dataset.chapter) === n));
   keys.forEach((k) => (Number(k.dataset.keyLink) === n ? k.setAttribute('aria-current', 'step') : k.removeAttribute('aria-current')));
+  // On narrow phones the key row scrolls sideways: bring the live key into view (scrollLeft only, no page scroll).
+  const liveKey = keys.find((k) => Number(k.dataset.keyLink) === n);
+  const row = liveKey?.parentElement;
+  if (liveKey && row && row.scrollWidth > row.clientWidth) row.scrollLeft = liveKey.offsetLeft - (row.clientWidth - liveKey.offsetWidth) / 2;
   if (live) house.setAttribute('data-dim', '');
   else house.removeAttribute('data-dim');
   if (n === 8) house.setAttribute('data-lit', '');
@@ -191,7 +238,9 @@ function setLayer(n: number) {
   }
   if (caption) {
     const ch = chapters.find((c) => Number(c.dataset.chapter) === n);
-    caption.textContent = ch ? `${String(Math.min(n, 7)).padStart(2, '0')} · ${ch.querySelector('h2')?.textContent ?? ''}` : '';
+    const title = ch?.querySelector('h2')?.textContent ?? '';
+    // 01–07 carry their key; "Ndize" (n = 8) is the whole house switched on: the title alone, never "07 · …"
+    caption.textContent = !ch ? '' : n > 7 ? title : `${String(n).padStart(2, '0')} · ${title}`;
   }
   showHud(n);
 }
@@ -300,8 +349,7 @@ if (house && 'ResizeObserver' in window) {
   new ResizeObserver(() => {
     scaleKeys();
     if (hudKey && hud && !hud.hidden) {
-      hudCorner = pickCorner(current);
-      hud.dataset.corner = hudCorner;
+      placeHud(current);
       placeLeader();
     }
   }).observe(house);

@@ -11,6 +11,7 @@ import { pvCities } from '../lib/pages-db';
 import { calcQuery, readCalcInput, runCalc } from '../lib/pages-solar';
 import { calcResultsHtml } from '../lib/pages-calc-html';
 import { tariffs } from '../lib/solar';
+import { rememberedCity } from '../lib/city-pref';
 import { tp } from '../i18n/pages';
 
 interface Props { lang: Lang }
@@ -18,7 +19,11 @@ const { lang } = Astro.props;
 const w = tp(lang);
 const t = w.calc;
 const f = w.form;
-const input = readCalcInput(Astro.url.searchParams);
+// No city in the URL: the one remembered from a product or basket page (city-pref.ts), when it has PVGIS data.
+const params = new URLSearchParams(Astro.url.searchParams);
+const remembered = rememberedCity(Astro.cookies);
+if (!params.has('qyteti') && !params.has('city') && remembered && pvCities().some((c) => c.slug === remembered)) params.set('qyteti', remembered);
+const input = readCalcInput(params);
 const out = runCalc(input);
 const cities = pvCities();
 const tar = tariffs();

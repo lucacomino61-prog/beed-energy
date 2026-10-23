@@ -5,8 +5,10 @@ import { contentSecurityPolicy } from './lib/csp';
 import { isHttps } from './lib/origin';
 import { maybeSweepUnpaidCardOrders } from './lib/orders';
 import { paymentMode } from './lib/payments';
+import { rememberQueryCity } from './lib/city-pref';
 
 const PUBLIC_ADMIN = new Set(['/admin/login', '/admin/logout']);
+const CITY_PAGES = /^(?:\/produkt\/[^/]+|\/en\/product\/[^/]+|\/shporta|\/en\/cart|\/kalkulatori-diellor|\/en\/solar-calculator)\/?$/;
 
 export const onRequest = defineMiddleware(async (ctx, next) => {
   const { pathname } = ctx.url;
@@ -25,6 +27,10 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
       return ctx.redirect(`/admin/login?next=${encodeURIComponent(pathname + ctx.url.search)}`, 302);
     }
   }
+
+  // A city chosen on a product, basket or calculator page (?qyteti= / ?city=) becomes the default for the
+  // basket and the checkout (src/lib/city-pref.ts).
+  if (ctx.request.method === 'GET' && CITY_PAGES.test(pathname)) rememberQueryCity(ctx.url, ctx.cookies);
 
   const res = await next();
   const h = res.headers;

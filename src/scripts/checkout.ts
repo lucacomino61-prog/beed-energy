@@ -2,7 +2,7 @@
 // GET /api/cart?city= (pickup makes every parcel free), cash on delivery is switched on or off
 // against the limit, and zone warnings follow. The order itself is always priced again on the server.
 // On phones the order summary starts folded at the top. No motion on this page.
-import { lek, vatOf } from '../lib/money';
+import { lekLong, vatOf } from '../lib/money';
 
 type Line = { offerId: number; problem: null | 'gone' | 'stock' | 'min' | 'zone' };
 type Parcel = { sellerId: number; fee: number; free: boolean };
@@ -13,7 +13,7 @@ const wordsEl = document.getElementById('checkout-words');
 if (form && wordsEl) init(form, JSON.parse(wordsEl.textContent ?? '{}'));
 
 function init(form: HTMLFormElement, w: { free: string; zone: string; noCity: string; limit: number; lang: 'sq' | 'en' }) {
-  const money = (n: number) => lek(n, w.lang);
+  const money = (n: number) => lekLong(n, w.lang); // every amount this script writes is a sum or a total: long form
   const citySel = form.querySelector<HTMLSelectElement>('[data-co-city]');
   const cod = form.querySelector<HTMLInputElement>('[data-cod]');
   const codOff = form.querySelector<HTMLElement>('[data-cod-off]');
@@ -84,21 +84,45 @@ function init(form: HTMLFormElement, w: { free: string; zone: string; noCity: st
     }
   }
 
-  citySel?.addEventListener('change', () => void reprice());
-  form.querySelectorAll<HTMLInputElement>('[data-delivery]').forEach((r) => r.addEventListener('change', () => void reprice()));
+  // The re-price in flight, if any: a submit waits for it (see below).
+  let pending: Promise<void> | null = null;
+  const repriceNow = () => {
+    const p: Promise<void> = reprice()
+      .catch(() => undefined)
+      .finally(() => {
+        if (pending === p) pending = null;
+      });
+    pending = p;
+  };
+  citySel?.addEventListener('change', repriceNow);
+  form.querySelectorAll<HTMLInputElement>('[data-delivery]').forEach((r) => r.addEventListener('change', repriceNow));
 
-  // A second click on the submit button while the first post is on its way does nothing.
+  // A second click on the submit button while the first post is on its way does nothing (the server's one-time
+  // nonce makes a double post land on the same order anyway). If the post never leaves the page (stopped, offline),
+  // the button works again after 8 s instead of staying dead.
   let sending = false;
+  let unlock = 0;
+  const release = () => {
+    sending = false;
+    clearTimeout(unlock);
+    form.querySelector('.co-submit')?.removeAttribute('aria-busy');
+  };
   form.addEventListener('submit', (e) => {
     if (sending) {
       e.preventDefault();
       return;
     }
+    if (pending) {
+      // The summary is being re-priced for a new city or delivery method: post once seen_total holds the total
+      // the buyer now sees, or the server would answer "the total changed" instead of placing the order.
+      e.preventDefault();
+      const by = (e as SubmitEvent).submitter;
+      void pending.then(() => form.requestSubmit(by instanceof HTMLButtonElement ? by : undefined));
+      return;
+    }
     sending = true;
     form.querySelector('.co-submit')?.setAttribute('aria-busy', 'true');
+    unlock = window.setTimeout(release, 8000);
   });
-  window.addEventListener('pageshow', () => {
-    sending = false;
-    form.querySelector('.co-submit')?.removeAttribute('aria-busy');
-  });
+  window.addEventListener('pageshow', release);
 }

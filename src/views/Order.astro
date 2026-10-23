@@ -6,7 +6,7 @@ import Site from '../layouts/Site.astro';
 import TitleBlock from '../components/TitleBlock.astro';
 import '../styles/checkout.css';
 import { date, href, other, type Lang } from '../lib/i18n';
-import { lek } from '../lib/money';
+import { lek, lekLong } from '../lib/money';
 import { tco } from '../i18n/checkout';
 import { bankDetails, orderDrawing, orderParcels, phoneDisplay } from '../lib/checkout-view';
 import type { OrderState } from '../lib/checkout-flow';
@@ -42,7 +42,7 @@ const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
   const steps = t.order.steps[o.payment_method === 'cod' ? (isPickup ? 'codPickup' : 'cod') : o.payment_method];
   const events = (o.events as any[]).filter((e) => t.event[e.status]);
   const alternate = href(other(lang), 'order', { code: o.code }, { k });
-  const fee = (n: number) => (n === 0 ? t.sum.free : lek(n, lang));
+  const fee = (n: number) => (n === 0 ? t.sum.free : lekLong(n, lang));
   return (
     <Site lang={lang} title={t.order.title(o.code)} description={t.order.description} alternate={alternate} noindex hideTray>
       <div class="wrap sheet-head co-head">
@@ -69,7 +69,7 @@ const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
             <section class="co-sec" aria-labelledby="o-pay">
               <h2 class="co-sec__h" id="o-pay"><span class="key">01</span> {t.order.payment}</h2>
               <p class="mono small muted">{t.method[o.payment_method]}</p>
-              {o.payment_method === 'cod' && <p class="co-big">{(isPickup ? t.order.codPickup : t.order.cod)(lek(o.total_all, lang))}</p>}
+              {o.payment_method === 'cod' && <p class="co-big">{(isPickup ? t.order.codPickup : t.order.cod)(lekLong(o.total_all, lang))}</p>}
               {o.payment_method === 'bank' && (
                 <div class="stack-m">
                   {paid ? <p class="co-big">{t.payStatus.paid}</p> : bank ? (
@@ -80,7 +80,7 @@ const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
                         {bank.bank && <div><dt>{t.order.bank}</dt><dd>{bank.bank}</dd></div>}
                         <div><dt>{t.order.iban}</dt><dd class="co-iban">{bank.iban}</dd></div>
                         {bank.swift && <div><dt>{t.order.swift}</dt><dd>{bank.swift}</dd></div>}
-                        <div><dt>{t.order.amount}</dt><dd>{lek(o.total_all, lang)}</dd></div>
+                        <div><dt>{t.order.amount}</dt><dd>{lekLong(o.total_all, lang)}</dd></div>
                         <div><dt>{t.order.reference}</dt><dd>{o.code}</dd></div>
                       </dl>
                       <p>{t.order.referenceNote(o.code)}</p>
@@ -88,7 +88,7 @@ const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
                   ) : (
                     <Fragment>
                       <p class="co-big">{t.order.bankMissing}</p>
-                      <p>{t.order.referenceNote(o.code)} <span class="mono">{t.order.amount}: {lek(o.total_all, lang)}</span></p>
+                      <p>{t.order.referenceNote(o.code)} <span class="mono">{t.order.amount}: {lekLong(o.total_all, lang)}</span></p>
                     </Fragment>
                   )}
                 </div>
@@ -100,7 +100,7 @@ const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
                   {canRetry && (
                     <form method="post" action={Astro.url.pathname + `?k=${encodeURIComponent(k)}`}>
                       <input type="hidden" name="action" value="retry" />
-                      <button class="btn" type="submit">{t.order.retry} · {lek(o.total_all, lang)}</button>
+                      <button class="btn" type="submit">{t.order.retry} · {lekLong(o.total_all, lang)}</button>
                       {state.mode === 'test' && <p class="small" style="margin-top:.6rem"><span class="tag tag--ink">{t.co.cardTest}</span></p>}
                     </form>
                   )}
@@ -131,7 +131,7 @@ const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
                   </ul>
                   <footer class="parcel__foot">
                     <dl class="parcel__sum">
-                      <div><dt>{t.cart.parcelSubtotal}</dt><dd class="price">{lek(p.subtotal, lang)}</dd></div>
+                      <div><dt>{t.cart.parcelSubtotal}</dt><dd class="price">{lekLong(p.subtotal, lang)}</dd></div>
                       {p.fee !== null && <div><dt>{t.sum.delivery}</dt><dd class="price">{fee(p.fee)}</dd></div>}
                     </dl>
                   </footer>
@@ -157,10 +157,10 @@ const notFoundTitle = lang === 'sq' ? 'Porosia nuk u gjet' : 'Order not found';
             <div class="sumcard">
               <h2 class="eyebrow">{t.sum.title}</h2>
               <dl class="totals">
-                <div><dt>{t.sum.subtotal}</dt><dd class="price">{lek(o.subtotal_all, lang)}</dd></div>
+                <div><dt>{t.sum.subtotal}</dt><dd class="price">{lekLong(o.subtotal_all, lang)}</dd></div>
                 <div><dt>{t.sum.delivery}</dt><dd class="price">{fee(o.delivery_all)}</dd></div>
-                <div class="totals__grand"><dt>{t.sum.total}</dt><dd class="price">{lek(o.total_all, lang)}</dd></div>
-                <div class="totals__vat"><dt>{t.sum.vat}</dt><dd class="price">{lek(o.vat_all, lang)}</dd></div>
+                <div class="totals__grand"><dt>{t.sum.total}</dt><dd class="price">{lekLong(o.total_all, lang)}</dd></div>
+                <div class="totals__vat"><dt>{t.sum.vat}</dt><dd class="price">{lekLong(o.vat_all, lang)}</dd></div>
               </dl>
 
               <h2 class="eyebrow co-side__h">{t.order.deliveryTo}</h2>

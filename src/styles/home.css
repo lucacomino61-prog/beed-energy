@@ -47,6 +47,8 @@
 .hud[data-corner="tr"] .hud__label { top: 12px; right: 12px; }
 .hud[data-corner="bl"] .hud__label { bottom: 12px; left: 12px; }
 .hud[data-corner="br"] .hud__label { bottom: 12px; right: 12px; }
+/* home.ts may slide the label along an edge from its corner to keep it off the keys and dimensions */
+.hud__label { transform: translate(var(--hud-dx, 0px), var(--hud-dy, 0px)); }
 .hud__head { display: flex; gap: 0.5rem; align-items: baseline; }
 .hud__n { flex: none; font: 600 11px/1 var(--font-mono); font-variant-numeric: tabular-nums; padding: 3px 4px; background: var(--ink); color: var(--copper); }
 .hud__name { font-stretch: 75%; font-weight: 750; font-size: 1.0625rem; line-height: 1.05; text-transform: uppercase; letter-spacing: 0.01em; }
@@ -108,6 +110,10 @@ html.js[data-motion="on"] .stage[data-active] .chapter:not(.is-active) :is(.chap
   .stage__key { min-width: 44px; flex: none; }
   .chapter { min-height: 70svh; padding-block: 2.5rem; }
 }
+/* the 280 px sheet: a wider tag stays two lines (key + layer, count + price) and fits the band above or below the house */
+@media (max-width: 359.98px) {
+  .hud__label { max-width: calc(100% - 16px); }
+}
 
 /* ---------- manifesto ---------- */
 .manifesto__text { font-size: clamp(1.75rem, 1rem + 2.6vw, 3.75rem); line-height: 1.12; font-weight: 600; font-stretch: 85%; letter-spacing: -0.015em; max-width: 26ch; }
@@ -147,6 +153,8 @@ html.js[data-motion="on"] .manifesto__text .w { opacity: var(--o, 1); }
 /* ---------- calculator teaser ---------- */
 .calc-teaser { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr)); gap: 3rem var(--gutter); align-items: start; }
 .calc-teaser__copy { display: grid; gap: 1.25rem; justify-items: start; position: sticky; top: calc(var(--header-h) + 2rem); }
+/* one column (the grid wraps under ~860 px): a sticky copy block would ride over the city table below it */
+@media (max-width: 900px) { .calc-teaser__copy { position: static; } }
 .calc-teaser__table th a { text-decoration: none; font-weight: 600; }
 .calc-teaser__bar { width: 40%; }
 .calc-teaser__bar i { display: block; height: 6px; background: var(--copper); transform-origin: left; transform: scaleX(var(--w)); }

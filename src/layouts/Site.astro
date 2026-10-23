@@ -1,7 +1,8 @@
 ---
 // Public layout: head (meta, hreflang, fonts, motion state before first paint), header, menu, dock, compare tray, footer.
-import '../styles/tokens.css';
 import '../styles/base.css';
+// base.css (starter reset + generic tokens) first, then tokens.css so the brand :root (DESIGN.md) wins.
+import '../styles/tokens.css';
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Menu from '../components/Menu.astro';
@@ -27,8 +28,9 @@ interface Props {
   loader?: boolean;
   hideTray?: boolean;
   bodyClass?: string;
+  nativeScroll?: boolean; // form pages (basket, checkout): the browser's own scroll, no smooth-scroll inertia
 }
-const { lang, title, description, alternate, current, tone = 'paper', noindex = false, jsonld = [], loader = false, hideTray = false, bodyClass } = Astro.props;
+const { lang, title, description, alternate, current, tone = 'paper', noindex = false, jsonld = [], loader = false, hideTray = false, bodyClass, nativeScroll = false } = Astro.props;
 const t = tc(lang);
 const site = Astro.site?.origin ?? Astro.url.origin;
 const path = Astro.url.pathname.replace(/\/$/, '') || '/';
@@ -50,7 +52,7 @@ const org = {
 };
 ---
 <!doctype html>
-<html lang={lang} data-motion="on" id="top">
+<html lang={lang} data-motion="on" id="top" data-native-scroll={nativeScroll ? '' : undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -79,9 +81,9 @@ const org = {
     {jsonld.map((j) => <script type="application/ld+json" set:html={jsonForScript(j)} />)}
     <slot name="head" />
   </head>
-  <body class={bodyClass} data-lang={lang}>
-    <a class="skip-link" href="#main">{t.skip}</a>
+  <body class={bodyClass} data-lang={lang} data-no-tray={hideTray ? '' : undefined}>
     {loader && <Loader lang={lang} />}
+    <a class="skip-link" href="#main">{t.skip}</a>
     <Header lang={lang} alternate={alternate} current={current} cartCount={cartCount(cart)} compareCount={cmp.length} tone={tone} />
     <Menu lang={lang} />
     <main id="main" tabindex="-1">
@@ -90,7 +92,7 @@ const org = {
     <Footer lang={lang} />
     <Tray lang={lang} ids={cmp} hide={hideTray} />
     <Dock lang={lang} current={current} cartCount={cartCount(cart)} compareCount={cmp.length} />
-    <div class="toasts" aria-live="polite" data-toasts data-msg={JSON.stringify({ added: t.toast.added, view: t.toast.view, error: t.toast.error, compared: t.toast.compared, full: t.tray.full, reset: t.tray.reset, saverOn: t.saver.on, saverOff: t.saver.off, cartHref: lang === 'sq' ? '/shporta' : '/en/cart', compareHref: lang === 'sq' ? '/krahaso' : '/en/compare', cartCount: lang === 'sq' ? 'artikuj në shportë' : 'items in the basket' })}></div>
+    <div class="toasts" aria-live="polite" data-toasts data-msg={JSON.stringify({ added: t.toast.added, view: t.toast.view, error: t.toast.error, compared: t.toast.compared, full: t.tray.full, reset: t.tray.reset, saverOn: t.saver.on, saverOff: t.saver.off, cartHref: lang === 'sq' ? '/shporta' : '/en/cart', compareHref: lang === 'sq' ? '/krahaso' : '/en/compare', srCart1: t.cartCount(1), srCartN: t.cartCount(9999).replace('9999', '{n}'), srCompare1: t.compareCount(1), srCompareN: t.compareCount(9999).replace('9999', '{n}') })}></div>
     <script>
       import '../scripts/site';
     </script>

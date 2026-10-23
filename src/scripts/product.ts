@@ -3,6 +3,7 @@
 // the best-offer box and land on their rows in the offers table.
 import { gsap, motionOn, onMotionChange, ScrollTrigger } from './motion';
 import { syncCompareToggles } from './compare';
+import { rememberCity } from './city';
 
 syncCompareToggles();
 
@@ -19,6 +20,7 @@ if (cityForm && citySelect) {
     cur.searchParams.delete('city');
     cur.searchParams.delete('njoftim');
     if (citySelect.value) cur.searchParams.set(name, citySelect.value);
+    rememberCity(citySelect.value); // "choose a city" (empty) forgets the remembered one, so the reload shows none
     try { sessionStorage.setItem('beed-city-focus', '1'); } catch { /* ignore */ }
     location.assign(url.pathname + cur.search + '#ofertat');
   });
@@ -88,17 +90,19 @@ function card(row: HTMLElement, w: number, left: number, top: number) {
   return g;
 }
 
-function fan() {
-  if (!host || !table || !rows.length || !motionOn() || tl) return;
+/** Plays the fan-out; false when it could not run now, so the trigger stays armed for the next pass. */
+function fan(): boolean {
+  if (tl) return true; // already playing
+  if (!host || !table || !rows.length || !motionOn()) return false;
   const src =
     onScreen(document.querySelector('.buybox')) ??
     onScreen(document.querySelector('[data-fan-source] .sheet__paper')) ??
     onScreen(bar);
-  if (!src) return; // nothing on screen to leave from: the rows are simply there
+  if (!src) return false; // nothing on screen to leave from: the rows are simply there
   // Rows whose top is on screen (above the phone action bar) get a card; at most six.
   const floor = (bar?.getBoundingClientRect().top || innerHeight) - CARD_H;
   const targets = rows.map((row) => ({ row, r: row.getBoundingClientRect() })).filter(({ r }) => r.top >= 0 && r.top <= floor).slice(0, 6);
-  if (!targets.length) return;
+  if (!targets.length) return false;
   try { sessionStorage.setItem(KEY, '1'); } catch { /* ignore */ }
 
   const h = host.getBoundingClientRect();
@@ -128,10 +132,23 @@ function fan() {
     tl!.to(g, { opacity: 0, duration: 0.12, ease: 'none' }, t0 + 0.36);
   });
   for (const t of STOP) window.addEventListener(t, finish, { capture: true, passive: true });
+  return true;
 }
 
 if (table && rows.length && !seen && motionOn() && !location.hash) {
   // When the table is well into view; the cards leave from wherever the best offer is shown at that moment.
-  ScrollTrigger.create({ trigger: table, start: 'top 80%', once: true, onEnter: fan });
+  // On phones the start line sits 140 px above the fixed action bar's top edge, so the first rows are above the bar
+  // when it fires (with 'top 80%' they were still under it and the run was skipped). The trigger is spent only
+  // after a real run: fan() is false on its early exits and the next pass tries again.
+  ScrollTrigger.create({
+    trigger: table,
+    start: () => {
+      const b = bar && getComputedStyle(bar).display !== 'none' ? bar.getBoundingClientRect().top : innerHeight;
+      return `top ${Math.round(Math.min(innerHeight * 0.8, b - 140))}px`;
+    },
+    invalidateOnRefresh: true,
+    onEnter: (self) => { if (fan()) self.kill(); },
+    onEnterBack: (self) => { if (fan()) self.kill(); },
+  });
 }
 onMotionChange((on) => { if (!on) finish(); });

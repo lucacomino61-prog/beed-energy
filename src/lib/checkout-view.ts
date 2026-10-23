@@ -6,6 +6,8 @@ import { categories } from './catalog';
 import { drawProduct } from './drawing';
 import type { Quote, QuotedLine } from './cart';
 import type { Lang } from './i18n';
+import type { AstroCookies } from 'astro';
+import { chosenCitySlug } from './city-pref';
 
 export type City = { id: number; slug: string; name_sq: string; name_en: string; zone: number };
 
@@ -18,8 +20,10 @@ export const cityName = (c: Pick<City, 'name_sq' | 'name_en'>, lang: Lang) => (l
 /** The city query parameter is localised: ?qyteti= in Albanian, ?city= in English. */
 export const cityParam = (lang: Lang) => (lang === 'sq' ? 'qyteti' : 'city');
 
-export function readCity(url: URL, all: City[]): City | null {
-  const slug = url.searchParams.get('qyteti') ?? url.searchParams.get('city') ?? '';
+/** The page's city: ?qyteti= / ?city= when given (an empty one means "no city"); otherwise, with cookies,
+ *  the city remembered from a product, basket or calculator page (src/lib/city-pref.ts). */
+export function readCity(url: URL, all: City[], cookies?: AstroCookies): City | null {
+  const slug = cookies ? chosenCitySlug(url, cookies) : (url.searchParams.get('qyteti') ?? url.searchParams.get('city') ?? '');
   return all.find((c) => c.slug === slug) ?? null;
 }
 

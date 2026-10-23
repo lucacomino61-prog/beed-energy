@@ -9,7 +9,7 @@ import { emptyCheckout, readCheckout, validateCheckout, type CheckoutErrors, typ
 import { all, get } from './db';
 import { clientKey, isBot, rateLimited } from './forms';
 import { href, type Lang } from './i18n';
-import { lek } from './money';
+import { lekLong } from './money';
 import { randomToken } from './auth';
 import { publicOrigin, secureCookies } from './origin';
 import { createOrder, orderByCode, orderForNonce, OrderError, recordPayment, settleEarlierPayments } from './orders';
@@ -67,13 +67,13 @@ function priceChanges(seenRaw: string, seenTotal: number | null, q: Quote, lang:
       if (!s) out.push(t.added(name));
       else {
         if (s.qty !== l.qty) out.push(t.qty(name, s.qty, l.qty));
-        else if (s.price !== l.unitPrice) out.push(t.price(name, lek(s.price, lang), lek(l.unitPrice, lang)));
+        else if (s.price !== l.unitPrice) out.push(t.price(name, lekLong(s.price, lang), lekLong(l.unitPrice, lang)));
       }
     }
     for (const id of seen.keys()) if (!q.lines.some((l) => l.offerId === id)) out.push(t.removed);
   }
   // Same lines, different total: a delivery fee, zone surcharge or free-delivery threshold moved.
-  if (seenTotal !== null && seenTotal !== q.total) out.push(t.total(lek(seenTotal, lang), lek(q.total, lang)));
+  if (seenTotal !== null && seenTotal !== q.total) out.push(t.total(lekLong(seenTotal, lang), lekLong(q.total, lang)));
   return out;
 }
 
@@ -87,7 +87,7 @@ export async function checkoutPage(ctx: Ctx, lang: Lang): Promise<Response | Che
   if (request.method !== 'POST') {
     if (!lines.length) return redirect(cartUrl, 303);
     const values = emptyCheckout();
-    const c = readCity(url, cities());
+    const c = readCity(url, cities(), cookies); // ?qyteti= from the basket, else the remembered city
     if (c) values.city = c.slug;
     const q = quoteFor(lines, values);
     if (!q.codAllowed) values.payment = 'bank';
@@ -129,7 +129,7 @@ export async function checkoutPage(ctx: Ctx, lang: Lang): Promise<Response | Che
     const city = c ? cityName(c, lang) : '';
     for (const l of q.lines) if (l.problem) state.changes.push(problemText(l, lang, city));
   }
-  if (values.payment === 'cod' && !q.codAllowed) state.errors.payment = t.codError(lek(codLimit(), lang));
+  if (values.payment === 'cod' && !q.codAllowed) state.errors.payment = t.codError(lekLong(codLimit(), lang));
   if (!input || Object.keys(state.errors).length || state.changes.length) return state;
 
   let order: ReturnType<typeof createOrder>;
@@ -144,12 +144,12 @@ export async function checkoutPage(ctx: Ctx, lang: Lang): Promise<Response | Che
       if (e.code === 'empty') return redirect(cartUrl, 303);
       q = e.quote ?? quoteFor(lines, values);
       state.quote = q;
-      if (e.code === 'payment') state.errors.payment = t.codError(lek(codLimit(), lang));
+      if (e.code === 'payment') state.errors.payment = t.codError(lekLong(codLimit(), lang));
       else {
         const c = cities().find((x) => x.slug === values.city);
         const city = c ? cityName(c, lang) : '';
         const probs = q.lines.filter((l) => l.problem).map((l) => problemText(l, lang, city));
-        if (!probs.length && seenTotal !== null && seenTotal !== q.total) probs.push(t.changed.total(lek(seenTotal, lang), lek(q.total, lang)));
+        if (!probs.length && seenTotal !== null && seenTotal !== q.total) probs.push(t.changed.total(lekLong(seenTotal, lang), lekLong(q.total, lang)));
         state.changes = probs.length ? probs : [t.changed.removed];
       }
       return state;

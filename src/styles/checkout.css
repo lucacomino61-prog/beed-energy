@@ -191,3 +191,7 @@ html.js .stepper__save { display: none; }
 .co-phonego .btn { min-height: 44px; }
 .linkbtn { min-width: 44px; }
 .sumcard .link-arrow, .co-final a, .co-sec p a { padding-block: 0.3rem; }
+
+/* The zone hint applies only while no city is chosen. */
+.sumcard__city .hint { display: none; }
+.sumcard__city:has(option[value=""]:checked) .hint { display: block; }

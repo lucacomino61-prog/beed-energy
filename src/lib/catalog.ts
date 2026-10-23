@@ -5,6 +5,7 @@
 import { all, get } from './db';
 import type { Lang } from './i18n';
 import { num } from './money';
+import { specTextSq } from '../i18n/spec-values';
 
 export type Option = { value: string; sq: string; en: string };
 export type Attr = {
@@ -318,7 +319,7 @@ export function applyFilters(cards: ProductCard[], f: FilterState, attrs: Attr[]
         key: a.key,
         values: seen.map((v) => {
           const opt = a.options.find((o) => o.value === v);
-          const lbl = a.type === 'bool' ? (v === '1' ? ['Po', 'Yes'] : ['Jo', 'No']) : [opt?.sq ?? v, opt?.en ?? v];
+          const lbl = a.type === 'bool' ? (v === '1' ? ['Po', 'Yes'] : ['Jo', 'No']) : [opt?.sq ?? specTextSq(v), opt?.en ?? v];
           return {
             value: v,
             label_sq: lbl[0],
@@ -444,7 +445,8 @@ export function formatSpec(a: Attr, v: SpecValue, lang: Lang): string {
     const d = a.decimals ?? (Number.isInteger(v) ? 0 : 1);
     return `${num(v, d, lang)}${a.unit ? ' ' + a.unit : ''}`;
   }
-  return `${v}${a.unit && a.type !== 'text' ? ' ' + a.unit : ''}`;
+  const text = lang === 'sq' && typeof v === 'string' ? specTextSq(v) : String(v);
+  return `${text}${a.unit && a.type !== 'text' ? ' ' + a.unit : ''}`;
 }
 
 /** For comparison tables: which product ids hold the best value of a comparable numeric attribute. */

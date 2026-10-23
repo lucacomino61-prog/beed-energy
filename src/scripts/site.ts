@@ -1,6 +1,7 @@
 // Shell behaviour on every public page: energy-saving switch, menu dialog, header hide on scroll,
 // basket and compare forms without reloads, toasts, the once-per-session loader and simple reveals.
 import { gsap, motionOn, setMotion, onMotionChange, ScrollTrigger } from './motion';
+import { setCount } from './counts';
 
 const root = document.documentElement;
 const toasts = document.querySelector<HTMLElement>('[data-toasts]');
@@ -89,17 +90,7 @@ window.addEventListener(
   { passive: true },
 );
 
-// ---------- counts ----------
-function setCount(sel: string, n: number) {
-  document.querySelectorAll<HTMLElement>(sel).forEach((el) => {
-    el.dataset.zero = n === 0 ? 'true' : 'false';
-    const v = el.querySelector('[data-n]');
-    if (v) v.textContent = String(n);
-    const sr = el.querySelector('.visually-hidden');
-    if (sr && sel === '[data-cart-count]') sr.textContent = `${n} ${msg.cartCount ?? ''}`;
-    if (motionOn()) gsap.fromTo(el, { scale: 1.25 }, { scale: 1, duration: 0.35, ease: 'back.out(3)' });
-  });
-}
+// ---------- counts: number, screen-reader sentence and stamp for both counters (src/scripts/counts.ts) ----------
 
 // ---------- basket forms: <form data-cart-form method=post action=/api/cart> ----------
 document.addEventListener('submit', async (e) => {
@@ -117,11 +108,11 @@ document.addEventListener('submit', async (e) => {
     if (!res.ok) throw new Error(String(res.status));
     const data = await res.json();
     if (isCart) {
-      setCount('[data-cart-count]', data.count);
+      setCount('cart', data.count);
       document.dispatchEvent(new CustomEvent('beed:cart', { detail: data }));
       if (body.action === 'add' || !body.action) toast(msg.added, { href: msg.cartHref, label: msg.view });
     } else {
-      setCount('[data-compare-count]', data.ids.length);
+      setCount('compare', data.ids.length);
       renderTray(data);
       document.dispatchEvent(new CustomEvent('beed:compare', { detail: data }));
       if (data.note === 'full') toast(msg.full);

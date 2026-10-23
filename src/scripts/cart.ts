@@ -2,7 +2,8 @@
 // The server stays the only source of prices: every change posts to /api/cart, then the summary is
 // read back with GET /api/cart?city= so delivery and zone problems match the chosen city.
 // No motion here: numbers change, nothing moves (DESIGN.md: no motion over number entry).
-import { lek } from '../lib/money';
+import { lek, lekLong } from '../lib/money';
+import { rememberCity } from './city';
 
 type Line = { offerId: number; slug: string; qty: number; unitPrice: number; listPrice: number; lineTotal: number; stock: number; minQty: number; problem: null | 'gone' | 'stock' | 'min' | 'zone' };
 type Parcel = { sellerId: number; subtotal: number; fee: number; free: boolean };
@@ -15,8 +16,10 @@ if (root && wordsEl) init(root, JSON.parse(wordsEl.textContent ?? '{}'));
 function init(root: HTMLElement, w: Record<string, string>) {
   const lang = (w.lang === 'en' ? 'en' : 'sq') as 'sq' | 'en';
   const S = w.sentinel;
+  // basket lines: the tag form (12 400 L); parcel sums, totals and sentences: the long form (12 400 lekë)
   const money = (n: number) => lek(n, lang);
-  const fee = (n: number) => (n === 0 ? w.free : money(n));
+  const long = (n: number) => lekLong(n, lang);
+  const fee = (n: number) => (n === 0 ? w.free : long(n));
   const status = root.querySelector<HTMLElement>('[data-basket-status]');
   const citySel = document.querySelector<HTMLSelectElement>('[data-city]');
   let cityName = w.city;
@@ -87,6 +90,7 @@ function init(root: HTMLElement, w: Record<string, string>) {
     else url.searchParams.delete(w.param);
     url.searchParams.delete('shtuar');
     history.replaceState(history.state, '', url);
+    rememberCity(opt?.value ?? ''); // the checkout and product pages default to it (an empty choice forgets it)
     for (const go of document.querySelectorAll<HTMLAnchorElement>('[data-go]')) {
       const g = new URL(go.href);
       if (opt?.value) g.searchParams.set(w.param, opt.value);
@@ -203,7 +207,7 @@ function init(root: HTMLElement, w: Record<string, string>) {
       }
       foot.hidden = false;
       const sub = sec.querySelector('[data-parcel-sub]');
-      if (sub) sub.textContent = money(p.subtotal);
+      if (sub) sub.textContent = long(p.subtotal);
       const f = sec.querySelector('[data-parcel-fee]');
       if (f) f.textContent = fee(p.fee);
       const freeEl = sec.querySelector<HTMLElement>('[data-parcel-free]');
@@ -211,18 +215,18 @@ function init(root: HTMLElement, w: Record<string, string>) {
       const missing = !p.free && over ? over - p.subtotal : 0;
       if (freeEl) {
         freeEl.hidden = !(missing > 0);
-        freeEl.textContent = missing > 0 ? w.toFree.replace('{amount}', money(missing)) : '';
+        freeEl.textContent = missing > 0 ? w.toFree.replace('{amount}', long(missing)) : '';
       }
     });
     // summary + title block
     const set = (sel: string, v: string) => document.querySelectorAll(sel).forEach((n) => (n.textContent = v));
-    set('[data-sum="subtotal"]', money(d.subtotal));
-    set('[data-sum="delivery"]', d.parcels.length ? fee(d.delivery) : money(0));
-    set('[data-sum="total"]', money(d.total));
-    set('[data-sum="vat"]', money(d.vat));
+    set('[data-sum="subtotal"]', long(d.subtotal));
+    set('[data-sum="delivery"]', d.parcels.length ? fee(d.delivery) : long(0));
+    set('[data-sum="total"]', long(d.total));
+    set('[data-sum="vat"]', long(d.vat));
     set('[data-tb="items"]', String(d.count));
     set('[data-tb="parcels"]', String(d.parcels.length));
-    set('[data-tb="total"]', money(d.total));
+    set('[data-tb="total"]', long(d.total));
     const fix = document.querySelector<HTMLElement>('[data-fix]');
     if (fix) fix.hidden = d.ok;
     setHeaderCount(d.count);

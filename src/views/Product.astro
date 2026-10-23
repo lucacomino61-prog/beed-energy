@@ -11,8 +11,9 @@ import TitleBlock from '../components/TitleBlock.astro';
 import { attributes, categoryById, offersFor, priceHistory, productCardsByIds, productSpecs, related } from '../lib/catalog';
 import { readCompare } from '../lib/basket';
 import { href, type Lang } from '../lib/i18n';
-import { cities as allCities, drawingNo, fitDesc, fitTitle, offerRows, parseSources, price, unitPrice } from '../lib/shop-data';
+import { cities as allCities, drawingNo, fitDesc, fitTitle, offerRows, parseSources, price, priceLong, unitPrice } from '../lib/shop-data';
 import { num } from '../lib/money';
+import { chosenCitySlug } from '../lib/city-pref';
 import { ts } from '../i18n/shop';
 import '../styles/shop.css';
 
@@ -36,7 +37,8 @@ const basis = cat.unit_basis ? card?.specs[cat.unit_basis] : null;
 // City: ?qyteti= (sq) or ?city= (en); either works in both languages.
 const CITY = { sq: 'qyteti', en: 'city' } as const;
 const cityList = allCities();
-const citySlug = Astro.url.searchParams.get(CITY.sq) ?? Astro.url.searchParams.get(CITY.en) ?? '';
+// …or, without one, the city remembered from an earlier product, basket or calculator page (city-pref.ts).
+const citySlug = chosenCitySlug(Astro.url, Astro.cookies);
 const city = cityList.find((c) => c.slug === citySlug) ?? null;
 const cityName = city ? (lang === 'sq' ? city.name_sq : city.name_en) : null;
 
@@ -58,7 +60,7 @@ const path = href(lang, 'product', { slug: p.slug });
 const altPath = href(other, 'product', { slug: p.slug }) + (city ? `?${CITY[other]}=${city.slug}` : '');
 
 const title = fitTitle([P.metaTitle(p.brand, p.model), P.metaTitleShort(p.brand, p.model), name]);
-const description = fitDesc(P.metaDesc(name, rows.length, lowPrice !== null ? price(lowPrice, lang) : null));
+const description = fitDesc(P.metaDesc(name, rows.length, lowPrice !== null ? priceLong(lowPrice, lang) : null));
 
 const origin = Astro.url.origin;
 const jsonld: Record<string, unknown>[] = [
@@ -142,10 +144,10 @@ const quoteHref = href(lang, 'quote', {}, { produkt: p.slug });
                 <span>{t.offersFromSellers(rows.length, sellerCount)}</span>
                 {bestOffer && card?.unit_price && unitLabel && typeof basis === 'number' && <span class="mono">{unitPrice(bestOffer.price_all / basis, unitLabel, lang)}</span>}
               </p>
-              {lowPrice !== highPrice && highPrice !== null && <p class="small muted mono">{P.priceRange(price(lowPrice, lang), price(highPrice, lang))}</p>}
+              {lowPrice !== highPrice && highPrice !== null && <p class="small muted mono">{P.priceRange(priceLong(lowPrice, lang), priceLong(highPrice, lang))}</p>}
               <p class="small buybox__delivery">
                 {bestOffer && city && bestOffer.fee !== null
-                  ? <>{P.deliveryFromBest(bestOffer.fee === 0 ? P.free : price(bestOffer.fee, lang), cityName!)} · {P.bestTotal(price(bestOffer.total!, lang))}</>
+                  ? <>{P.deliveryFromBest(bestOffer.fee === 0 ? P.free : priceLong(bestOffer.fee, lang), cityName!)} · {P.bestTotal(priceLong(bestOffer.total!, lang))}</>
                   : P.deliveryExtra}
               </p>
               <div class="buybox__actions">
@@ -254,7 +256,7 @@ const quoteHref = href(lang, 'quote', {}, { produkt: p.slug });
         </div>
         <p class="small muted">{P.alertIntro}</p>
         {alertOk ? (
-          <p class="notice notice--ok" role="status" data-autofocus>{P.alertOk(flash?.target ? price(Number(flash.target), lang) : '')}</p>
+          <p class="notice notice--ok" role="status" data-autofocus>{P.alertOk(flash?.target ? priceLong(Number(flash.target), lang) : '')}</p>
         ) : (
           <form class="alert-form" method="post" action="/api/price-alert" novalidate data-first-error={firstErr ?? undefined}>
             {errs.size > 0 && <p class="form-errors" role="alert">{errs.has('rate') ? P.errRate : P.alertErrors}</p>}
@@ -271,7 +273,7 @@ const quoteHref = href(lang, 'quote', {}, { produkt: p.slug });
               <label for="alert-target">{P.target}</label>
               <input class="input mono" id="alert-target" name="target" inputmode="numeric" autocomplete="off" required value={flash?.target ?? ''}
                 aria-invalid={errs.has('target') ? 'true' : undefined} aria-describedby={`alert-target-hint${errs.has('target') ? ' alert-target-err' : ''}`} />
-              <p class="hint" id="alert-target-hint">{lowPrice !== null ? P.targetHint(price(lowPrice, lang)) : P.historyEmpty}</p>
+              <p class="hint" id="alert-target-hint">{lowPrice !== null ? P.targetHint(priceLong(lowPrice, lang)) : P.historyEmpty}</p>
               {errs.has('target') && <p class="error" id="alert-target-err">{P.errTarget}</p>}
             </div>
             <button class="btn" type="submit">{P.alertSubmit}</button>
@@ -297,7 +299,7 @@ const quoteHref = href(lang, 'quote', {}, { produkt: p.slug });
       <div class="actionbar__price">
         {lowPrice !== null ? <><span class="small muted">{P.barFrom}</span> <span class="price">{price(bestOffer?.price_all ?? lowPrice, lang)}</span></> : <span class="small">{t.noOffers}</span>}
       </div>
-      <a class="btn btn--ghost btn--s actionbar__btn" href={quoteHref}><span class="actionbar__t">{t.requestQuote}</span></a>
+      <a class="btn btn--ghost btn--s actionbar__btn" href={quoteHref} aria-label={t.requestQuote}><span class="actionbar__t">{P.barQuote}</span></a>
       {bestOffer && (
         <form class="actionbar__form" method="post" action="/api/cart" data-cart-form>
           <input type="hidden" name="offerId" value={bestOffer.id} />

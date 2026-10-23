@@ -10,7 +10,7 @@ const items = productCardsByIds(ids);
 ---
 <aside class="tray" data-tray hidden={hide || items.length === 0} aria-label={t.tray.title} data-label-remove={t.tray.remove}>
   <div class="row between">
-    <strong class="eyebrow" style="color:inherit">{t.tray.title} · <span data-tray-n>{items.length}</span>/4</strong>
+    <strong class="eyebrow" style="color:inherit"><span class="tray__word">{t.tray.title} · </span><span data-tray-n>{items.length}</span>/4</strong>
     <form method="post" action="/api/compare" data-compare-form>
       <input type="hidden" name="action" value="clear" />
       <button class="btn btn--ghost btn--s" type="submit">{t.tray.clear}</button>

@@ -1,6 +1,7 @@
 // Compare toggles on cards and the product page follow the compare list (site.ts posts the form and fires beed:compare).
 // On the compare page: "show differences only" without a reload, and remove a column without a reload.
 // No motion here: these are form controls.
+import { setCount } from './counts';
 
 let synced = false;
 export function syncCompareToggles() {
@@ -78,11 +79,7 @@ if (page) {
         u.searchParams.set('p', left.filter((x) => x !== fid).join(','));
         f.action = u.pathname + u.search;
       });
-      document.querySelectorAll<HTMLElement>('[data-compare-count]').forEach((el) => {
-        el.dataset.zero = data.ids.length === 0 ? 'true' : 'false';
-        const n = el.querySelector('[data-n]');
-        if (n) n.textContent = String(data.ids.length);
-      });
+      setCount('compare', data.ids.length, false); // number + screen-reader sentence; no stamp over a form
       page.querySelector<HTMLElement>('[data-compare-status]')!.textContent = page.dataset.removed ?? '';
       page.querySelector<HTMLElement>('h1')?.focus();
     } catch {

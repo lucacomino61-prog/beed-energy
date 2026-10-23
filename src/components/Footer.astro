@@ -2,17 +2,21 @@
 import { categories } from '../lib/catalog';
 import { href, type Lang } from '../lib/i18n';
 import { tc } from '../i18n/common';
+import { contactSettings } from '../lib/pages-db';
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
 const t = tc(lang);
 const cats = categories().slice(0, 8);
 const year = new Date().getFullYear();
+// Contact details only when settings.contact has them (no visible placeholders); NIPT and the operator line always.
+const contact = contactSettings();
+const tel = contact.phone ? contact.phone.replace(/[^+\d]/g, '') : '';
 ---
 <footer class="site-footer" data-tone="ink">
   <div class="footer__grid">
-    <div class="stack-m" style="grid-column: span 2; max-width: 34rem">
+    <div class="stack-m footer__about">
       <p class="lede" style="color:inherit">{t.footer.about}</p>
-      <p class="small mono">{t.footer.operator}</p>
+      <p class="small mono">{t.footer.operator}{contact.address && <>, {contact.address}</>}{contact.email && <> · <a href={`mailto:${contact.email}`}>{contact.email}</a></>}{contact.phone && <> · <a href={`tel:${tel}`}>{contact.phone}</a></>}</p>
       <p class="small mono">{t.footer.prices}</p>
     </div>
     <div>

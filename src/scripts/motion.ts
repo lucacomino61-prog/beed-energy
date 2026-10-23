@@ -18,12 +18,27 @@ function lenisStep(time: number) {
   lenis?.raf(time * 1000);
 }
 
+// Form pages (basket, checkout: <html data-native-scroll>, Site.astro nativeScroll) keep the browser's own scroll:
+// no smooth-scroll inertia over forms and number entry (DESIGN.md "shop pages are calm").
+const nativeScroll = () => document.documentElement.hasAttribute('data-native-scroll');
+
 function startLenis() {
-  if (lenis) return;
+  if (lenis || nativeScroll()) return;
   lenis = new Lenis({ lerp: 0.12, wheelMultiplier: 1, anchors: { offset: -72 }, autoRaf: false });
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add(lenisStep);
 }
+
+// A press freezes the smooth scroll where it is. While Lenis was still easing, the page moved under the pointer
+// between pointerdown and pointerup, so the click went to whatever was under it on release, not the button
+// pressed (the checkout's submit "did nothing" after a wheel scroll: reproduced 5 of 6 times with a 110 ms press).
+window.addEventListener(
+  'pointerdown',
+  () => {
+    if (lenis?.isScrolling === 'smooth') lenis.scrollTo(lenis.actualScroll, { immediate: true, force: true });
+  },
+  { capture: true, passive: true },
+);
 
 function stopLenis() {
   if (!lenis) return;

@@ -7,7 +7,7 @@ interface Props { lang: Lang; }
 const t = tc(Astro.props.lang);
 ---
 <div class="loader" data-loader hidden aria-hidden="true">
-  <button class="btn btn--ghost btn--s loader__skip" type="button" data-loader-skip>{t.loader.skip}</button>
+  <button class="btn btn--ghost loader__skip" type="button" data-loader-skip>{t.loader.skip}</button>
   <div class="loader__word" data-loader-word>
     {t.loader.words.map((w) => <span>{w}</span>)}
     <span>Bee<b>D</b></span>

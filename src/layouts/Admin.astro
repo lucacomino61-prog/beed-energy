@@ -1,8 +1,9 @@
 ---
 // Admin layout: ink rail on the left (top tabs on phones), a drawing-sheet page head with a poster title
 // and a title block, then the page. noindex; no smooth scroll and no motion over forms.
-import '../styles/tokens.css';
 import '../styles/base.css';
+// base.css (starter reset + generic tokens) first, then tokens.css so the brand :root (DESIGN.md) wins.
+import '../styles/tokens.css';
 import '../styles/global.css';
 import '../styles/admin.css';
 import BrandMark from '../components/BrandMark.astro';

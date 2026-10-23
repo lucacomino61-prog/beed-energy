@@ -7,7 +7,7 @@ import '../styles/checkout.css';
 import { readCart } from '../lib/basket';
 import { quote } from '../lib/cart';
 import { href, other, type Lang } from '../lib/i18n';
-import { lek } from '../lib/money';
+import { lek, lekLong } from '../lib/money';
 import { tco } from '../i18n/checkout';
 import { tc } from '../i18n/common';
 import { jsonForScript } from '../lib/html';
@@ -19,7 +19,7 @@ const t = tco(lang);
 const tcm = tc(lang);
 const lines = readCart(Astro.cookies);
 const allCities = cities();
-const city = readCity(Astro.url, allCities);
+const city = readCity(Astro.url, allCities, Astro.cookies); // ?qyteti= wins; else the city chosen on a product page
 const q = quote(lines, { cityId: city?.id ?? null });
 const groups = groupBySeller(q);
 const sellers = sellerInfo(groups.map((g) => g.sellerId));
@@ -34,7 +34,8 @@ const parcelCount = q.parcels.length;
 const cq = (l: Lang) => (city ? { [cityParam(l)]: city.slug } : undefined);
 const checkoutHref = href(lang, 'checkout', {}, cq(lang));
 const alternate = href(other(lang), 'cart', {}, cq(other(lang)));
-const fee = (n: number) => (n === 0 ? t.sum.free : lek(n, lang));
+// Lines carry the short tag form (12 400 L); parcel sums, totals and sentences the long one (12 400 lekë).
+const fee = (n: number) => (n === 0 ? t.sum.free : lekLong(n, lang));
 const S = 987654; // sentinel replaced in the browser
 const clientWords = {
   stockN: t.cart.problem.stock(S),
@@ -58,7 +59,7 @@ const clientWords = {
 };
 const cityName_ = city ? cityName(city, lang) : allCities.find((c) => c.zone === 1) ? cityName(allCities.find((c) => c.zone === 1)!, lang) : '';
 ---
-<Site lang={lang} title={t.cart.title} description={t.cart.description} alternate={alternate} current="cart" noindex hideTray>
+<Site lang={lang} title={t.cart.title} description={t.cart.description} alternate={alternate} current="cart" noindex hideTray nativeScroll>
   <div class="wrap sheet-head co-head">
     <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
       <ol class="crumbs"><li><a href={href(lang, 'home')}>{t.home}</a></li><li aria-current="page">{t.cart.h1}</li></ol>
@@ -69,7 +70,7 @@ const cityName_ = city ? cityName(city, lang) : allCities.find((c) => c.zone ===
         { label: t.cart.tb.items, value: itemCount, dd: { 'data-tb': 'items' } },
         { label: t.cart.tb.parcels, value: parcelCount, dd: { 'data-tb': 'parcels' } },
         { label: t.cart.tb.city, value: cityLabel, dd: { 'data-tb': 'city' } },
-        { label: t.cart.tb.total, value: lek(q.total, lang), dd: { 'data-tb': 'total' } },
+        { label: t.cart.tb.total, value: lekLong(q.total, lang), dd: { 'data-tb': 'total' } },
       ]} />
     )}
   </div>
@@ -92,7 +93,7 @@ const cityName_ = city ? cityName(city, lang) : allCities.find((c) => c.zone ===
       <div class="co-grid">
         <div class="co-main">
           <div class="co-phonego">
-            <p><span class="small muted">{t.sum.total}</span> <span class="price" data-sum="total">{lek(q.total, lang)}</span></p>
+            <p><span class="small muted">{t.sum.total}</span> <span class="price" data-sum="total">{lekLong(q.total, lang)}</span></p>
             <a class="btn btn--s" href={checkoutHref} data-go>{t.cart.checkout}</a>
           </div>
           <p class="lede co-intro">{t.cart.intro}</p>
@@ -198,10 +199,10 @@ const cityName_ = city ? cityName(city, lang) : allCities.find((c) => c.zone ===
                 {p && (
                   <footer class="parcel__foot">
                     <dl class="parcel__sum">
-                      <div><dt>{t.cart.parcelSubtotal}</dt><dd class="price" data-parcel-sub>{lek(p.subtotal, lang)}</dd></div>
+                      <div><dt>{t.cart.parcelSubtotal}</dt><dd class="price" data-parcel-sub>{lekLong(p.subtotal, lang)}</dd></div>
                       <div><dt>{t.sum.delivery}</dt><dd class="price" data-parcel-fee>{fee(p.fee)}</dd></div>
                     </dl>
-                    <p class="small muted parcel__free" data-parcel-free hidden={!(missing > 0)}>{missing > 0 ? t.cart.toFree(lek(missing, lang)) : ''}</p>
+                    <p class="small muted parcel__free" data-parcel-free hidden={!(missing > 0)}>{missing > 0 ? t.cart.toFree(lekLong(missing, lang)) : ''}</p>
                   </footer>
                 )}
               </section>
@@ -228,10 +229,10 @@ const cityName_ = city ? cityName(city, lang) : allCities.find((c) => c.zone ===
               <button class="btn btn--ghost btn--s co-nojs" type="submit">{t.cart.city.apply}</button>
             </form>
             <dl class="totals">
-              <div><dt>{t.sum.subtotal}</dt><dd class="price" data-sum="subtotal">{lek(q.subtotal, lang)}</dd></div>
+              <div><dt>{t.sum.subtotal}</dt><dd class="price" data-sum="subtotal">{lekLong(q.subtotal, lang)}</dd></div>
               <div><dt>{t.sum.delivery}</dt><dd class="price" data-sum="delivery">{fee(q.delivery)}</dd></div>
-              <div class="totals__grand"><dt>{t.sum.total}</dt><dd class="price" data-sum="total">{lek(q.total, lang)}</dd></div>
-              <div class="totals__vat"><dt>{t.sum.vat}</dt><dd class="price" data-sum="vat">{lek(q.vat, lang)}</dd></div>
+              <div class="totals__grand"><dt>{t.sum.total}</dt><dd class="price" data-sum="total">{lekLong(q.total, lang)}</dd></div>
+              <div class="totals__vat"><dt>{t.sum.vat}</dt><dd class="price" data-sum="vat">{lekLong(q.vat, lang)}</dd></div>
             </dl>
             <p class="notice notice--bad small" data-fix hidden={q.ok}><span aria-hidden="true">⚠ </span>{t.cart.fix}</p>
             <a class="btn btn--block" href={checkoutHref} data-go>{t.cart.checkout} <span class="arrow" aria-hidden="true">→</span></a>
