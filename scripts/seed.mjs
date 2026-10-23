@@ -154,6 +154,8 @@ function seedDemo() {
   const netEur = (p) => {
     if (!p.reference_price_eur) return null;
     const note = (p.reference_price_source ?? '').toLowerCase();
+    const rate = /incl\.?\s*(?:vat|tvsh)[^0-9]{0,12}(\d{1,2})\s*%/.exec(note)?.[1];
+    if (rate) return p.reference_price_eur / (1 + Number(rate) / 100);
     if (note.includes('luxembourg')) return p.reference_price_eur / 1.17;
     if (note.includes('incl')) return p.reference_price_eur / 1.2;
     return p.reference_price_eur;
@@ -219,7 +221,8 @@ function seedDemo() {
         s.plan === 'partner' && rnd() < 0.25 ? 1 : 0,
         `-${Math.floor(rnd() * 20)} days`,
       );
-      const offerId = r.lastInsertRowid ? Number(r.lastInsertRowid) : q('SELECT id FROM offers WHERE product_id = ? AND seller_id = ?').get(p.id, s.id).id;
+      void r; // an upsert that updates leaves lastInsertRowid stale, so always look the row up
+      const offerId = q('SELECT id FROM offers WHERE product_id = ? AND seller_id = ?').get(p.id, s.id).id;
       if (['solar-panels', 'cement-and-masonry', 'insulation', 'pv-accessories'].includes(p.cat)) {
         q('DELETE FROM offer_tiers WHERE offer_id = ?').run(offerId);
         q('INSERT INTO offer_tiers (offer_id, min_qty, price_all) VALUES (?, ?, ?)').run(offerId, p.cat === 'solar-panels' ? 10 : 50, roundPrice(price * 0.96));

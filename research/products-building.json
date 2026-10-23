@@ -1,0 +1,809 @@
+[
+  {
+    "slug": "daikin-altherma-3-r-w-ehbh08e6v-erga06evh",
+    "brand": "Daikin",
+    "model": "EHBH08E6V + ERGA06EAV3H (ERGA06EVH)",
+    "category": "heat-pumps",
+    "name_en": "Daikin Altherma 3 R W air-to-water heat pump, 6 kW",
+    "name_sq": "Pompë nxehtësie ajër–ujë Daikin Altherma 3 R W, 6 kW",
+    "summary_en": "Split air-to-water heat pump: wall-mounted indoor hydrobox EHBH08E6V with outdoor unit ERGA06EVH, R-32. 6.00 kW and COP 4.85 at A7/W35; SCOP 4.47 at 35 °C (average climate).",
+    "summary_sq": "Pompë nxehtësie split ajër–ujë: njësi e brendshme murale EHBH08E6V me njësi të jashtme ERGA06EVH, R-32. 6,00 kW dhe COP 4,85 në A7/W35; SCOP 4,47 në 35 °C (klimë mesatare).",
+    "specs": {
+      "heating_capacity_kw": 6,
+      "cop_a7w35": 4.85,
+      "scop_average_climate": 4.47,
+      "energy_class_35c": "A+++",
+      "refrigerant": "R-32",
+      "phases": 1,
+      "sound_power_db": 60
+    },
+    "dimensions_mm": {
+      "w": 884,
+      "h": 740,
+      "d": 388
+    },
+    "weight_kg": 58.5,
+    "warranty_years": null,
+    "datasheet_url": "https://www.daikin.eu/content/dam/global-assets/internet-denv/catalogues_brochures/commercial/Daikin%20Altherma%203%20R%20Product%20Catalogue%20ECPEN22-786.pdf",
+    "sources": [
+      "https://www.daikin.eu/content/dam/global-assets/internet-denv/catalogues_brochures/commercial/Daikin%20Altherma%203%20R%20Product%20Catalogue%20ECPEN22-786.pdf",
+      "https://www.daikin.eu/en_us/products/product.table.html/ERGA-EVH.html",
+      "https://www.daikin.eu/en_us/products/product.html/ERGA-EVH.html"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "mitsubishi-ecodan-puz-wm85vaa-bs",
+    "brand": "Mitsubishi Electric",
+    "model": "PUZ-WM85VAA-BS",
+    "category": "heat-pumps",
+    "name_en": "Mitsubishi Electric Ecodan monobloc heat pump, 8.5 kW",
+    "name_sq": "Pompë nxehtësie monoblok Mitsubishi Electric Ecodan, 8,5 kW",
+    "summary_en": "Ecodan R32 monobloc air-to-water outdoor unit, -BS version with extra coastal corrosion treatment. 8.5 kW and COP 4.80 at A7/W35; seasonal efficiency ηs 193% at 35 °C.",
+    "summary_sq": "Njësi e jashtme monoblok ajër–ujë Ecodan me R32, versioni -BS me trajtim shtesë kundër korrozionit bregdetar. 8,5 kW dhe COP 4,80 në A7/W35; efikasitet sezonal ηs 193% në 35 °C.",
+    "specs": {
+      "heating_capacity_kw": 8.5,
+      "cop_a7w35": 4.8,
+      "scop_average_climate": 4.9,
+      "energy_class_35c": "A+++",
+      "refrigerant": "R32",
+      "phases": 1,
+      "sound_power_db": 58
+    },
+    "dimensions_mm": {
+      "w": 1050,
+      "h": 1020,
+      "d": 480
+    },
+    "weight_kg": 98,
+    "warranty_years": null,
+    "datasheet_url": "https://www.mitsubishi-electric.co.nz/materials/hotwater/brochures/puz-wm85vaa-bs_pi_sheet.pdf",
+    "sources": [
+      "https://www.mitsubishi-electric.co.nz/materials/hotwater/brochures/puz-wm85vaa-bs_pi_sheet.pdf"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "panasonic-aquarea-j-wh-mdc09j3e5",
+    "brand": "Panasonic",
+    "model": "WH-MDC09J3E5",
+    "category": "heat-pumps",
+    "name_en": "Panasonic Aquarea J monobloc heat pump, 9 kW",
+    "name_sq": "Pompë nxehtësie monoblok Panasonic Aquarea J, 9 kW",
+    "summary_en": "Aquarea J-generation monobloc (compact) air-to-water heat pump for heating and cooling, R32, single phase. 9.00 kW and COP 4.48 at A7/W35; SCOP 4.90 at W35.",
+    "summary_sq": "Pompë nxehtësie monoblok (kompakte) ajër–ujë Aquarea, gjenerata J, për ngrohje dhe ftohje, R32, njëfazore. 9,00 kW dhe COP 4,48 në A7/W35; SCOP 4,90 në W35.",
+    "specs": {
+      "heating_capacity_kw": 9,
+      "cop_a7w35": 4.48,
+      "scop_average_climate": 4.9,
+      "energy_class_35c": "A+++",
+      "refrigerant": "R32",
+      "phases": 1,
+      "sound_power_db": 59
+    },
+    "dimensions_mm": {
+      "w": 1283,
+      "h": 865,
+      "d": 320
+    },
+    "weight_kg": 104,
+    "warranty_years": null,
+    "datasheet_url": "https://www.schiessl-kaelte.com/en_DE/Shop/Heat-pumps/Outdoor-units/Compact/Panasonic-heat-pump-LT-compact-WH-MDC09J3E5-heating-cooling-9-kW-R32~p1460799",
+    "sources": [
+      "https://www.schiessl-kaelte.com/en_DE/Shop/Heat-pumps/Outdoor-units/Compact/Panasonic-heat-pump-LT-compact-WH-MDC09J3E5-heating-cooling-9-kW-R32~p1460799",
+      "https://www.panasonic.com/nz/hvac/air-to-water/wh-mdc07j3e5.specs.html"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "vaillant-arotherm-plus-vwl-75-6-a-230v",
+    "brand": "Vaillant",
+    "model": "aroTHERM plus VWL 75/6 A 230V S2",
+    "category": "heat-pumps",
+    "name_en": "Vaillant aroTHERM plus monobloc heat pump, 7 kW class (R290)",
+    "name_sq": "Pompë nxehtësie monoblok Vaillant aroTHERM plus, klasa 7 kW (R290)",
+    "summary_en": "Monobloc air-to-water heat pump with natural refrigerant R290 (GWP 3), flow up to 75 °C. Nominal 4.60 kW and COP 4.80 at A7/W35 (EN 14511), modulating 3.0–7.4 kW at A7/W35.",
+    "summary_sq": "Pompë nxehtësie monoblok ajër–ujë me gaz natyror R290 (GWP 3), ujë deri në 75 °C. Nominale 4,60 kW dhe COP 4,80 në A7/W35 (EN 14511), modulon 3,0–7,4 kW në A7/W35.",
+    "specs": {
+      "heating_capacity_kw": 4.6,
+      "cop_a7w35": 4.8,
+      "energy_class_35c": "A+++",
+      "refrigerant": "R290",
+      "phases": 1,
+      "sound_power_db": 53
+    },
+    "dimensions_mm": {
+      "w": 1100,
+      "h": 965,
+      "d": 450
+    },
+    "weight_kg": 128,
+    "warranty_years": null,
+    "datasheet_url": "https://www.vaillant.co.uk/product-images/0020330791-03.pdf.pdf",
+    "sources": [
+      "https://www.vaillant.co.uk/product-systems/heat-pumps/arotherm-plus/",
+      "https://www.vaillant.co.uk/product-images/0020330791-03.pdf.pdf",
+      "https://www.vaillant.co.uk/product-images/0020292189-02.pdf.pdf"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "daikin-perfera-ftxm35a-rxm35a",
+    "brand": "Daikin",
+    "model": "FTXM35A + RXM35A",
+    "category": "air-conditioners",
+    "name_en": "Daikin Perfera wall-mounted inverter split, 3.5 kW",
+    "name_sq": "Kondicioner inverter mural Daikin Perfera, 3,5 kW",
+    "summary_en": "Wall-mounted inverter split (FTXM35A indoor, RXM35A outdoor), R-32. Cooling 3.50 kW, heating 4.00 kW; SEER 9.25 (A+++) and SCOP 5.20 (A+++).",
+    "summary_sq": "Kondicioner split inverter mural (njësi e brendshme FTXM35A, e jashtme RXM35A), R-32. Ftohje 3,50 kW, ngrohje 4,00 kW; SEER 9,25 (A+++) dhe SCOP 5,20 (A+++).",
+    "specs": {
+      "cooling_capacity_kw": 3.5,
+      "heating_capacity_kw": 4,
+      "seer": 9.25,
+      "scop": 5.2,
+      "energy_class_cooling": "A+++",
+      "refrigerant": "R-32",
+      "indoor_noise_min_db": 19
+    },
+    "dimensions_mm": {
+      "w": 804,
+      "h": 298,
+      "d": 252
+    },
+    "weight_kg": 11.5,
+    "warranty_years": null,
+    "datasheet_url": "https://www.daikin.eu/content/dam/document-library/catalogues/ac/split/ftxm-a/FTXM-A,%20RXM-A_Product%20flyer_ECPEN24-022_English.pdf",
+    "sources": [
+      "https://www.daikin.eu/content/dam/document-library/catalogues/ac/split/ftxm-a/FTXM-A,%20RXM-A_Product%20flyer_ECPEN24-022_English.pdf",
+      "https://www.daikin.eu/en_us/products/product.html/FTXM-A.html",
+      "https://www.neptun.al/manufacturers/manufacturer-products.nspx?manId=166&categories=282_338_336_355_356_361_363_362_349_354"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "lg-dualcool-deluxe-dc12rk",
+    "brand": "LG",
+    "model": "DC12RK.NSJ / DC12RK.UL2",
+    "category": "air-conditioners",
+    "name_en": "LG DUALCOOL Deluxe inverter split, 3.5 kW",
+    "name_sq": "Kondicioner inverter LG DUALCOOL Deluxe, 3,5 kW",
+    "summary_en": "Wall-mounted Dual Inverter split, R32. Rated cooling 3.5 kW and heating 4.0 kW, energy class A++ in cooling and heating; LG states 19 dB low-noise operation and a 10-year compressor warranty.",
+    "summary_sq": "Kondicioner split mural me Dual Inverter, R32. Ftohje nominale 3,5 kW dhe ngrohje 4,0 kW, klasa energjetike A++ në ftohje dhe ngrohje; LG deklaron punim të qetë 19 dB dhe 10 vjet garanci për kompresorin.",
+    "specs": {
+      "cooling_capacity_kw": 3.5,
+      "heating_capacity_kw": 4,
+      "energy_class_cooling": "A++",
+      "refrigerant": "R32",
+      "indoor_noise_min_db": 19
+    },
+    "dimensions_mm": {
+      "w": 837,
+      "h": 308,
+      "d": 189
+    },
+    "weight_kg": 9.1,
+    "warranty_years": null,
+    "datasheet_url": "https://www.lg.com/de/klimaanlagen/dc12rk/",
+    "sources": [
+      "https://www.lg.com/de/klimaanlagen/dc12rk/",
+      "https://www.lg.com/cz/bytove-klimatizace/bytove-klimatizace/dc12rk/",
+      "https://www.neptun.al/manufacturers/manufacturer-products.nspx?manId=116&categories=282_338_336_355_356_361_363_362_349_354"
+    ],
+    "reference_price_eur": 959.81,
+    "price_source": "https://www.neptun.al/manufacturers/manufacturer-products.nspx?manId=116&categories=282_338_336_355_356_361_363_362_349_354 — Neptun (Albanian retailer), product code KO0730, read 2026-10-23",
+    "price_note": "Albanian retailer price incl. VAT 20%: 86,997 lekë (promotional; regular price 172,090 lekë), converted at the Bank of Albania rate 90.64 lekë/EUR of 22.10.2026; Neptun lists 36 months standard warranty"
+  },
+  {
+    "slug": "gree-pular-gwh12agb-k6dna1a",
+    "brand": "Gree",
+    "model": "GWH12AGB-K6DNA1A",
+    "category": "air-conditioners",
+    "name_en": "Gree Pular inverter split, 3.2 kW",
+    "name_sq": "Kondicioner inverter Gree Pular, 3,2 kW",
+    "summary_en": "Wall-mounted inverter split, R32 (EU product fiche, EPREL 372450). Cooling design load 3.2 kW, SEER 6.1 (A++); SCOP 4.0 in the average heating season (A+).",
+    "summary_sq": "Kondicioner split inverter mural, R32 (fleta e produktit BE, EPREL 372450). Ngarkesa e projektimit në ftohje 3,2 kW, SEER 6,1 (A++); SCOP 4,0 në sezonin mesatar të ngrohjes (A+).",
+    "specs": {
+      "cooling_capacity_kw": 3.2,
+      "seer": 6.1,
+      "scop": 4,
+      "energy_class_cooling": "A++",
+      "refrigerant": "R32"
+    },
+    "dimensions_mm": {
+      "w": 779,
+      "h": 260,
+      "d": 185
+    },
+    "weight_kg": null,
+    "warranty_years": null,
+    "datasheet_url": "https://eprel.ec.europa.eu/fiches/airconditioners/Fiche_372450_EN.pdf",
+    "sources": [
+      "https://eprel.ec.europa.eu/fiches/airconditioners/Fiche_372450_EN.pdf",
+      "https://www.remle.com/de/equipos-climatizacion/aire-acondicionado/gree-1x1-pular-12-3ngr0740-3200w499-90-0312.html",
+      "https://gree.al/kondicioner-mural/"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "calpak-mark-5-160-2-6",
+    "brand": "Calpak",
+    "model": "Mark-5 160/2.6",
+    "category": "solar-water-heaters",
+    "name_en": "Calpak Mark-5 thermosiphon solar water heater, 151 L",
+    "name_sq": "Ngrohës uji diellor me termosifon Calpak Mark-5, 151 L",
+    "summary_en": "Thermosiphon system with a 151-litre directly enamelled steel tank (DIN 4753/3) and 2.60 m² gross collector area (Tinox absorber), with a 3.5 kW electric immersion heater. Solar Keymark certified.",
+    "summary_sq": "Sistem me termosifon me depozitë çeliku 151 litra të emaluar direkt (DIN 4753/3) dhe kolektor me sipërfaqe bruto 2,60 m² (absorbues Tinox), me rezistencë elektrike 3,5 kW. I certifikuar Solar Keymark.",
+    "specs": {
+      "tank_litres": 151,
+      "collector_area_m2": 2.6,
+      "system_type": "thermosiphon",
+      "tank_material": "Directly enamelled DC-03 steel (DIN 4753/3)",
+      "electric_backup_w": 3500
+    },
+    "dimensions_mm": {
+      "w": 1230,
+      "h": 1989,
+      "d": 1973
+    },
+    "weight_kg": null,
+    "warranty_years": null,
+    "datasheet_url": "https://calpak.gr/wp-content/uploads/2024/10/Mark5_brochure_2022.05.08_EN_high-res-1.pdf",
+    "sources": [
+      "https://calpak.gr/en/portfolio-item/mark-5-160-2-6-en/",
+      "https://calpak.gr/wp-content/uploads/2024/10/Mark5_brochure_2022.05.08_EN_high-res-1.pdf",
+      "https://calpak.gr/wp-content/uploads/2024/10/Mark5_Complete-English-Manual_2024_4_3-1.pdf"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "sole-eurostar-150-1-250",
+    "brand": "SOLE",
+    "model": "EUROSTAR 150-1-250",
+    "category": "solar-water-heaters",
+    "name_en": "SOLE EUROSTAR thermosiphon solar water heater, 150 L",
+    "name_sq": "Ngrohës uji diellor me termosifon SOLE EUROSTAR, 150 L",
+    "summary_en": "Thermosiphon system with a 150-litre glass-enamelled steel tank (1320 mm × Ø500) and one 2.31 m² selective collector (1970 × 1175 × 86 mm). Made in Athens; Solar Keymark certified.",
+    "summary_sq": "Sistem me termosifon me depozitë çeliku 150 litra të emaluar me xham (1320 mm × Ø500) dhe një kolektor selektiv 2,31 m² (1970 × 1175 × 86 mm). Prodhuar në Athinë; i certifikuar Solar Keymark.",
+    "specs": {
+      "tank_litres": 150,
+      "collector_area_m2": 2.31,
+      "collector_count": 1,
+      "system_type": "thermosiphon",
+      "tank_material": "Glass-enamelled steel"
+    },
+    "dimensions_mm": {
+      "w": 1175,
+      "h": 1970,
+      "d": 86
+    },
+    "weight_kg": null,
+    "warranty_years": null,
+    "datasheet_url": "https://www.sole.gr/image/catalog/pdfs/eurostar/SOLE-EUROSTAR_EN.pdf",
+    "sources": [
+      "https://www.sole.gr/iliakoi-thermosifwnes/eurostar",
+      "https://www.sole.gr/image/catalog/pdfs/eurostar/SOLE-EUROSTAR_EN.pdf",
+      "https://www.sole.gr/eksagwges"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "cosmosolar-glass-cs-170-2-52-vs",
+    "brand": "Cosmosolar",
+    "model": "CS 170/2,52 VS (tank BLGLC 170, collector EPI 54 NV)",
+    "category": "solar-water-heaters",
+    "name_en": "Cosmosolar GLASS CS thermosiphon solar water heater, 170 L",
+    "name_sq": "Ngrohës uji diellor me termosifon Cosmosolar GLASS CS, 170 L",
+    "summary_en": "Thermosiphon system with a 170-litre double-enamelled steel tank (titanium-added, DIN 4753) and one 2.52 m² collector (2000 × 1260 mm), with a 3.5 kW electric heater with safety thermostat.",
+    "summary_sq": "Sistem me termosifon me depozitë çeliku 170 litra me emalim të dyfishtë (me titan, DIN 4753) dhe një kolektor 2,52 m² (2000 × 1260 mm), me rezistencë elektrike 3,5 kW me termostat sigurie.",
+    "specs": {
+      "tank_litres": 170,
+      "collector_area_m2": 2.52,
+      "collector_count": 1,
+      "system_type": "thermosiphon",
+      "tank_material": "Double-enamelled steel with titanium (DIN 4753)",
+      "electric_backup_w": 3500
+    },
+    "dimensions_mm": {
+      "w": 1260,
+      "h": 2000,
+      "d": null
+    },
+    "weight_kg": 135.9,
+    "warranty_years": null,
+    "datasheet_url": "https://cosmosolar.com/wp-content/uploads/documents/Solar/CS/Product_Fiche/DP_HL_S_CS170VS_2_52.pdf",
+    "sources": [
+      "https://cosmosolar.com/product/%ce%b7%ce%bb%ce%b9%ce%b1%ce%ba%ce%bf%ce%af-%ce%b8%ce%b5%cf%81%ce%bc%ce%bf%cf%83%ce%af%cf%86%cf%89%ce%bd%ce%b5%cf%82-glass-gl-120-200-2/",
+      "https://cosmosolar.com/wp-content/uploads/documents/Solar/CS/Product_Fiche/DP_HL_S_CS170VS_2_52.pdf"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "rockwool-frontrock-max-plus-100",
+    "brand": "ROCKWOOL",
+    "model": "Frontrock MAX Plus 100 mm",
+    "category": "insulation",
+    "name_en": "ROCKWOOL Frontrock MAX Plus stone wool facade board, 100 mm",
+    "name_sq": "Panel leshi guri për fasadë ROCKWOOL Frontrock MAX Plus, 100 mm",
+    "summary_en": "Dual-density stone wool board for ETICS facades (outer layer 136 kg/m³, inner 70 kg/m³), non-combustible A1, λD 0.035 W/mK. 1000 × 600 mm boards; at 100 mm, RD 2.85 m²K/W and 2.40 m² per pack.",
+    "summary_sq": "Panel leshi guri me dy dendësi për fasada ETICS (shtresa e jashtme 136 kg/m³, e brendshme 70 kg/m³), i padjegshëm A1, λD 0,035 W/mK. Panele 1000 × 600 mm; në 100 mm, RD 2,85 m²K/W dhe 2,40 m² për paketë.",
+    "specs": {
+      "material": "Stone wool (dual density)",
+      "thermal_conductivity_w_mk": 0.035,
+      "thickness_mm": 100,
+      "fire_class": "A1",
+      "pack_area_m2": 2.4
+    },
+    "dimensions_mm": {
+      "w": 1000,
+      "h": 600,
+      "d": 100
+    },
+    "weight_kg": null,
+    "warranty_years": null,
+    "datasheet_url": "https://brandportal.rockwool.com/public-assets/8748580/frontrock-max-plus-alb.pdf",
+    "sources": [
+      "https://www.rockwool.com/al/produkte/frontrock-max-plus/",
+      "https://brandportal.rockwool.com/public-assets/8748580/frontrock-max-plus-alb.pdf"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "austrotherm-eps-af-plus-100",
+    "brand": "Austrotherm",
+    "model": "EPS AF PLUS 100 mm",
+    "category": "insulation",
+    "name_en": "Austrotherm EPS AF PLUS graphite facade board, 100 mm",
+    "name_sq": "Pllakë fasade EPS me grafit Austrotherm EPS AF PLUS, 100 mm",
+    "summary_en": "Grey (graphite) expanded polystyrene facade board to EN 13163, λ 0.031 W/mK, reaction to fire class E. 1000 × 500 mm boards; at 100 mm, 5 boards = 2.5 m² per pack.",
+    "summary_sq": "Pllakë fasade prej polistireni të zgjeruar gri (me grafit) sipas EN 13163, λ 0,031 W/mK, klasa e reagimit ndaj zjarrit E. Pllaka 1000 × 500 mm; në 100 mm, 5 pllaka = 2,5 m² për paketë.",
+    "specs": {
+      "material": "Graphite EPS (EN 13163)",
+      "thermal_conductivity_w_mk": 0.031,
+      "thickness_mm": 100,
+      "fire_class": "E",
+      "pack_area_m2": 2.5
+    },
+    "dimensions_mm": {
+      "w": 1000,
+      "h": 500,
+      "d": 100
+    },
+    "weight_kg": null,
+    "warranty_years": null,
+    "datasheet_url": "https://www.austrotherm.rs/fileadmin/user_upload/RS/Download/Katalozi/Katalog_proizvoda_A5_2026_20260811.pdf",
+    "sources": [
+      "https://www.austrotherm.rs/proizvodi/austrotherm-eps-eps-plus/austrotherm-eps-af-plus",
+      "https://www.austrotherm.rs/fileadmin/user_upload/RS/Download/Katalozi/Katalog_proizvoda_A5_2026_20260811.pdf"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "austrotherm-xps-top-30-50",
+    "brand": "Austrotherm",
+    "model": "XPS TOP 30, 50 mm",
+    "category": "insulation",
+    "name_en": "Austrotherm XPS TOP 30 extruded polystyrene board, 50 mm",
+    "name_sq": "Pllakë polistireni të ekstruduar Austrotherm XPS TOP 30, 50 mm",
+    "summary_en": "Extruded polystyrene board to EN 13164 for plinths, floors and inverted roofs: compressive strength 300 kPa, λ 0.032 W/mK at 40–50 mm, fire class E. 1250 × 600 mm; at 50 mm, 8 boards = 6.00 m² per pack.",
+    "summary_sq": "Pllakë polistireni të ekstruduar sipas EN 13164 për bazamente, dysheme dhe çati të invertuara: rezistencë në shtypje 300 kPa, λ 0,032 W/mK në 40–50 mm, klasa e zjarrit E. 1250 × 600 mm; në 50 mm, 8 pllaka = 6,00 m² për paketë.",
+    "specs": {
+      "material": "XPS (EN 13164)",
+      "thermal_conductivity_w_mk": 0.032,
+      "thickness_mm": 50,
+      "fire_class": "E",
+      "pack_area_m2": 6
+    },
+    "dimensions_mm": {
+      "w": 1250,
+      "h": 600,
+      "d": 50
+    },
+    "weight_kg": null,
+    "warranty_years": null,
+    "datasheet_url": "https://www.austrotherm.rs/fileadmin/user_upload/RS/Download/Katalozi/Katalog_proizvoda_A5_2026_20260811.pdf",
+    "sources": [
+      "https://www.austrotherm.rs/proizvodi/austrotherm-xps/austrotherm-xps-top-30-tb",
+      "https://www.austrotherm.rs/fileadmin/user_upload/RS/Download/Katalozi/Katalog_proizvoda_A5_2026_20260811.pdf"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "ceresit-ceretherm-aquastatic-etics",
+    "brand": "Ceresit (Henkel)",
+    "model": "Ceretherm Aquastatic (ETICS)",
+    "category": "insulation",
+    "name_en": "Ceresit Ceretherm Aquastatic external thermal insulation system",
+    "name_sq": "Sistem termoizolimi i fasadës Ceresit Ceretherm Aquastatic",
+    "summary_en": "ETICS kit sold through Ceresit Albania: EPS boards to EN 13163 (up to 42 cm) fixed with CT 83/CT 85 and anchors, CT 85 reinforcing coat with CT 325 glass-fibre mesh, CT 16 primer and CT 174/175 silicate-silicone render. Covered by the ETA for Ceresit Ceretherm Classic.",
+    "summary_sq": "Sistem ETICS që shitet nga Ceresit Shqipëri: pllaka EPS sipas EN 13163 (deri në 42 cm) të fiksuara me CT 83/CT 85 dhe kunja, shtresë përforcuese CT 85 me rrjetë me fibra xhami CT 325, abetare CT 16 dhe suva silikat-silikoni CT 174/175. Mbulohet nga ETA për Ceresit Ceretherm Classic.",
+    "specs": {
+      "material": "ETICS: EPS (EN 13163) + Ceresit CT 85 + CT 325 mesh + CT 174/175 render"
+    },
+    "dimensions_mm": null,
+    "weight_kg": null,
+    "warranty_years": null,
+    "datasheet_url": "https://www.ceresit.al/zgjidhje-sistemore/sistemet-per-termoizolim/ceretherm-aquastatic.html",
+    "sources": [
+      "https://www.ceresit.al/zgjidhje-sistemore/sistemet-per-termoizolim.html",
+      "https://www.ceresit.al/zgjidhje-sistemore/sistemet-per-termoizolim/ceretherm-aquastatic.html"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "veka-softline-82-md",
+    "brand": "VEKA",
+    "model": "SOFTLINE 82 MD",
+    "category": "windows",
+    "name_en": "VEKA SOFTLINE 82 MD PVC window system",
+    "name_sq": "Sistem profilesh PVC për dritare VEKA SOFTLINE 82 MD",
+    "summary_en": "PVC profile system with 82 mm depth, 7-chamber frame and 6–7-chamber sash, centre-seal design with three sealing levels; glazing 24–54 mm. Frame Uf up to 1.0 W/m²K including steel reinforcement.",
+    "summary_sq": "Sistem profilesh PVC me thellësi 82 mm, kasë me 7 dhoma dhe kanat me 6–7 dhoma, me guarnicion qendror dhe tre nivele izolimi; xham 24–54 mm. Uf i kasës deri në 1,0 W/m²K me përforcim çeliku.",
+    "specs": {
+      "profile_depth_mm": 82,
+      "chambers": 7,
+      "uf_w_m2k": 1,
+      "seals": "3 sealing levels: outer, centre and rebate (stop) seal"
+    },
+    "dimensions_mm": null,
+    "weight_kg": null,
+    "warranty_years": null,
+    "datasheet_url": "https://sentinel-holding.eu/Kunden/VEKA%20AG/Produktunterlagen/SOFTLINE%2082%20mit%20100%20-%20Frischmaterial/TDB_SOFTLINE-82-MD_DE_2018-01.pdf",
+    "sources": [
+      "https://sentinel-holding.eu/Kunden/VEKA%20AG/Produktunterlagen/SOFTLINE%2082%20mit%20100%20-%20Frischmaterial/TDB_SOFTLINE-82-MD_DE_2018-01.pdf",
+      "https://www.vekainc.com/products/european-systems/window-systems/softline-82-md/"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "salamander-bluevolution-82",
+    "brand": "Salamander",
+    "model": "bluEvolution 82",
+    "category": "windows",
+    "name_en": "Salamander bluEvolution 82 PVC window system",
+    "name_sq": "Sistem profilesh PVC për dritare Salamander bluEvolution 82",
+    "summary_en": "PVC profile series with 82 mm installation depth and 5- or 6-chamber profiles, glazing up to 60 mm. Salamander states Uf = 0.98 W/m²K and Uw = 0.73 W/m²K with triple glazing; suitable as a passive-house component.",
+    "summary_sq": "Seri profilesh PVC me thellësi montimi 82 mm dhe profile me 5 ose 6 dhoma, xham deri në 60 mm. Salamander deklaron Uf = 0,98 W/m²K dhe Uw = 0,73 W/m²K me xham trefish; i përshtatshëm për shtëpi pasive.",
+    "specs": {
+      "profile_depth_mm": 82,
+      "chambers": 6,
+      "uf_w_m2k": 0.98,
+      "uw_w_m2k": 0.73
+    },
+    "dimensions_mm": null,
+    "weight_kg": null,
+    "warranty_years": null,
+    "datasheet_url": "https://salamander-windows.com/productworld/windows/bluevolution82_system",
+    "sources": [
+      "https://salamander-windows.com/productworld/windows/bluevolution82_system"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "antea-cem-ii-b-ll-32-5-r",
+    "brand": "Antea Cement (TITAN Group)",
+    "model": "CEM II/B-LL 32.5 R",
+    "category": "cement-masonry",
+    "name_en": "Antea Portland limestone cement CEM II/B-LL 32.5 R",
+    "name_sq": "Çimento portland me gëlqeror Antea CEM II/B-LL 32,5 R",
+    "summary_en": "Portland limestone cement made at Fushë-Krujë, Albania: 65–79% clinker, 21–35% limestone, 0–5% gypsum. CE marked to EN 197-1 (EUROCERT).",
+    "summary_sq": "Çimento portland me gëlqeror e prodhuar në Fushë-Krujë: 65–79% klinker, 21–35% gur gëlqeror, 0–5% gips. Me shenjën CE sipas EN 197-1 (EUROCERT).",
+    "specs": {
+      "strength_class": "32.5 R",
+      "standard": "EN 197-1",
+      "compressive_strength_mpa": 32.5
+    },
+    "dimensions_mm": null,
+    "weight_kg": null,
+    "warranty_years": null,
+    "datasheet_url": "https://www.anteacement.com/_home/product/",
+    "sources": [
+      "https://www.anteacement.com/_home/product/",
+      "https://caa.gov.al/wp-content/uploads/2024/07/Press-Release-121.pdf"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "antea-cem-ii-a-ll-42-5-r",
+    "brand": "Antea Cement (TITAN Group)",
+    "model": "CEM II/A-LL 42.5 R",
+    "category": "cement-masonry",
+    "name_en": "Antea Portland limestone cement CEM II/A-LL 42.5 R",
+    "name_sq": "Çimento portland me gëlqeror Antea CEM II/A-LL 42,5 R",
+    "summary_en": "Portland limestone cement from the TITAN Group plant at Fushë-Krujë: 80–94% clinker, 6–20% limestone, 0–5% gypsum. CE marked to EN 197-1 (EUROCERT).",
+    "summary_sq": "Çimento portland me gëlqeror nga fabrika e grupit TITAN në Fushë-Krujë: 80–94% klinker, 6–20% gur gëlqeror, 0–5% gips. Me shenjën CE sipas EN 197-1 (EUROCERT).",
+    "specs": {
+      "strength_class": "42.5 R",
+      "standard": "EN 197-1",
+      "compressive_strength_mpa": 42.5
+    },
+    "dimensions_mm": null,
+    "weight_kg": null,
+    "warranty_years": null,
+    "datasheet_url": "https://www.anteacement.com/_home/product/",
+    "sources": [
+      "https://www.anteacement.com/_home/product/",
+      "https://caa.gov.al/wp-content/uploads/2024/07/Press-Release-121.pdf"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "ytong-classic-zb-25",
+    "brand": "Ytong (Xella)",
+    "model": "Classic ZB 25",
+    "category": "cement-masonry",
+    "name_en": "Ytong Classic ZB 25 aerated concrete block, 250 mm",
+    "name_sq": "Bllok betoni të gazuar (AAC) Ytong Classic ZB 25, 250 mm",
+    "summary_en": "Load-bearing autoclaved aerated concrete block to EN 771-4 with tongue-and-groove and grip holes: 625 × 250 × 200 mm, dry density 400 kg/m³, mean compressive strength 2.5 N/mm², λ 0.096 W/mK, fire class A1 (REI 180).",
+    "summary_sq": "Bllok mbajtës betoni të gazuar në autoklavë sipas EN 771-4, me fole-pykë dhe vende për kapje: 625 × 250 × 200 mm, dendësi e thatë 400 kg/m³, rezistencë mesatare në shtypje 2,5 N/mm², λ 0,096 W/mK, klasa e zjarrit A1 (REI 180).",
+    "specs": {
+      "strength_class": "AAC 2.5 N/mm² · 400 kg/m³",
+      "standard": "EN 771-4",
+      "compressive_strength_mpa": 2.5,
+      "dimensions": "625 × 250 × 200 mm"
+    },
+    "dimensions_mm": {
+      "w": 625,
+      "h": 200,
+      "d": 250
+    },
+    "weight_kg": 16.44,
+    "warranty_years": null,
+    "datasheet_url": "https://www.xella.rs/sr_RS/product/ytong-classic-zb-25/20000982",
+    "sources": [
+      "https://www.xella.rs/sr_RS/product/ytong-classic-zb-25/20000982",
+      "https://storefrontapi.commerce.xella.com/occ/v2/rs/products/20000982?fields=FULL&lang=sr_RS"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "kurum-b500c-rebar-12mm",
+    "brand": "Kurum International",
+    "model": "B500C ribbed bar Ø12, 12 m",
+    "category": "cement-masonry",
+    "name_en": "Kurum B500C ribbed reinforcing bar, Ø12 mm × 12 m",
+    "name_sq": "Hekur betoni me vijaska Kurum B500C, Ø12 mm × 12 m",
+    "summary_en": "Ribbed reinforcing steel rolled at Elbasan, Albania, to EN 10080 grade B500C (Re ≥ 500 MPa). Straight bars Ø8–Ø32 mm, 12 m standard (14 m to order); Ø12 weighs 0.888 kg/m.",
+    "summary_sq": "Hekur betoni me vijaska i petëzuar në Elbasan sipas EN 10080, cilësia B500C (Re ≥ 500 MPa). Shufra të drejta Ø8–Ø32 mm, 12 m standard (14 m me porosi); Ø12 peshon 0,888 kg/m.",
+    "specs": {
+      "strength_class": "B500C",
+      "standard": "EN 10080",
+      "dimensions": "Ø12 mm × 12 m (range Ø8–Ø32 mm; 12 m standard, 14 m to order)"
+    },
+    "dimensions_mm": {
+      "w": 12,
+      "h": 12000,
+      "d": 12
+    },
+    "weight_kg": 10.66,
+    "warranty_years": null,
+    "datasheet_url": "https://www.kurum.al/wp-content/uploads/2021/02/A4-katalog-shqip.pdf",
+    "sources": [
+      "https://www.kurum.al/hekur/",
+      "https://www.kurum.al/wp-content/uploads/2021/02/A4-katalog-shqip.pdf"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "ceresit-cm-11-plus-25kg",
+    "brand": "Ceresit (Henkel)",
+    "model": "CM 11 PLUS",
+    "category": "cement-masonry",
+    "name_en": "Ceresit CM 11 PLUS tile adhesive, 25 kg",
+    "name_sq": "Ngjitës pllakash Ceresit CM 11 PLUS, 25 kg",
+    "summary_en": "Cement-based C1T tile adhesive (EN 12004), EC1 PLUS low emission, for ceramic and gres tiles up to 60 cm indoors and outdoors. Mix 6.5 ± 0.25 l water per 25 kg; Albanian technical sheet TDS 06/2026.",
+    "summary_sq": "Ngjitës pllakash me bazë çimentoje C1T (EN 12004), me emetime të ulëta EC1 PLUS, për pllaka qeramike dhe gres deri në 60 cm, brenda dhe jashtë. Përzierja: 6,5 ± 0,25 l ujë për 25 kg; fleta teknike në shqip TDS 06/2026.",
+    "specs": {
+      "strength_class": "C1T",
+      "standard": "EN 12004",
+      "bag_kg": 25,
+      "consumption": "≈3.0 / 4.0 / 5.0 / 6.0 kg/m² with 4 / 6 / 8 / 10 mm notched trowel"
+    },
+    "dimensions_mm": null,
+    "weight_kg": 25,
+    "warranty_years": null,
+    "datasheet_url": "https://datasheets.tdx.henkel.com/CERESIT-CM-11-PLUS-bs_AL.pdf",
+    "sources": [
+      "https://datasheets.tdx.henkel.com/CERESIT-CM-11-PLUS-bs_AL.pdf",
+      "https://www.ceresit.al/"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "sikatop-seal-107-25kg",
+    "brand": "Sika",
+    "model": "SikaTop Seal-107",
+    "category": "cement-masonry",
+    "name_en": "SikaTop Seal-107 waterproofing mortar, 25 kg kit",
+    "name_sq": "Llaç hidroizolues SikaTop Seal-107, komplet 25 kg",
+    "summary_en": "Two-component, vapour-permeable, polymer-modified cementitious waterproofing mortar to EN 1504-2, for basements, tanks and wet rooms. 25 kg kit (20 kg powder + 5 kg liquid); compressive strength ~25 N/mm² at 28 days.",
+    "summary_sq": "Llaç hidroizolues me bazë çimentoje, me dy komponentë, i modifikuar me polimere dhe i përshkueshëm nga avulli, sipas EN 1504-2, për bodrume, rezervuarë dhe ambiente me lagështi. Komplet 25 kg (20 kg pluhur + 5 kg lëng); rezistencë në shtypje ~25 N/mm² në 28 ditë.",
+    "specs": {
+      "standard": "EN 1504-2",
+      "bag_kg": 25,
+      "compressive_strength_mpa": 25,
+      "consumption": "≈2.0 kg/m² per mm of thickness; minimum total thickness 2 mm",
+      "coverage": "1 kit (25 kg) ≈ 12.5 l of mortar"
+    },
+    "dimensions_mm": null,
+    "weight_kg": 25,
+    "warranty_years": null,
+    "datasheet_url": "https://alb.sika.com/dms/getdocument.get/a05977b8-79c5-4870-af67-f75cb328d378/020701010020000001_SikaTop%20Seal_107_eng.pdf",
+    "sources": [
+      "https://alb.sika.com/dms/getdocument.get/a05977b8-79c5-4870-af67-f75cb328d378/020701010020000001_SikaTop%20Seal_107_eng.pdf",
+      "https://alb.sika.com/"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "shelly-pro-3em",
+    "brand": "Shelly",
+    "model": "Pro 3EM (SPEM-003CEBEU)",
+    "category": "energy-monitoring",
+    "name_en": "Shelly Pro 3EM three-phase energy meter",
+    "name_sq": "Matës energjie trefazor Shelly Pro 3EM",
+    "summary_en": "DIN-rail energy meter for three-phase or single-phase installations, with three 120 A current transformers. Measures per-phase voltage, current and power; connects over Wi-Fi, Ethernet and Bluetooth; active-energy accuracy class B.",
+    "summary_sq": "Matës energjie për shinë DIN, për instalime trefazore ose njëfazore, me tre transformatorë rryme 120 A. Mat tensionin, rrymën dhe fuqinë për çdo fazë; lidhet me Wi-Fi, Ethernet dhe Bluetooth; klasa e saktësisë B për energjinë aktive.",
+    "specs": {
+      "phases": 3,
+      "max_current_a": 120,
+      "connectivity": "Wi-Fi, Ethernet (RJ45), Bluetooth",
+      "accuracy_class": "Class B (active energy), ±1%"
+    },
+    "dimensions_mm": {
+      "w": 19,
+      "h": 94,
+      "d": 69
+    },
+    "weight_kg": null,
+    "warranty_years": 5,
+    "datasheet_url": "https://kb.shelly.cloud/knowledge-base/shelly-pro-3em",
+    "sources": [
+      "https://kb.shelly.cloud/knowledge-base/shelly-pro-3em",
+      "https://www.shelly.com/products/shelly-pro-3em-x1"
+    ],
+    "reference_price_eur": 157.9,
+    "price_source": "https://www.shelly.com/products/shelly-pro-3em-x1 — Shelly Europe official online store (EUR, DE storefront), read 2026-10-23",
+    "price_note": "Manufacturer web-store price; VAT treatment not stated on the fetched page; listed as out of stock on 2026-10-23"
+  },
+  {
+    "slug": "fronius-smart-meter-ts-65a-3",
+    "brand": "Fronius",
+    "model": "Smart Meter TS 65A-3 (42,0411,0345)",
+    "category": "energy-monitoring",
+    "name_en": "Fronius Smart Meter TS 65A-3",
+    "name_sq": "Matës inteligjent Fronius Smart Meter TS 65A-3",
+    "summary_en": "Three-phase bidirectional meter for direct connection up to 3 × 65 A, used with Fronius inverters for self-consumption and feed-in control. Modbus RTU over RS485; 3 DIN modules.",
+    "summary_sq": "Matës trefazor dykahësh për lidhje direkte deri në 3 × 65 A, përdoret me invertorët Fronius për vetëkonsumin dhe kontrollin e injektimit në rrjet. Modbus RTU përmes RS485; 3 module DIN.",
+    "specs": {
+      "phases": 3,
+      "max_current_a": 65,
+      "connectivity": "Modbus RTU (RS485)",
+      "accuracy_class": "Class 1 (EN 62053-21) / Class B (EN 50470-3)"
+    },
+    "dimensions_mm": {
+      "w": 53.8,
+      "h": 91.5,
+      "d": 63
+    },
+    "weight_kg": null,
+    "warranty_years": null,
+    "datasheet_url": "https://www.siblik.com/fileadmin/mam/medias/docus/153/Artikel_PV-42.0411.0345_Datenblatt.pdf",
+    "sources": [
+      "https://www.siblik.com/fileadmin/mam/medias/docus/153/Artikel_PV-42.0411.0345_Datenblatt.pdf",
+      "https://solarmagazine.nl/u/webshop/datasheet-fronius-smart-meter.pdf",
+      "https://sun.store/it/product/fronius-smart-meter-ts-65a-3-10071"
+    ],
+    "reference_price_eur": 160,
+    "price_source": "https://sun.store/it/product/fronius-smart-meter-ts-65a-3-10071 — sun.store (EU B2B marketplace), lowest of 7 seller offers, read 2026-10-23",
+    "price_note": "EU distributor offer, excl. VAT (sun.store marks valueAddedTaxIncluded = false); offers ranged €160–195"
+  },
+  {
+    "slug": "philips-coreline-panel-g6-rc132v-36s-840",
+    "brand": "Philips (Signify)",
+    "model": "CoreLine Panel gen6 RC132V G6 36S/840 PSD W60L60 OC (911401890885)",
+    "category": "led-lighting",
+    "name_en": "Philips CoreLine Panel gen6 60×60, 3600 lm, 4000 K, DALI",
+    "name_sq": "Panel LED Philips CoreLine gen6 60×60, 3600 lm, 4000 K, DALI",
+    "summary_en": "Recessed 595 × 595 mm LED panel for visible-grid ceilings with a DALI-dimmable driver. 26 W, 3600 lm (140 lm/W), 4000 K, CRI > 80, UGR 19, IP20/44; L90 at 50,000 h.",
+    "summary_sq": "Panel LED i futur 595 × 595 mm për tavane me profil të dukshëm, me ushqyes DALI me rregullim drite. 26 W, 3600 lm (140 lm/W), 4000 K, CRI > 80, UGR 19, IP20/44; L90 në 50 000 orë.",
+    "specs": {
+      "power_w": 26,
+      "luminous_flux_lm": 3600,
+      "efficacy_lm_w": 140,
+      "cct_k": 4000,
+      "cri": 80,
+      "lifetime_h": 50000,
+      "ip_rating": "IP20/44"
+    },
+    "dimensions_mm": {
+      "w": 595,
+      "h": 595,
+      "d": 63
+    },
+    "weight_kg": 2.18,
+    "warranty_years": 5,
+    "datasheet_url": "https://www.signify.com/global/prof/indoor-luminaires/recessed/philips-coreline-panel-gen6/911401890885_EU/product",
+    "sources": [
+      "https://www.signify.com/global/prof/indoor-luminaires/recessed/philips-coreline-panel-gen6/911401890885_EU/product",
+      "https://www.assets.signify.com/is/content/Signify/LP_CF_RC132V_EU.en_GB.PROF.CF-1"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  },
+  {
+    "slug": "philips-coreline-panel-g6-rc132v-all-in-wia",
+    "brand": "Philips (Signify)",
+    "model": "CoreLine Panel gen6 RC132V G6 40_43S/830_40 WIA 60x60 OC (911401807387)",
+    "category": "led-lighting",
+    "name_en": "Philips CoreLine Panel gen6 All-in 60×60, wireless (Interact Ready)",
+    "name_sq": "Panel LED Philips CoreLine gen6 All-in 60×60, me valë (Interact Ready)",
+    "summary_en": "Recessed 595 × 595 mm LED panel with selectable output (4000 or 4300 lm) and colour temperature (3000/3500/4000 K) and a wireless Interact-ready driver. 31 W, up to 140 lm/W, CRI > 80, UGR 19, IP20/44; L90 at 50,000 h.",
+    "summary_sq": "Panel LED i futur 595 × 595 mm me fluks të zgjedhshëm (4000 ose 4300 lm) dhe temperaturë ngjyre (3000/3500/4000 K), me ushqyes me valë gati për Interact. 31 W, deri në 140 lm/W, CRI > 80, UGR 19, IP20/44; L90 në 50 000 orë.",
+    "specs": {
+      "power_w": 31,
+      "luminous_flux_lm": 4300,
+      "efficacy_lm_w": 140,
+      "cct_k": 4000,
+      "cri": 80,
+      "lifetime_h": 50000,
+      "ip_rating": "IP20/44"
+    },
+    "dimensions_mm": {
+      "w": 595,
+      "h": 595,
+      "d": 70
+    },
+    "weight_kg": 2.35,
+    "warranty_years": 5,
+    "datasheet_url": "https://www.signify.com/global/prof/indoor-luminaires/recessed/philips-coreline-panel-gen6/911401807387_EU/product",
+    "sources": [
+      "https://www.signify.com/global/prof/indoor-luminaires/recessed/philips-coreline-panel-gen6/911401807387_EU/product"
+    ],
+    "reference_price_eur": null,
+    "price_source": null,
+    "price_note": null
+  }
+]
