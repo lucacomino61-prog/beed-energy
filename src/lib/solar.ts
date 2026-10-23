@@ -120,8 +120,14 @@ export function sizeSystem(input: {
   const t = tariffs();
   const yearly = input.kwhMonth * 12;
   const target = yearly * (input.coverage ?? 0.9);
-  const panels = Math.max(4, Math.ceil((target / c.pv_yield) * 1000 / a.panelWp));
-  const kwp = (panels * a.panelWp) / 1000;
+  // Pick the module first (cheapest per Wp in stock near the planned size), then size the array from its real wattage.
+  const estimate = Math.max(4, Math.ceil(((target / c.pv_yield) * 1000) / a.panelWp));
+  const probe = cheapest('solar-panels', (s) => typeof s.power_wp === 'number' && s.power_wp >= a.panelWp - 60 && s.power_wp <= a.panelWp + 160, estimate);
+  const moduleWp = probe ? Number(get<{ v: number }>(
+    `SELECT ps.value_num AS v FROM product_specs ps JOIN spec_attributes sa ON sa.id = ps.attribute_id JOIN products p ON p.id = ps.product_id
+      WHERE p.slug = ? AND sa.key = 'power_wp'`, probe.productSlug)?.v ?? a.panelWp) : a.panelWp;
+  const panels = Math.max(4, Math.ceil(((target / c.pv_yield) * 1000) / moduleWp));
+  const kwp = (panels * moduleWp) / 1000;
   const annualKwh = kwp * c.pv_yield;
   const monthly: number[] = JSON.parse(c.pv_monthly_json ?? '[]');
   const selfUse = input.battery ? a.selfUseWithBattery : a.selfUseNoBattery;
@@ -133,7 +139,8 @@ export function sizeSystem(input: {
   const annualSaving = before === null || after === null ? null : (before - after) * 12 + exported * (t.exportLekPerKwh ?? 0);
 
   const kit: Kit[] = [];
-  const panel = cheapest('solar-panels', (s) => typeof s.power_wp === 'number' && s.power_wp >= a.panelWp - 60 && s.power_wp <= a.panelWp + 160, panels);
+  const panel = probe ? cheapest('solar-panels', (s) => s.power_wp === moduleWp, panels) ?? probe : null;
+  if (panel && panel.qty !== panels) Object.assign(panel, { qty: panels, lineTotal: panel.unitPrice * panels });
   if (panel) kit.push({ ...panel, role: 'panel' });
   const inv = cheapest(
     'inverters',
@@ -167,6 +174,6 @@ export function sizeSystem(input: {
     kitTotal,
     paybackYears: kitTotal && annualSaving ? kitTotal / annualSaving : null,
     lifetimeSaving,
-    assumptions: a,
+    assumptions: { ...a, panelWp: moduleWp },
   };
 }
