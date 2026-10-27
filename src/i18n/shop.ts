@@ -28,15 +28,15 @@ export const shop = {
     compare: { add: 'Krahaso', on: 'Në krahasim', label: (name: string) => `Krahaso ${name}` },
 
     landing: {
-      metaTitle: 'Dyqani: produkte për ndërtim dhe energji',
-      metaDesc: 'Panele diellore, inverterë, bateri, izolim, dritare dhe materiale ndërtimi nga shitës shqiptarë, me çmime me TVSH dhe dërgesë në qytetin tuaj.',
+      metaTitle: 'Dyqani: energji e rinovueshme dhe ndërtim',
+      metaDesc: 'Panele diellore, inverterë, bateri, pompa nxehtësie dhe karikues nga shitës shqiptarë, bashkë me izolim dhe materiale ndërtimi. Çmime me TVSH dhe dërgesë.',
       eyebrow: 'Fleta 01 · Katalogu',
       h1: 'Dyqani',
       lede: 'Çdo produkt ka fletën e vet teknike dhe ofertat e shitësve krah për krah. Krahasoni çmimin, afatin dhe dërgesën deri në qytetin tuaj.',
       groups: {
-        energy: { title: 'Energji', text: 'Prodhoni, ruani dhe përdorni energjinë tuaj.' },
-        efficiency: { title: 'Efikasitet', text: 'Harxhoni më pak për ngrohje, ftohje dhe ndriçim.' },
-        build: { title: 'Ndërtim', text: 'Muret, izolimi dhe dritaret e shtëpisë.' },
+        energy: { title: 'Energji e rinovueshme', text: 'Prodhoni energjinë nga dielli, ruajeni dhe përdoreni për ngrohjen, ujin e ngrohtë dhe makinën.' },
+        efficiency: { title: 'Efikasitet energjetik', text: 'Energjia që nuk humbet: kondicionerë inverter, izolim, dritare dhe ndriçim LED.' },
+        build: { title: 'Ndërtim', text: 'Çimento, blloqe, hekur betoni, ngjitës dhe hidroizolim për kantierin.' },
       } as Record<string, { title: string; text: string }>,
       emptyCat: 'pa oferta ende',
       featured: 'Produktet me më shumë oferta',
@@ -246,15 +246,15 @@ export const shop = {
     compare: { add: 'Compare', on: 'Comparing', label: (name: string) => `Compare ${name}` },
 
     landing: {
-      metaTitle: 'Shop: building and renewable-energy products',
-      metaDesc: 'Solar panels, inverters, batteries, insulation, windows and building materials from Albanian sellers, with VAT-inclusive prices and delivery to your city.',
+      metaTitle: 'Shop: renewable energy and building products',
+      metaDesc: 'Solar panels, inverters, batteries, heat pumps and EV chargers from Albanian sellers, plus insulation and building materials. VAT-inclusive prices and delivery.',
       eyebrow: 'Sheet 01 · Catalogue',
       h1: 'Shop',
       lede: 'Every product has its own technical sheet and the sellers’ offers side by side. Compare the price, the lead time and delivery to your city.',
       groups: {
-        energy: { title: 'Energy', text: 'Make, store and use your own energy.' },
-        efficiency: { title: 'Efficiency', text: 'Spend less on heating, cooling and light.' },
-        build: { title: 'Building', text: 'The walls, insulation and windows of the house.' },
+        energy: { title: 'Renewable energy', text: 'Make energy from the sun, store it, and use it for heating, hot water and your car.' },
+        efficiency: { title: 'Energy efficiency', text: 'The energy you don’t lose: inverter air conditioners, insulation, windows and LED lighting.' },
+        build: { title: 'Building', text: 'Cement, blocks, rebar, adhesives and waterproofing for the site.' },
       } as Record<string, { title: string; text: string }>,
       emptyCat: 'no offers yet',
       featured: 'Products with the most offers',

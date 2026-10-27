@@ -1,224 +1,380 @@
-// Home choreography. Each chapter that reaches the middle of the screen becomes the live layer:
-// its parts slide out along their explode vector and turn copper, the rest settle back and recede.
-// A HUD label (Igloo-style) hangs off the live layer's key on a leader line: key, layer, live count, lowest price.
-// After the seventh layer the house reassembles and its windows light up. All through motion.ts.
+// Home choreography. The stage is the realistic house (AI illustration, public/house/) on a drafting sheet.
+// Each chapter that reaches the middle of the screen becomes live: the house steps back and dims, a copper ring
+// marks the chapter's equipment on it, and the matching part image flies out of that point to a free area of the
+// sheet (exploded-parts style), with a copper leader line and the HUD label beside it. The previous part flies
+// back in. The finale brings every part home and crossfades the house to dusk on a night sheet.
+// Transform and opacity only, all through motion.ts (one GSAP ticker); every tween can be interrupted.
 import { gsap, ScrollTrigger, motionOn, onMotionChange } from './motion';
+import { BASE, PARTS, type PartId } from '../lib/house-render';
 
 const stage = document.querySelector<HTMLElement>('[data-stage]');
-const house = document.querySelector<SVGSVGElement>('[data-house]');
 const sheet = document.querySelector<HTMLElement>('[data-sheet]');
-
-type Part = { el: SVGGElement; layer: number; dx: number; dy: number };
-const parts: Part[] = house
-  ? [...house.querySelectorAll<SVGGElement>('.part')].map((el) => {
-      const s = el.getAttribute('style') ?? '';
-      const dx = Number(/--dx:\s*(-?[\d.]+)px/.exec(s)?.[1] ?? 0);
-      const dy = Number(/--dy:\s*(-?[\d.]+)px/.exec(s)?.[1] ?? 0);
-      return { el, layer: Number(el.dataset.layer), dx, dy };
-    })
-  : [];
+const rh = sheet?.querySelector<HTMLElement>('[data-rh]') ?? null;
+const day = sheet?.querySelector<HTMLImageElement>('[data-rh-day]') ?? null;
+const dusk = sheet?.querySelector<HTMLImageElement>('[data-rh-dusk]') ?? null;
+const night = sheet?.querySelector<HTMLElement>('[data-night]') ?? null;
+const stamp = sheet?.querySelector<HTMLElement>('[data-stamp]') ?? null;
+const partEls = new Map<PartId, HTMLElement>(
+  [...(sheet?.querySelectorAll<HTMLElement>('[data-part]') ?? [])].map((el) => [el.dataset.part as PartId, el]),
+);
 const chapters = [...document.querySelectorAll<HTMLElement>('[data-chapter]')];
 const keys = [...document.querySelectorAll<HTMLAnchorElement>('[data-key-link]')];
 const caption = document.querySelector<HTMLElement>('[data-caption-layer]');
+const FINALE = Number(sheet?.dataset.finale ?? chapters.length);
+/** The parts each chapter lifts out (rendered from story.ts into data-parts). */
+const partsByChapter = new Map(
+  chapters.map((c) => [Number(c.dataset.chapter), (c.dataset.parts ?? '').split(' ').filter((p): p is PartId => p in PARTS && partEls.has(p as PartId))]),
+);
+const isLive = (n: number) => n >= 1 && n < FINALE && (partsByChapter.get(n)?.length ?? 0) > 0;
 let current = 0;
 let triggers: ScrollTrigger[] = [];
 
-// ---------- keys: a constant 21 px on screen with 11 px numbers, whatever the drawing's scale ----------
-const KEY_PX = 10.5; // on-screen radius
-const keyR = Number(house?.querySelector('.key circle')?.getAttribute('r') ?? 20);
-function drawingScale(): number {
-  if (!house) return 1;
-  const vb = house.viewBox.baseVal;
-  const r = house.getBoundingClientRect();
-  if (!vb || !vb.width || !r.width) return 1;
-  return Math.min(r.width / vb.width, r.height / vb.height);
+// ---------- HUD: rings and leaders per part, one label (and an invisible twin to measure it) ----------
+const hud = sheet?.querySelector<HTMLElement>('[data-hud]') ?? null;
+const marks = hud?.querySelector<HTMLElement>('[data-hud-marks]') ?? null;
+const label = hud?.querySelector<HTMLAnchorElement>('[data-hud-label]') ?? null;
+const measure = label ? (label.cloneNode(true) as HTMLAnchorElement) : null;
+if (measure && hud) {
+  measure.classList.add('hud__label--measure');
+  measure.removeAttribute('data-hud-label');
+  measure.removeAttribute('href');
+  hud.append(measure);
 }
-function scaleKeys() {
-  if (!house) return;
-  house.style.setProperty('--ks', (KEY_PX / (keyR * drawingScale())).toFixed(3));
+const rings = new Map<PartId, HTMLElement>();
+const leaders = new Map<PartId, HTMLElement>();
+for (const id of partEls.keys()) {
+  const ring = document.createElement('span');
+  ring.className = 'hud__ring';
+  const lead = document.createElement('span');
+  lead.className = 'hud__leader';
+  marks?.append(lead, ring);
+  rings.set(id, ring);
+  leaders.set(id, lead);
 }
 
-// ---------- HUD label with its leader line ----------
-const hud = document.querySelector<HTMLElement>('[data-hud]');
-const hudLabel = hud?.querySelector<HTMLElement>('[data-hud-label]') ?? null;
-const hudLeader = hud?.querySelector<SVGPathElement>('[data-hud-leader]') ?? null;
-const hudDot = hud?.querySelector<SVGCircleElement>('[data-hud-dot]') ?? null;
-const hudSlots = {
-  n: hud?.querySelector<HTMLElement>('[data-hud-n]'),
-  name: hud?.querySelector<HTMLElement>('[data-hud-name]'),
-  cat: hud?.querySelector<HTMLElement>('[data-hud-cat]'),
-  meta: hud?.querySelector<HTMLElement>('[data-hud-meta]'),
-};
-type Corner = 'tl' | 'tr' | 'bl' | 'br';
-let hudKey: SVGCircleElement | null = null;
-let hudCorner: Corner = 'tl';
-let follow: gsap.core.Tween | null = null;
+function fillLabel(el: HTMLElement, n: number) {
+  const ch = chapters.find((c) => Number(c.dataset.chapter) === n);
+  const set = (sel: string, text: string) => {
+    const t = el.querySelector<HTMLElement>(sel);
+    if (t) t.textContent = text;
+  };
+  set('[data-hud-n]', String(n).padStart(2, '0'));
+  set('[data-hud-name]', ch?.querySelector('h2')?.textContent?.trim() ?? '');
+  set('[data-hud-cat]', ch?.dataset.hudCat ?? '');
+  set('[data-hud-meta]', ch?.dataset.hudMeta ?? '');
+  if (el instanceof HTMLAnchorElement && el === label && ch?.dataset.hudHref) el.href = ch.dataset.hudHref;
+}
 
-/** The key of the part that travels furthest in a layer (the foundation for 01, the panels for 04). */
-function keyOf(n: number): SVGCircleElement | null {
-  const ps = parts.filter((p) => p.layer === n).sort((a, b) => Math.hypot(b.dx, b.dy) - Math.hypot(a.dx, a.dy));
-  for (const p of ps) {
-    const c = p.el.querySelector<SVGCircleElement>('.key circle');
-    if (c) return c;
+// ---------- geometry: where the house sits, where it steps back to, where the house is solid ----------
+type Box = { x: number; y: number; w: number; h: number };
+type Placed = { id: PartId; box: Box; hot: [number, number]; from: [number, number] };
+type Plan = { parts: Placed[]; label: Box | null };
+type Layout = { sw: number; sh: number; m: number; narrow: boolean; home: Box; back: Box; cell: number; cols: number; rows: number; sat: Int32Array; keep: Box[]; plans: Map<number, Plan> };
+let L: Layout | null = null;
+
+// The house's own pixels (not its soft shadow), decoded once from the run list in house-render.ts.
+const OCC: boolean[][] = BASE.occ.split(' ').map((row) => {
+  const r = new Array<boolean>(Math.ceil(BASE.w / BASE.occCell)).fill(false);
+  for (const run of row.split(',').filter(Boolean)) {
+    const [a, b] = run.split('-').map(Number);
+    for (let i = a; i < b; i++) r[i] = true;
   }
-  return null;
-}
+  return r;
+});
 
-type R = { x0: number; y0: number; x1: number; y1: number };
-const overlap = (a: R, b: R) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+const hotIn = (b: Box, id: PartId): [number, number] => {
+  const [x, y] = BASE.hotspots[PARTS[id].hotspot];
+  return [b.x + (x / BASE.w) * b.w, b.y + (y / BASE.h) * b.h];
+};
 
-type Place = { corner: Corner; dx: number; dy: number };
-
-/** Where the label goes: the empty corner of the sheet (or a slot slid along an edge from it) that the layer's
- *  exploded parts cover least, never on a key or a dimension, nearest the key. dx/dy: the slide in px. */
-function pickCorner(n: number): Place {
-  if (!house || !sheet || !hudLabel) return { corner: 'tl', dx: 0, dy: 0 };
-  const sr = sheet.getBoundingClientRect();
-  const m = house.getScreenCTM();
-  if (!m) return { corner: 'tl', dx: 0, dy: 0 };
-  const toSheet = (x: number, y: number) => ({ x: m.a * x + m.c * y + m.e - sr.left, y: m.b * x + m.d * y + m.f - sr.top });
-  const rects: { r: R; w: number }[] = parts.map((p) => {
-    const b = p.el.getBBox();
-    const live = p.layer === n;
-    const o = live ? { x: p.dx, y: p.dy } : { x: 0, y: 0 };
-    const a = toSheet(b.x + o.x, b.y + o.y);
-    const c = toSheet(b.x + b.width + o.x, b.y + b.height + o.y);
-    return { r: { x0: a.x, y0: a.y, x1: c.x, y1: c.y }, w: live ? 4 : 1 };
-  });
-  // The label must never sit on a key (01–07) or on the 10 000 / 8 000 dimensions: they count heavily.
-  // Keys: their on-screen disc (KEY_PX, set by scaleKeys) + 4 px, moved with the live layer's offset.
-  const HEAVY = 400; // one px² of a key outweighs a label-sized patch of house
-  for (const p of parts) {
-    const live = p.layer === n;
-    for (const c of p.el.querySelectorAll<SVGCircleElement>('.key circle')) {
-      const b = c.getBBox();
-      const ctr = toSheet(b.x + b.width / 2 + (live ? p.dx : 0), b.y + b.height / 2 + (live ? p.dy : 0));
-      const r = KEY_PX + 4;
-      rects.push({ r: { x0: ctr.x - r, y0: ctr.y - r, x1: ctr.x + r, y1: ctr.y + r }, w: HEAVY });
+function layout(): Layout | null {
+  if (!sheet || !rh) return null;
+  const sw = sheet.clientWidth;
+  const sh = sheet.clientHeight;
+  if (!sw || !sh) return null;
+  const narrow = matchMedia('(max-width: 900px)').matches; // the phone sheet (home.css), a band above the chapters
+  const m = narrow ? 8 : 14;
+  // offset* ignore transforms: the box CSS gives the house (centred, as large as the sheet allows)
+  const home = { x: rh.offsetLeft, y: rh.offsetTop, w: rh.offsetWidth, h: rh.offsetHeight };
+  const ar = BASE.w / BASE.h;
+  let back: Box;
+  if (sw / sh < 1.1) {
+    // a tall sheet (desktop): the house steps back to the bottom left, the parts get the band above and the right
+    const w = Math.min(home.w * 0.7, (sh - 2 * m) * 0.62 * ar);
+    back = { x: m, y: sh - m - w / ar, w, h: w / ar };
+  } else {
+    // a wide sheet (phone, short desktop): the house steps back to the left, the parts get the right and the top
+    const h = Math.min((sh - 2 * m) * (narrow ? 0.74 : 0.7), (sw * 0.58) / ar);
+    back = { x: m, y: sh - m - h, w: h * ar, h };
+  }
+  // solid house on an 8 px grid of the sheet, as a summed-area table: covered area of any box in O(1)
+  const cell = 8;
+  const cols = Math.ceil(sw / cell);
+  const rows = Math.ceil(sh / cell);
+  const sat = new Int32Array((cols + 1) * (rows + 1));
+  for (let r = 0; r < rows; r++) {
+    let run = 0;
+    for (let c = 0; c < cols; c++) {
+      const u = ((c + 0.5) * cell - back.x) / back.w;
+      const v = ((r + 0.5) * cell - back.y) / back.h;
+      const on = u >= 0 && u < 1 && v >= 0 && v < 1 && OCC[Math.floor(v * OCC.length)]?.[Math.floor(u * OCC[0].length)];
+      run += on ? 1 : 0;
+      sat[(r + 1) * (cols + 1) + c + 1] = sat[r * (cols + 1) + c + 1] + run;
     }
   }
-  for (const t of house.querySelectorAll<SVGTextElement>('.dimtext')) {
-    const b = t.getBoundingClientRect();
-    if (!b.width) continue;
-    rects.push({ r: { x0: b.left - sr.left - 4, y0: b.top - sr.top - 4, x1: b.right - sr.left + 4, y1: b.bottom - sr.top + 4 }, w: HEAVY });
+  // the stamp in the corner is not free space
+  const keep: Box[] = [];
+  if (stamp) keep.push({ x: stamp.offsetLeft - 4, y: stamp.offsetTop - 4, w: stamp.offsetWidth + 8, h: stamp.offsetHeight + 8 });
+  return { sw, sh, m, narrow, home, back, cell, cols, rows, sat, keep, plans: new Map() };
+}
+
+/** Area (px²) of a box that covers the solid house in its stepped-back place. */
+function houseCover(l: Layout, b: Box): number {
+  const c0 = Math.max(0, Math.floor(b.x / l.cell));
+  const r0 = Math.max(0, Math.floor(b.y / l.cell));
+  const c1 = Math.min(l.cols, Math.ceil((b.x + b.w) / l.cell));
+  const r1 = Math.min(l.rows, Math.ceil((b.y + b.h) / l.cell));
+  if (c1 <= c0 || r1 <= r0) return 0;
+  const W = l.cols + 1;
+  const n = l.sat[r1 * W + c1] - l.sat[r0 * W + c1] - l.sat[r1 * W + c0] + l.sat[r0 * W + c0];
+  return n * l.cell * l.cell;
+}
+const overlap = (a: Box, b: Box) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+const inside = (l: Layout, b: Box) => b.x >= l.m && b.y >= l.m && b.x + b.w <= l.sw - l.m && b.y + b.h <= l.sh - l.m;
+
+/** The part's size on this sheet: its image fitted into a box that leaves the house most of the room. */
+function partSize(l: Layout, id: PartId, count: number): { w: number; h: number } {
+  const f = PARTS[id].files[1];
+  const k = count > 1 ? 0.82 : 1;
+  const maxW = (l.narrow ? l.sw * 0.38 : Math.min(l.sw * 0.38, 290)) * k;
+  const maxH = (l.narrow ? l.sh * 0.46 : Math.min(l.sh * 0.32, 250)) * k;
+  const s = Math.min(maxW / f.w, maxH / f.h);
+  return { w: Math.round(f.w * s), h: Math.round(f.h * s) };
+}
+
+/** The object inside a placed part image (its shadow left out): where the leader line ends. */
+function objectBox(id: PartId, b: Box): Box {
+  const f = PARTS[id].files[1];
+  const o = PARTS[id].object800;
+  const s = b.w / f.w;
+  return { x: b.x + o.x * s, y: b.y + o.y * s, w: o.w * s, h: o.h * s };
+}
+
+/** Where a chapter's parts go: for each part, the free spot of the sheet (off the house, off the other rings,
+ *  parts and label, off the stamp) nearest its hotspot; the label goes beside the first part. Cached per sheet size. */
+function plan(l: Layout, n: number): Plan {
+  const cached = l.plans.get(n);
+  if (cached) return cached;
+  const ids = partsByChapter.get(n) ?? [];
+  const hots = ids.map((id) => hotIn(l.back, id));
+  const R = l.narrow ? 16 : 22;
+  const rings: Box[] = hots.map(([x, y]) => ({ x: x - R, y: y - R, w: 2 * R, h: 2 * R }));
+  const taken: Box[] = [...l.keep];
+  let lw = 0;
+  let lh = 0;
+  if (measure) {
+    fillLabel(measure, n);
+    lw = measure.offsetWidth;
+    lh = measure.offsetHeight;
   }
-  const k = hudKey ? hudKey.getBBox() : null;
-  const kPart = hudKey ? parts.find((p) => p.el === hudKey!.closest('.part')) : undefined;
-  const kp = k ? toSheet(k.x + k.width / 2 + (kPart?.dx ?? 0), k.y + k.height / 2 + (kPart?.dy ?? 0)) : { x: sr.width / 2, y: sr.height / 2 };
-  const lw = hudLabel.offsetWidth;
-  const lh = hudLabel.offsetHeight;
-  const inset = 12;
-  let best: Place = { corner: 'tl', dx: 0, dy: 0 };
-  let bestScore = Infinity;
-  // Each corner, and the label slid from it along its top/bottom or left/right edge in 8 px steps (or 8 px closer
-  // to the sheet's edge): on a phone sheet every bare corner covers a key, but a slot between them is usually free.
+  const parts: Placed[] = [];
+  let labelBox: Box | null = null;
   const STEP = 8;
-  for (const c of ['tl', 'tr', 'bl', 'br'] as Corner[]) {
-    const cx = c[1] === 'l' ? inset : sr.width - inset - lw;
-    const cy = c[0] === 't' ? inset : sr.height - inset - lh;
-    const roomX = Math.max(0, sr.width - 2 * inset - lw);
-    const roomY = Math.max(0, sr.height - 2 * inset - lh);
-    const along = (room: number) => { const a = [-STEP, 0]; for (let s = STEP; s <= room; s += STEP) a.push(s); return a; };
-    const slides: [number, number][] = [];
-    // inward steps along one edge while the other axis stays in the edge band (-8 or 0)
-    for (const xs of along(roomX)) for (const ys of along(roomY)) if (xs <= 0 || ys <= 0) slides.push([c[1] === 'l' ? xs : -xs, c[0] === 't' ? ys : -ys]);
-    for (const [dx, dy] of slides) {
-      const x0 = cx + dx;
-      const y0 = cy + dy;
-      const box = { x0, y0, x1: x0 + lw, y1: y0 + lh };
-      const cover = rects.reduce((s, { r, w }) => s + overlap(box, r) * w, 0);
-      const dist = Math.hypot((x0 + lw / 2) - kp.x, (y0 + lh / 2) - kp.y);
-      // a small price for leaving the corner keeps the label in one when a corner is free
-      const score = cover + dist * 4 + (dx || dy ? 60 : 0);
-      if (score < bestScore) {
-        bestScore = score;
-        best = { corner: c, dx, dy };
+  const G = 10; // gap between a part and its label
+  ids.forEach((id, i) => {
+    const { w, h } = partSize(l, id, ids.length);
+    const [hx, hy] = hots[i];
+    const ringCost = (b: Box) => rings.reduce((s, r) => s + overlap(b, r), 0) * 60;
+    const takenCost = (b: Box) => taken.reduce((s, t) => s + overlap(b, t), 0) * 12;
+    const cands: { b: Box; score: number }[] = [];
+    for (let y = l.m; y + h <= l.sh - l.m; y += STEP) {
+      for (let x = l.m; x + w <= l.sw - l.m; x += STEP) {
+        const b = { x, y, w, h };
+        const cover = houseCover(l, b);
+        const dist = Math.hypot(x + w / 2 - hx, y + h / 2 - hy);
+        cands.push({ b, score: cover * 1.2 + ringCost(b) + takenCost(b) + dist * 1.5 });
       }
     }
-  }
-  return best;
+    if (!cands.length) cands.push({ b: { x: l.sw - l.m - w, y: l.m, w, h }, score: 0 });
+    cands.sort((a, b) => a.score - b.score);
+    let best = cands[0];
+    let bestLabel: Box | null = null;
+    if (i === 0 && lw && lh) {
+      // the first part carries the label: choose the pair (part, label beside it) that covers least
+      let bestTotal = Infinity;
+      for (const c of cands.slice(0, 80)) {
+        const b = c.b;
+        const opts: Box[] = [
+          { x: b.x + b.w + G, y: b.y, w: lw, h: lh },
+          { x: b.x + b.w + G, y: b.y + (b.h - lh) / 2, w: lw, h: lh },
+          { x: b.x + b.w + G, y: b.y + b.h - lh, w: lw, h: lh },
+          { x: b.x - G - lw, y: b.y, w: lw, h: lh },
+          { x: b.x - G - lw, y: b.y + (b.h - lh) / 2, w: lw, h: lh },
+          { x: b.x - G - lw, y: b.y + b.h - lh, w: lw, h: lh },
+          { x: b.x, y: b.y + b.h + G, w: lw, h: lh },
+          { x: b.x + b.w - lw, y: b.y + b.h + G, w: lw, h: lh },
+          { x: b.x, y: b.y - G - lh, w: lw, h: lh },
+          { x: b.x + b.w - lw, y: b.y - G - lh, w: lw, h: lh },
+        ];
+        for (const o of opts) {
+          if (!inside(l, o)) continue;
+          // the leader (hotspot → part) must not run under the label
+          const ob = objectBox(id, b);
+          const ex = Math.min(Math.max(hx, ob.x), ob.x + ob.w);
+          const ey = Math.min(Math.max(hy, ob.y), ob.y + ob.h);
+          let cross = 0;
+          for (let k = 1; k < 10; k++) {
+            const px = hx + ((ex - hx) * k) / 10;
+            const py = hy + ((ey - hy) * k) / 10;
+            if (px > o.x && px < o.x + o.w && py > o.y && py < o.y + o.h) cross++;
+          }
+          const total = c.score + houseCover(l, o) * 1.2 + ringCost(o) + takenCost(o) + cross * 4000;
+          if (total < bestTotal) {
+            bestTotal = total;
+            best = c;
+            bestLabel = o;
+          }
+        }
+      }
+    }
+    taken.push(best.b);
+    if (bestLabel) {
+      taken.push(bestLabel);
+      labelBox = bestLabel;
+    }
+    parts.push({ id, box: best.b, hot: [hx, hy], from: [hx, hy] });
+  });
+  const p: Plan = { parts, label: labelBox };
+  l.plans.set(n, p);
+  return p;
 }
 
-/** Put the label in its corner (slid along the edge when that keeps it off the keys and dimensions). */
-function placeHud(n: number) {
-  if (!hud) return;
-  const place = pickCorner(n);
-  hudCorner = place.corner;
-  hud.dataset.corner = hudCorner;
-  hud.style.setProperty('--hud-dx', `${place.dx}px`);
-  hud.style.setProperty('--hud-dy', `${place.dy}px`);
+// ---------- the choreography ----------
+let hudTl: gsap.core.Timeline | null = null;
+const DUR = { house: 0.7, out: 0.62, back: 0.42 };
+
+function houseTo(l: Layout, b: Box, instant: boolean) {
+  if (!rh) return;
+  const vars = { x: b.x - l.home.x, y: b.y - l.home.y, scale: b.w / l.home.w };
+  if (instant) gsap.set(rh, vars);
+  else gsap.to(rh, { ...vars, duration: DUR.house, ease: 'power3.inOut', overwrite: 'auto' });
 }
 
-/** Draw the leader: from the label's corner along its edge, then 45° to the key's rim. */
-function placeLeader() {
-  if (!hud || !sheet || !hudKey || !hudLabel || !hudLeader) return;
-  const sr = sheet.getBoundingClientRect();
-  const kr = hudKey.getBoundingClientRect();
-  const lr = hudLabel.getBoundingClientRect();
-  const kx = kr.left + kr.width / 2 - sr.left;
-  const ky = kr.top + kr.height / 2 - sr.top;
-  const rad = kr.width / 2;
-  const left = hudCorner[1] === 'l';
-  const top = hudCorner[0] === 't';
-  const ex = (left ? lr.right : lr.left) - sr.left;
-  const ey = (top ? lr.bottom : lr.top) - sr.top;
-  const dx = kx - ex;
-  const dy = ky - ey;
-  let path: string;
-  let from: { x: number; y: number };
-  if (Math.abs(dx) > Math.abs(dy)) {
-    const bend = { x: kx - Math.sign(dx) * Math.abs(dy), y: ey };
-    path = `M${ex.toFixed(1)} ${ey.toFixed(1)} L${bend.x.toFixed(1)} ${bend.y.toFixed(1)}`;
-    from = bend;
-  } else {
-    path = `M${ex.toFixed(1)} ${ey.toFixed(1)}`;
-    from = { x: ex, y: ey };
-  }
-  // stop at the key's rim
-  const len = Math.hypot(kx - from.x, ky - from.y) || 1;
-  const tx = kx - ((kx - from.x) / len) * (rad + 3);
-  const ty = ky - ((ky - from.y) / len) * (rad + 3);
-  path += ` L${tx.toFixed(1)} ${ty.toFixed(1)}`;
-  hudLeader.setAttribute('d', path);
-  hudDot?.setAttribute('cx', ex.toFixed(1));
-  hudDot?.setAttribute('cy', ey.toFixed(1));
-}
-
-function showHud(n: number) {
-  if (!hud || !hudLabel) return;
-  const ch = chapters.find((c) => Number(c.dataset.chapter) === n);
-  const live = n >= 1 && n <= 7 && !!ch;
-  follow?.kill();
-  if (!live) {
-    gsap.to(hud, { opacity: 0, duration: 0.2, ease: 'power1.out', overwrite: 'auto', onComplete: () => { hud.hidden = true; } });
-    hudKey = null;
+function flyOut(p: Placed, delay: number, instant: boolean) {
+  const el = partEls.get(p.id);
+  if (!el) return;
+  el.style.width = `${p.box.w}px`;
+  const to = { x: p.box.x, y: p.box.y, scale: 1, opacity: 1 };
+  if (instant) {
+    gsap.set(el, to);
     return;
   }
-  const fill = () => {
-    if (hudSlots.n) hudSlots.n.textContent = String(n).padStart(2, '0');
-    if (hudSlots.name) hudSlots.name.textContent = ch!.querySelector('h2')?.textContent ?? '';
-    if (hudSlots.cat) hudSlots.cat.textContent = ch!.dataset.hudCat ?? '';
-    if (hudSlots.meta) hudSlots.meta.textContent = ch!.dataset.hudMeta ?? '';
-    hud.hidden = false;
-    hudKey = keyOf(n);
-    placeHud(n);
-    placeLeader();
+  // from the hotspot, small: only when the part is not already (partly) out — otherwise carry on from where it is
+  if (Number(gsap.getProperty(el, 'opacity')) < 0.03) gsap.set(el, { x: p.from[0] - p.box.w / 2, y: p.from[1] - p.box.h / 2, scale: 0.18, opacity: 0 });
+  gsap.to(el, { ...to, duration: DUR.out, delay, ease: 'power3.out', overwrite: 'auto' });
+}
+
+function flyBack(l: Layout, id: PartId, house: Box, instant: boolean) {
+  const el = partEls.get(id);
+  if (!el) return;
+  // barely out (a fly-out that has only just started): stop it where it is, unseen
+  if (Number(gsap.getProperty(el, 'opacity')) < 0.03 && !instant) {
+    gsap.killTweensOf(el);
+    gsap.set(el, { opacity: 0 });
+    return;
+  }
+  const [hx, hy] = hotIn(house, id);
+  const w = el.offsetWidth || partSize(l, id, 1).w;
+  const h = el.offsetHeight || w;
+  const to = { x: hx - w / 2, y: hy - h / 2, scale: 0.18, opacity: 0 };
+  if (instant) gsap.set(el, to);
+  else gsap.to(el, { ...to, duration: DUR.back, ease: 'power2.in', overwrite: 'auto' });
+}
+
+function showHud(pl: Plan | null, n: number, houseMoves: boolean, instant: boolean) {
+  hudTl?.kill();
+  // autoAlpha: a hidden mark is also visibility:hidden, so the invisible label cannot take a click
+  const all = [...rings.values(), ...leaders.values(), ...(label ? [label] : [])];
+  if (!pl) {
+    if (instant) gsap.set(all, { autoAlpha: 0 });
+    else hudTl = gsap.timeline().to(all, { autoAlpha: 0, duration: 0.15, ease: 'power1.out', overwrite: 'auto' });
+    return;
+  }
+  // geometry of the marks for this chapter
+  const geo = pl.parts.map((p) => {
+    const ob = objectBox(p.id, p.box);
+    const [hx, hy] = p.hot;
+    const ex = Math.min(Math.max(hx, ob.x + 4), ob.x + ob.w - 4);
+    const ey = Math.min(Math.max(hy, ob.y + 4), ob.y + ob.h - 4);
+    const len = Math.hypot(ex - hx, ey - hy);
+    const r = (rings.get(p.id)?.offsetWidth ?? 24) / 2 + 2;
+    const a = Math.atan2(ey - hy, ex - hx);
+    return { id: p.id, hx, hy, sx: hx + Math.cos(a) * r, sy: hy + Math.sin(a) * r, len: Math.max(0, len - r), deg: (a * 180) / Math.PI };
+  });
+  const place = () => {
+    for (const g of geo) {
+      gsap.set(rings.get(g.id)!, { x: g.hx, y: g.hy });
+      const lead = leaders.get(g.id)!;
+      lead.style.width = `${g.len.toFixed(1)}px`;
+      gsap.set(lead, { x: g.sx, y: g.sy, rotation: g.deg });
+    }
+    if (label) {
+      fillLabel(label, n);
+      if (pl.label) gsap.set(label, { x: pl.label.x, y: pl.label.y });
+    }
   };
-  const wasOn = !hud.hidden && Number(gsap.getProperty(hud, 'opacity')) > 0.05;
-  gsap.killTweensOf(hud);
-  if (!wasOn) gsap.set(hud, { opacity: 0 });
+  const liveRings = geo.map((g) => rings.get(g.id)!);
+  const liveLeads = geo.map((g) => leaders.get(g.id)!);
+  if (instant) {
+    gsap.set(all, { autoAlpha: 0 });
+    place();
+    gsap.set(liveRings, { autoAlpha: 1, scale: 1 });
+    gsap.set(liveLeads, { autoAlpha: 1, scaleX: 1 });
+    if (label && pl.label) gsap.set(label, { autoAlpha: 1 });
+    return;
+  }
+  // ≤ 0.8 s in all: marks wait for the house when it is stepping back
+  const t0 = houseMoves ? 0.42 : 0.12;
   const tl = gsap.timeline();
-  if (wasOn) tl.to(hud, { opacity: 0, duration: 0.15, ease: 'power1.in' });
-  tl.call(fill);
-  tl.to(hud, { opacity: 1, duration: 0.25, ease: 'power1.out' }, '+=0.25');
-  // the key travels with its part for ~0.9 s: keep the leader on it, on GSAP's clock
-  follow = gsap.to({}, { duration: 1.4, onUpdate: placeLeader });
+  hudTl = tl;
+  tl.to(all, { autoAlpha: 0, duration: 0.12, ease: 'power1.out' }, 0);
+  tl.call(place, [], 0.13);
+  tl.fromTo(liveRings, { autoAlpha: 0, scale: 0.4 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: 'back.out(2)' }, t0);
+  tl.fromTo(liveLeads, { autoAlpha: 1, scaleX: 0 }, { scaleX: 1, duration: 0.28, ease: 'power2.inOut', immediateRender: false }, t0 + 0.08);
+  if (label && pl.label) tl.fromTo(label, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.22, ease: 'power1.out', immediateRender: false }, t0 + 0.14);
+}
+
+function apply(n: number, instant = false) {
+  if (!L) L = layout();
+  const l = L;
+  if (!l || !rh) return;
+  const live = isLive(n);
+  const fin = n === FINALE;
+  const house = live ? l.back : l.home;
+  const moved = Math.abs(Number(gsap.getProperty(rh, 'scale')) - house.w / l.home.w) > 0.01;
+  houseTo(l, house, instant);
+  // dimmed while a part is out; at the finale the day render gives way to dusk (the two are cross-faded, so the
+  // day picture never shows round the dusk one where the two cut-outs differ by a few pixels)
+  const dim = { opacity: live ? 0.58 : fin ? 0 : 1 };
+  const lit = { opacity: fin ? 1 : 0 };
+  if (instant) {
+    if (day) gsap.set(day, dim);
+    gsap.set([dusk, night].filter(Boolean), lit);
+  } else {
+    if (day) gsap.to(day, { ...dim, duration: fin || Number(gsap.getProperty(day, 'opacity')) < 0.5 ? 0.8 : 0.5, ease: 'power1.inOut', overwrite: 'auto' });
+    gsap.to([dusk, night].filter(Boolean), { ...lit, duration: 0.8, ease: 'power1.inOut', overwrite: 'auto' });
+  }
+  sheet?.toggleAttribute('data-dusk', fin);
+  const pl = live ? plan(l, n) : null;
+  const out = new Set(pl?.parts.map((p) => p.id));
+  for (const id of partEls.keys()) if (!out.has(id)) flyBack(l, id, house, instant);
+  pl?.parts.forEach((p, i) => flyOut(p, (moved ? 0.14 : 0.06) + i * 0.06, instant));
+  showHud(pl, n, moved, instant);
 }
 
 function setLayer(n: number) {
-  if (!house || n === current) return;
+  if (n === current) return;
   current = n;
-  const live = n >= 1 && n <= 7;
   stage?.setAttribute('data-active', String(n));
   if (n === 0) stage?.removeAttribute('data-active');
   chapters.forEach((c) => c.classList.toggle('is-active', Number(c.dataset.chapter) === n));
@@ -227,66 +383,65 @@ function setLayer(n: number) {
   const liveKey = keys.find((k) => Number(k.dataset.keyLink) === n);
   const row = liveKey?.parentElement;
   if (liveKey && row && row.scrollWidth > row.clientWidth) row.scrollLeft = liveKey.offsetLeft - (row.clientWidth - liveKey.offsetWidth) / 2;
-  if (live) house.setAttribute('data-dim', '');
-  else house.removeAttribute('data-dim');
-  if (n === 8) house.setAttribute('data-lit', '');
-  else house.removeAttribute('data-lit');
-  for (const p of parts) {
-    const on = p.layer === n;
-    p.el.classList.toggle('is-live', on);
-    gsap.to(p.el, { x: on ? p.dx : 0, y: on ? p.dy : 0, duration: on ? 0.9 : 0.6, ease: on ? 'power3.out' : 'power2.inOut', overwrite: 'auto' });
-  }
   if (caption) {
     const ch = chapters.find((c) => Number(c.dataset.chapter) === n);
     const title = ch?.querySelector('h2')?.textContent ?? '';
-    // 01–07 carry their key; "Ndize" (n = 8) is the whole house switched on: the title alone, never "07 · …"
-    caption.textContent = !ch ? '' : n > 7 ? title : `${String(n).padStart(2, '0')} · ${title}`;
+    // chapters carry their key; the finale (the whole house switched on) is the title alone
+    caption.textContent = !ch ? '' : n >= FINALE ? title : `${String(n).padStart(2, '0')} · ${title}`;
   }
-  showHud(n);
+  apply(n);
 }
 
 // ---------- "Pse tani": each number is a dimension line drawn from the left ----------
 const dims = [...document.querySelectorAll<HTMLElement>('[data-dim]')];
 
+/** Motion off: hand the sheet back to CSS (the static exploded diagram). */
+function clearStage() {
+  hudTl?.kill();
+  const els = [rh, day, dusk, night, label, ...partEls.values(), ...rings.values(), ...leaders.values()].filter((e): e is HTMLElement => !!e);
+  gsap.killTweensOf(els);
+  gsap.set(els, { clearProps: 'transform,opacity,visibility' });
+  partEls.forEach((el) => el.style.removeProperty('width'));
+  leaders.forEach((el) => el.style.removeProperty('width'));
+  sheet?.removeAttribute('data-dusk');
+  // no live chapter in the static view
+  stage?.removeAttribute('data-active');
+  chapters.forEach((c) => c.classList.remove('is-active'));
+  keys.forEach((k) => k.removeAttribute('aria-current'));
+  if (caption) caption.textContent = '';
+}
+
 function build() {
   triggers.forEach((t) => t.kill());
   triggers = [];
   const dimEls = dims.flatMap((d) => [...d.querySelectorAll<HTMLElement>('[data-dim-rule], [data-dim-end], [data-dim-value], [data-dim-text]')]);
-  if (!motionOn() || !house) {
-    // Static: every part shown at its exploded offset by CSS, every chapter readable. Tweens still
-    // running from the last layer change would write their transform back after clearProps: kill first.
-    const els = parts.map((p) => p.el);
-    gsap.killTweensOf(els);
-    els.forEach((el) => el.classList.remove('is-live'));
-    parts.forEach((p) => gsap.set(p.el, { clearProps: 'transform' }));
-    house?.removeAttribute('data-dim');
-    follow?.kill();
-    if (hud) {
-      gsap.killTweensOf(hud);
-      gsap.set(hud, { clearProps: 'opacity' });
-      hud.hidden = true;
-    }
+  if (!motionOn() || !sheet) {
+    // Static: every part laid out around the house by CSS, every chapter readable.
+    clearStage();
+    L = null;
     gsap.killTweensOf(dimEls);
     gsap.set(dimEls, { clearProps: 'transform,opacity' });
     current = -1;
     return;
   }
-  parts.forEach((p) => gsap.set(p.el, { x: 0, y: 0 }));
+  L = layout();
   current = -1;
   setLayer(0);
+  let first: ScrollTrigger | null = null;
   for (const c of chapters) {
     const n = Number(c.dataset.chapter);
-    triggers.push(
-      ScrollTrigger.create({
-        trigger: c,
-        start: 'top 55%',
-        end: 'bottom 45%',
-        onToggle: (self) => {
-          if (self.isActive) setLayer(n);
-          else if (n === 1 && self.direction < 0) setLayer(0);
-        },
-      }),
-    );
+    const st = ScrollTrigger.create({
+      trigger: c,
+      start: 'top 55%',
+      end: 'bottom 45%',
+      onToggle: (self) => {
+        if (self.isActive) setLayer(n);
+        // back above the first chapter (also after a jump straight to the top): the whole house again
+        else if (self.direction < 0 && first && self.scroll() < first.start) setLayer(0);
+      },
+    });
+    first ??= st;
+    triggers.push(st);
   }
   // Poster lines step in on arrival (opacity + small rise; the CTAs below never move).
   const lines = document.querySelectorAll('.stage__line');
@@ -331,7 +486,7 @@ if (final) {
   const sq = document.documentElement.lang === 'sq';
   // same grouping as the server render in Home.astro: a no-break space in Albanian (the narrow one all but
   // disappears between Archivo's display figures), a comma in English
-  const fmt = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, sq ? ' ' : ',');
+  const fmt = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, sq ? ' ' : ',');
   sel?.addEventListener('change', () => {
     const y = data.find((d) => d.s === sel.value)?.y ?? 0;
     if (!out) return;
@@ -344,15 +499,19 @@ if (final) {
   });
 }
 
-scaleKeys();
-if (house && 'ResizeObserver' in window) {
+// A new sheet size (resize, rotation, the phone's toolbar): measure again and put everything in place at once.
+if (sheet && 'ResizeObserver' in window) {
+  let last = '';
   new ResizeObserver(() => {
-    scaleKeys();
-    if (hudKey && hud && !hud.hidden) {
-      placeHud(current);
-      placeLeader();
-    }
-  }).observe(house);
+    const size = `${sheet.clientWidth}x${sheet.clientHeight}`;
+    const first = !last;
+    if (size === last) return;
+    last = size;
+    if (first || !L || !motionOn()) return;
+    gsap.set(rh, { clearProps: 'transform' });
+    L = layout();
+    if (current >= 0) apply(current, true);
+  }).observe(sheet);
 }
 document.addEventListener('beed:loaded', () => ScrollTrigger.refresh());
 build();

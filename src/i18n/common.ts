@@ -4,12 +4,12 @@ import type { Lang } from '../lib/i18n';
 export const common = {
   sq: {
     skip: 'Kalo te përmbajtja',
-    brandTag: 'Treg për ndërtimin dhe energjinë',
+    brandTag: 'Treg për energjinë e rinovueshme dhe ndërtimin',
     nav: { shop: 'Dyqani', compare: 'Krahaso', cart: 'Shporta', menu: 'Menu', close: 'Mbyll', search: 'Kërko', categories: 'Kategoritë', calculator: 'Kalkulatori', sellers: 'Shitësit', quote: 'Kërko ofertë', sell: 'Shit me ne', about: 'Rreth nesh', contact: 'Kontakt', home: 'Kreu' },
     lang: { sq: 'Shqip', en: 'English', switchTo: 'Switch to English' },
     saver: { label: 'Kursim energjie', on: 'Kursimi i energjisë është i ndezur: animacionet janë ndalur.', off: 'Kursimi i energjisë është i fikur.', hint: 'Ndal animacionet dhe efektet e rënda' },
     menu: { heading: 'Kategoritë', products: (n: number) => `${n} produkte`, from: 'nga', empty: 'pa oferta ende', allShop: 'I gjithë dyqani', tools: 'Mjete', hours: 'Tregu është i hapur 24 orë, shitësit përgjigjen në ditët e punës.' },
-    groups: { energy: 'Energji', efficiency: 'Efikasitet', build: 'Ndërtim' },
+    groups: { energy: 'Energji e rinovueshme', efficiency: 'Efikasitet energjetik', build: 'Ndërtim' },
     cartCount: (n: number) => (n === 1 ? '1 artikull në shportë' : `${n} artikuj në shportë`),
     compareCount: (n: number) => (n === 1 ? '1 produkt për krahasim' : `${n} produkte për krahasim`),
     tray: { title: 'Krahasimi', go: 'Krahaso tani', clear: 'Pastro', remove: 'Hiq', full: 'Mund të krahasoni deri në 4 produkte. Hiqni një për të shtuar këtë.', reset: 'Krahasimi filloi nga e para: krahasohen vetëm produkte të së njëjtës kategori.' },
@@ -17,7 +17,7 @@ export const common = {
     loader: { words: ['Ndërtim', 'Construction', 'Energji', 'Energy'], skip: 'Kalo', loading: 'Duke u ngarkuar' },
     footer: {
       shop: 'Dyqani', company: 'Kompania', help: 'Ndihmë', legal: 'Ligjore',
-      about: 'BeeD Energy është treg online ku furnitorët, instaluesit dhe kompanitë e ndërtimit shesin produkte për ndërtim dhe energji të rinovueshme në Shqipëri.',
+      about: 'BeeD Energy është treg online për energjinë e rinovueshme në Shqipëri: furnitorët dhe instaluesit shesin panele diellore, bateri, pompa nxehtësie dhe karikues për makina elektrike, krah për krah me kompanitë e ndërtimit që shesin izolim dhe materiale ndërtimi.',
       operator: 'Tregu drejtohet nga BeeD Consulting sh.p.k. · NIPT M41722050A · Tiranë',
       prices: 'Çmimet janë në lekë dhe përfshijnë TVSH-në 20% (për shitësit e regjistruar për TVSH).',
       terms: 'Kushtet e përdorimit', privacy: 'Privatësia', returns: 'Kthimet dhe e drejta e heqjes dorë nga kontrata', delivery: 'Dërgesa', payments: 'Pagesat',
@@ -29,12 +29,12 @@ export const common = {
   },
   en: {
     skip: 'Skip to content',
-    brandTag: 'The marketplace for building and energy',
+    brandTag: 'The marketplace for renewable energy and building',
     nav: { shop: 'Shop', compare: 'Compare', cart: 'Basket', menu: 'Menu', close: 'Close', search: 'Search', categories: 'Categories', calculator: 'Calculator', sellers: 'Sellers', quote: 'Request a quote', sell: 'Sell with us', about: 'About', contact: 'Contact', home: 'Home' },
     lang: { sq: 'Shqip', en: 'English', switchTo: 'Kalo në shqip' },
     saver: { label: 'Energy saving', on: 'Energy saving is on: animations are stopped.', off: 'Energy saving is off.', hint: 'Stop animations and heavy effects' },
     menu: { heading: 'Categories', products: (n: number) => `${n} products`, from: 'from', empty: 'no offers yet', allShop: 'The whole shop', tools: 'Tools', hours: 'The market is open 24 hours; sellers reply on working days.' },
-    groups: { energy: 'Energy', efficiency: 'Efficiency', build: 'Building' },
+    groups: { energy: 'Renewable energy', efficiency: 'Energy efficiency', build: 'Building' },
     cartCount: (n: number) => (n === 1 ? '1 item in the basket' : `${n} items in the basket`),
     compareCount: (n: number) => (n === 1 ? '1 product to compare' : `${n} products to compare`),
     tray: { title: 'Compare', go: 'Compare now', clear: 'Clear', remove: 'Remove', full: 'You can compare up to 4 products. Remove one to add this.', reset: 'Comparison restarted: only products from the same category can be compared.' },
@@ -42,7 +42,7 @@ export const common = {
     loader: { words: ['Ndërtim', 'Construction', 'Energji', 'Energy'], skip: 'Skip', loading: 'Loading' },
     footer: {
       shop: 'Shop', company: 'Company', help: 'Help', legal: 'Legal',
-      about: 'BeeD Energy is an online marketplace where suppliers, installers and construction companies sell building and renewable-energy products in Albania.',
+      about: 'BeeD Energy is an online marketplace for renewable energy in Albania: suppliers and installers sell solar panels, batteries, heat pumps and EV chargers, side by side with construction companies selling insulation and building materials.',
       operator: 'The marketplace is run by BeeD Consulting sh.p.k. · NIPT M41722050A · Tirana',
       prices: 'Prices are in lekë (ALL) and include 20% VAT (for VAT-registered sellers).',
       terms: 'Terms of use', privacy: 'Privacy', returns: 'Returns and withdrawal', delivery: 'Delivery', payments: 'Payments',

@@ -1,12 +1,12 @@
 # BeeD Energy
 
-A bilingual (Albanian / English) online marketplace for construction and renewable-energy products in Albania: suppliers, installers and construction companies list offers on a shared catalogue, and buyers compare prices, specifications and delivery side by side.
+A bilingual (Albanian / English) online marketplace for renewable energy in Albania: solar panels, inverters, batteries, heat pumps, solar water heaters and EV chargers, with insulation, windows and building materials as the second shelf. Suppliers, installers and construction companies list offers on a shared catalogue, and buyers compare prices, specifications and delivery side by side.
 
 **Status: working prototype, not live.** Product models, specifications, dimensions and datasheet links are real. Sellers, their prices, stock and delivery fees are **sample data** (tagged "shembull / sample" on the site). See [`NEEDS_VERIFICATION.md`](NEEDS_VERIFICATION.md) for everything that must be confirmed before launch.
 
 ## What is in it
-- **Story home page:** "Shtëpia në shtresa" (the house in layers). An isometric drawing of a two-storey house opens one layer per chapter as you scroll: foundation and walls, insulation, windows, roof and panels, inverter and battery, heating and cooling, meter and grid. Each layer carries a sourced Albanian figure and links to its shop category with the live product count and lowest price.
-- **Shop:** 14 categories with filters generated from each category's specification template, product pages with technical drawings at real dimensions, an offers table comparing every seller (price incl. VAT, price per Wp / kWh / m², volume prices, stock, delivery to your city, total delivered), 90-day price history, price alerts, side-by-side product comparison and search.
+- **Story home page:** one house, seven chapters, energy first (`src/content/story.ts`): solar panels, inverter, battery, heating / cooling / hot water, the car charger, meter and grid, and "the energy you don't lose" (insulation, windows, LED). Each chapter names the equipment it lights up in the house illustration (`parts`, see [`ASSETS.md`](ASSETS.md)), carries sourced Albanian figures and links to its shop categories with the live product count and lowest price. Cement and masonry are in the shop, not in the story.
+- **Shop:** 14 categories, renewable energy first (the order is the array order in `scripts/catalog/categories.mjs`), with filters generated from each category's specification template, product pages with technical drawings at real dimensions, an offers table comparing every seller (price incl. VAT, price per Wp / kWh / m², volume prices, stock, delivery to your city, total delivered), 90-day price history, price alerts, side-by-side product comparison and search.
 - **Basket and checkout:** one parcel per seller, Albanian phone and NIPT validation, cash on delivery, bank transfer, card through POK (a labelled local test gateway when no keys are set).
 - **Solar calculator:** PVGIS yields for 14 Albanian cities, the ERE 2026 household tariff (including its 700 kWh cliff), a kit priced from live offers, payback.
 - **Request a quote:** private buyer–seller threads.
@@ -30,7 +30,7 @@ npm run dev                       # http://127.0.0.1:3810, on workerd with the l
 
 Admin: with `DEV_LOGIN=1` in `.dev.vars`, `/admin/login` shows a developer sign-in button (dev server and 127.0.0.1 only; production builds never have it). To set a real password: `npm run admin:password -- you@example.com "Your Name" --local` (or `--remote` for the deployed database).
 
-Useful flags: `npm run seed -- --force` overwrites settings, categories and products from the catalogue files (otherwise a reseed keeps admin edits). After reseeding, run `d1:export` and `d1:load` again.
+Useful flags: `npm run seed -- --force` overwrites settings, categories and products from the catalogue files (otherwise a reseed keeps admin edits). After reseeding, run `d1:export` and `d1:load` again: `seed.sql` replaces every catalogue table (foreign keys are checked once at the end, so it loads into a database that already has rows).
 
 ## Deploy to Cloudflare
 ```bash

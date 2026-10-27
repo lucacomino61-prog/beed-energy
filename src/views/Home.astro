@@ -1,11 +1,12 @@
 ---
-// Home: the poster, then "Shtëpia hapet" — the house opens one layer per chapter (DESIGN.md signature),
-// then the manifesto, how it works, featured products, Albania in numbers, the calculator and the seller band.
+// Home: the poster, then "Shtëpia ndizet" — the realistic house on a drafting sheet; each chapter lifts its
+// equipment out of the house as an exploded part (DESIGN.md signature), then the manifesto, how it works,
+// featured products, Albania in numbers, the calculator and the seller band.
 import Site from '../layouts/Site.astro';
-import '../styles/house.css';
 import '../styles/home.css';
-import { houseSvg } from '../lib/house';
 import { LAYERS, NUMBERS, type Fact } from '../content/story';
+import { BASE, PARTS, partsOf, srcset, type PartId } from '../lib/house-render';
+import { ts } from '../i18n/stage';
 import { categories, featuredProducts } from '../lib/catalog';
 import ProductPhoto from '../components/ProductPhoto.astro';
 import { all, get } from '../lib/db';
@@ -16,6 +17,7 @@ import { th } from '../i18n/home';
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
 const t = th(lang);
+const s = ts(lang);
 const other = lang === 'sq' ? 'en' : 'sq';
 
 const cats = await categories();
@@ -41,8 +43,9 @@ const cop = await best('heat-pumps', 'cop_a7w35', 'MAX');
 type Link = { label: string; url: string };
 type Shown = { value: string; text: string; source?: Link; also?: Link; product?: { slug: string; name: string } };
 // Source labels are bilingual in story.ts; print the one for this page's language.
-const srcFor = (s: Fact['source']): Link => ({ label: s.label[lang], url: s.url });
-function factFor(f: (typeof LAYERS)[number]['fact']): Shown {
+const srcFor = (src: Fact['source']): Link => ({ label: src.label[lang], url: src.url });
+type AnyFact = Fact | 'insulation' | 'windows' | 'heat';
+function factFor(f: AnyFact): Shown {
   if (f === 'insulation') {
     if (!lambda) return t.insulationNone;
     const r = t.insulation(num(lambda.v, 3, lang), num(0.1 / lambda.v, 2, lang));
@@ -60,7 +63,19 @@ function factFor(f: (typeof LAYERS)[number]['fact']): Shown {
   return { value: x.value[lang], text: x.text[lang], source: srcFor(x.source), also: x.also && srcFor(x.also) };
 }
 
-const house = houseSvg({ title: t.drawingAlt });
+// Every fact of a chapter, headline first (story.ts `facts`; older content had `fact` + `extra`).
+type LayerLike = { fact?: AnyFact; extra?: Fact; facts?: readonly AnyFact[] };
+const factsOf = (l: LayerLike): AnyFact[] => [...(l.facts ?? [l.fact, l.extra])].filter((f): f is AnyFact => !!f);
+
+// The stage: which parts each chapter lifts out of the house (story.ts `parts`, or the default map), the key of
+// each part in the static exploded diagram, and the chapter count for the "01 / 07" keys.
+const pad = (n: number) => String(n).padStart(2, '0');
+const chapterParts = new Map(LAYERS.map((l) => [l.n, partsOf(l as { n: number; id?: string; parts?: string[] })]));
+const partKey = new Map<PartId, number>();
+for (const l of LAYERS) for (const p of chapterParts.get(l.n) ?? []) if (!partKey.has(p)) partKey.set(p, l.n);
+const shownParts = (Object.keys(PARTS) as PartId[]).filter((p) => partKey.has(p));
+const total = pad(LAYERS.length);
+const finaleN = Math.max(0, ...LAYERS.map((l) => l.n)) + 1;
 const cities = await all<{ slug: string; name_sq: string; name_en: string; pv_yield: number }>('SELECT slug, name_sq, name_en, pv_yield FROM cities WHERE pv_yield IS NOT NULL ORDER BY pv_yield DESC');
 const tirana = cities.find((c) => c.slug === 'tirane') ?? cities[0];
 const featured = await featuredProducts(8);
@@ -86,47 +101,82 @@ const jsonld = [
       </h1>
       <p class="lede">{t.lede}</p>
       <div class="row stage__cta">
-        <a class="btn" href={href(lang, 'shop')}>{t.shop} <span class="arrow" aria-hidden="true">→</span></a>
-        <a class="btn btn--ghost" href={href(lang, 'quote')}>{t.quote}</a>
+        <a class="btn" href={href(lang, 'calculator')}>{t.calcCta} <span class="arrow" aria-hidden="true">→</span></a>
+        <a class="btn btn--ghost" href={href(lang, 'shop')}>{t.shop}</a>
       </div>
+      <a class="link-arrow stage__quote" href={href(lang, 'quote')}><span>{t.quote}</span><span class="arrow" aria-hidden="true">→</span></a>
       <p class="mono small stage__stats">{t.stats(cats.length, counts.products, counts.offers)}</p>
       <p class="mono small stage__hint" aria-hidden="true">↓ {t.scrollHint}</p>
     </div>
 
     <figure class="stage__drawing" data-drawing>
-      <div class="stage__sheet" data-sheet>
-        <Fragment set:html={house.svg.replace('class="house"', 'class="house house--stage" data-house')} />
-        <div class="hud" data-hud aria-hidden="true" hidden>
-          <svg class="hud__lines" aria-hidden="true"><path class="hud__leader" data-hud-leader d="M0 0" /><circle class="hud__dot" data-hud-dot r="2.5" cx="0" cy="0" /></svg>
-          <div class="hud__label" data-hud-label>
-            <p class="hud__head"><span class="hud__n" data-hud-n></span><span class="hud__name" data-hud-name></span></p>
-            <p class="hud__cat" data-hud-cat></p>
-            <p class="hud__meta" data-hud-meta></p>
-          </div>
+      {/* The sheet: the realistic house (AI illustration, public/house/) and its parts. With motion on, home.ts lifts
+          each chapter's parts out of the house; without it (no JS, reduced motion, energy saving) CSS lays every
+          part around the house as a static exploded diagram with numbered keys. */}
+      <div class="stage__sheet" data-sheet data-finale={finaleN}>
+        <div class="stage__night" data-night aria-hidden="true"></div>
+        <div class="rh" data-rh>
+          <img class="rh__img rh__day" data-rh-day src={`/house/${BASE.day[1].file}`} srcset={srcset(BASE.day)} sizes="(max-width: 900px) 70vw, 46vw" width={BASE.w} height={BASE.h} alt={t.drawingAlt} fetchpriority="high" decoding="async" />
+          <img class="rh__img rh__dusk" data-rh-dusk src={`/house/${BASE.dusk[1].file}`} srcset={srcset(BASE.dusk)} sizes="(max-width: 900px) 70vw, 46vw" width={BASE.w} height={BASE.h} alt="" loading="lazy" decoding="async" />
         </div>
+        <ol class="rp-list" aria-hidden="true">
+          {shownParts.map((p) => {
+            const f = PARTS[p].files;
+            return (
+              <li class="rp" data-part={p} style={`grid-area:${p}`}>
+                <img src={`/house/${f[0].file}`} srcset={srcset(f)} sizes="(max-width: 900px) 30vw, 18vw" width={f[1].w} height={f[1].h} alt="" loading="lazy" decoding="async" />
+                <span class="rp__key">{pad(partKey.get(p)!)}</span>
+              </li>
+            );
+          })}
+        </ol>
+        <div class="hud" data-hud aria-hidden="true">
+          <div class="hud__marks" data-hud-marks></div>
+          <a class="hud__label" data-hud-label tabindex="-1" href={href(lang, 'shop')}>
+            <span class="hud__head"><span class="hud__n" data-hud-n></span><span class="hud__name" data-hud-name></span></span>
+            <span class="hud__cat" data-hud-cat></span>
+            <span class="hud__meta"><span data-hud-meta></span> <span class="arrow">→</span></span>
+          </a>
+        </div>
+        <p class="stage__stamp mono" data-stamp>{s.stamp}</p>
       </div>
       <figcaption class="stage__caption mono">
         <span>{t.drawingTitle}</span>
         <span data-caption-layer aria-live="polite"></span>
       </figcaption>
       <nav class="stage__keys" aria-label={t.layers}>
-        {LAYERS.map((l) => <a href={`#shtresa-${l.n}`} class="stage__key" data-key-link={l.n} title={l.name[lang]}><span>{String(l.n).padStart(2, '0')}</span></a>)}
+        {LAYERS.map((l) => <a href={`#shtresa-${l.n}`} class="stage__key" data-key-link={l.n} title={l.name[lang]}><span>{pad(l.n)}</span></a>)}
       </nav>
     </figure>
 
     <ol class="chapters" aria-label={t.layers}>
       {LAYERS.map((l) => {
-        const fact = factFor(l.fact);
+        const [fact, ...more] = factsOf(l).map(factFor);
         const first = bySlug.get(l.categories[0]);
         const catMeta = (c: (typeof cats)[number]) => `${t.products(c.product_count ?? 0)} · ${c.min_price ? `${t.from} ${lek(c.min_price, lang)}` : t.noOffers}`;
         return (
-          <li class="chapter" id={`shtresa-${l.n}`} data-chapter={l.n} data-hud-cat={first ? (lang === 'sq' ? first.name_sq : first.name_en) : undefined} data-hud-meta={first ? catMeta(first) : undefined}>
-            <p class="chapter__key mono"><span class="tag tag--copper">{String(l.n).padStart(2, '0')} / 07</span> {l.short[lang]}</p>
+          <li
+            class="chapter"
+            id={`shtresa-${l.n}`}
+            data-chapter={l.n}
+            data-parts={(chapterParts.get(l.n) ?? []).join(' ')}
+            data-hud-cat={first ? (lang === 'sq' ? first.name_sq : first.name_en) : undefined}
+            data-hud-meta={first ? catMeta(first) : undefined}
+            data-hud-href={first ? href(lang, 'category', { slug: lang === 'sq' ? first.slug_sq : first.slug_en }) : undefined}
+          >
+            <p class="chapter__key mono"><span class="tag tag--copper">{pad(l.n)} / {total}</span> {l.short[lang]}</p>
             <h2 class="title chapter__title">{l.name[lang]}</h2>
-            <p class="chapter__fact"><strong class="chapter__value figure">{fact.value}</strong> {fact.text}</p>
-            {fact.source && <p class="small muted mono chapter__src">{t.source}: <a href={fact.source.url} rel="noopener" target="_blank">{fact.source.label}</a>{fact.also && <>; <a href={fact.also.url} rel="noopener" target="_blank">{fact.also.label}</a></>}</p>}
-            {fact.product && <p class="small muted mono chapter__src">{t.datasheet}: <a href={href(lang, 'product', { slug: fact.product.slug })}>{fact.product.name}</a></p>}
-            {l.extra && <p class="chapter__extra"><span class="chapter__extra-value figure">{l.extra.value[lang]}</span> {l.extra.text[lang]} <a class="small mono muted" href={l.extra.source.url} rel="noopener" target="_blank">↗ {l.extra.source.label[lang]}</a></p>}
+            {fact && <p class="chapter__fact"><strong class="chapter__value figure">{fact.value}</strong> {fact.text}</p>}
+            {fact?.source && <p class="small muted mono chapter__src">{t.source}: <a href={fact.source.url} rel="noopener" target="_blank">{fact.source.label}</a>{fact.also && <>; <a href={fact.also.url} rel="noopener" target="_blank">{fact.also.label}</a></>}</p>}
+            {fact?.product && <p class="small muted mono chapter__src">{t.datasheet}: <a href={href(lang, 'product', { slug: fact.product.slug })}>{fact.product.name}</a></p>}
+            {more.map((x) => (
+              <p class="chapter__extra">
+                <span class="chapter__extra-value figure">{x.value}</span>{/^[:;,.]/.test(x.text) ? '' : ' '}{x.text}
+                {x.source && <> <a class="small mono muted" href={x.source.url} rel="noopener" target="_blank">↗ {x.source.label}</a></>}
+                {x.also && <> <a class="small mono muted" href={x.also.url} rel="noopener" target="_blank">↗ {x.also.label}</a></>}
+                {x.product && <> <a class="small mono muted" href={href(lang, 'product', { slug: x.product.slug })}>{t.datasheet}: {x.product.name}</a></>}
+              </p>
+            ))}
             <ul class="chapter__cats" aria-label={t.inShop}>
               {l.categories.map((s) => {
                 const c = bySlug.get(s);
@@ -145,7 +195,7 @@ const jsonld = [
           </li>
         );
       })}
-      <li class="chapter chapter--final" id="ndize" data-chapter="8">
+      <li class="chapter chapter--final" id="ndize" data-chapter={finaleN}>
         <p class="chapter__key mono"><span class="tag tag--ink">{t.final.key}</span></p>
         <h2 class="title title--xl chapter__title">{t.final.title}</h2>
         <p>{t.final.text}</p>

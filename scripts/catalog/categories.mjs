@@ -1,5 +1,7 @@
 // Category spec templates seeded into categories + spec_attributes.
 // The admin can edit all of this later (Kategoritë → Specifikimet).
+// Array order is the shop order (categories.sort, used by the shop, the menu and the footer): renewable energy first,
+// then efficiency, building materials last. group_key: 'energy' (make, store and use renewable energy), 'efficiency', 'build'.
 // a(key, sq, en, unit, type, flags): flags = { f: filterable, h: highlight on cards, b: 'higher'|'lower', d: decimals, o: enum options, r: required, c: comparable (default true) }
 const a = (key, sq, en, unit = '', type = 'number', flags = {}) => ({
   key, label_sq: sq, label_en: en, unit, type,
@@ -71,6 +73,37 @@ export const CATEGORIES = [
     ],
   },
   {
+    slug_sq: 'pompa-nxehtesie', slug_en: 'heat-pumps', name_sq: 'Pompa nxehtësie', name_en: 'Heat pumps', group_key: 'energy',
+    research: 'heat-pumps', unit_basis: 'heating_capacity_kw', unit_label_sq: 'lekë/kW', unit_label_en: 'ALL/kW',
+    intro_sq: 'Pompa nxehtësie ajër–ujë për ngrohje, ftohje dhe ujë të ngrohtë.',
+    intro_en: 'Air-to-water heat pumps for heating, cooling and hot water.',
+    attrs: [
+      a('heating_capacity_kw', 'Kapaciteti i ngrohjes', 'Heating capacity', 'kW', 'number', { f: true, h: true, b: 'higher', d: 1, r: true }),
+      a('cop_a7w35', 'COP (A7/W35)', 'COP (A7/W35)', '', 'number', { h: true, b: 'higher', d: 2 }),
+      a('scop_average_climate', 'SCOP (klimë mesatare)', 'SCOP (average climate)', '', 'number', { b: 'higher', d: 2 }),
+      a('energy_class_35c', 'Klasa energjetike (35 °C)', 'Energy class (35 °C)', '', 'text', { f: true }),
+      a('refrigerant', 'Gazi ftohës', 'Refrigerant', '', 'text', { f: true }),
+      a('phases', 'Numri i fazave', 'Phases', '', 'number', { f: true }),
+      a('sound_power_db', 'Fuqia akustike', 'Sound power', 'dB(A)', 'number', { b: 'lower' }),
+      warranty,
+    ],
+  },
+  {
+    slug_sq: 'ngrohes-uji-diellor', slug_en: 'solar-water-heaters', name_sq: 'Ngrohës uji diellorë', name_en: 'Solar water heaters', group_key: 'energy',
+    research: 'solar-water-heaters', unit_basis: 'tank_litres', unit_label_sq: 'lekë/litër', unit_label_en: 'ALL/litre',
+    intro_sq: 'Sisteme termosifoni me kolektor dhe depozitë.',
+    intro_en: 'Thermosiphon systems with collector and tank.',
+    attrs: [
+      a('tank_litres', 'Vëllimi i depozitës', 'Tank volume', 'L', 'number', { f: true, h: true, b: 'higher', r: true }),
+      a('collector_area_m2', 'Sipërfaqja e kolektorit', 'Collector area', 'm²', 'number', { h: true, b: 'higher', d: 2 }),
+      a('collector_count', 'Numri i kolektorëve', 'Collectors', '', 'number'),
+      a('system_type', 'Lloji i sistemit', 'System type', '', 'text', { f: true }),
+      a('tank_material', 'Materiali i depozitës', 'Tank material', '', 'text'),
+      a('electric_backup_w', 'Rezistenca elektrike', 'Electric backup', 'W', 'number'),
+      warranty,
+    ],
+  },
+  {
     slug_sq: 'karikues-makinash', slug_en: 'ev-chargers', name_sq: 'Karikues për makina elektrike', name_en: 'EV chargers', group_key: 'energy',
     research: 'ev-chargers', unit_basis: null,
     intro_sq: 'Karikues muri për makina elektrike, me lidhës Type 2.',
@@ -83,6 +116,18 @@ export const CATEGORIES = [
       a('smart_features', 'Funksione inteligjente', 'Smart features', '', 'text', { c: true }),
       ip,
       warranty,
+    ],
+  },
+  {
+    slug_sq: 'mates-energjie', slug_en: 'energy-monitoring', name_sq: 'Matës energjie', name_en: 'Energy meters', group_key: 'energy',
+    research: 'energy-monitoring', unit_basis: null,
+    intro_sq: 'Matës inteligjentë për të parë prodhimin dhe konsumin në kohë reale.',
+    intro_en: 'Smart meters to see production and consumption in real time.',
+    attrs: [
+      a('phases', 'Numri i fazave', 'Phases', '', 'number', { f: true, h: true }),
+      a('max_current_a', 'Rryma maksimale', 'Max current', 'A', 'number', { b: 'higher' }),
+      a('connectivity', 'Komunikimi', 'Connectivity', '', 'text', { h: true }),
+      a('accuracy_class', 'Klasa e saktësisë', 'Accuracy class', '', 'text'),
     ],
   },
   {
@@ -112,22 +157,6 @@ export const CATEGORIES = [
     ],
   },
   {
-    slug_sq: 'pompa-nxehtesie', slug_en: 'heat-pumps', name_sq: 'Pompa nxehtësie', name_en: 'Heat pumps', group_key: 'efficiency',
-    research: 'heat-pumps', unit_basis: 'heating_capacity_kw', unit_label_sq: 'lekë/kW', unit_label_en: 'ALL/kW',
-    intro_sq: 'Pompa nxehtësie ajër–ujë për ngrohje, ftohje dhe ujë të ngrohtë.',
-    intro_en: 'Air-to-water heat pumps for heating, cooling and hot water.',
-    attrs: [
-      a('heating_capacity_kw', 'Kapaciteti i ngrohjes', 'Heating capacity', 'kW', 'number', { f: true, h: true, b: 'higher', d: 1, r: true }),
-      a('cop_a7w35', 'COP (A7/W35)', 'COP (A7/W35)', '', 'number', { h: true, b: 'higher', d: 2 }),
-      a('scop_average_climate', 'SCOP (klimë mesatare)', 'SCOP (average climate)', '', 'number', { b: 'higher', d: 2 }),
-      a('energy_class_35c', 'Klasa energjetike (35 °C)', 'Energy class (35 °C)', '', 'text', { f: true }),
-      a('refrigerant', 'Gazi ftohës', 'Refrigerant', '', 'text', { f: true }),
-      a('phases', 'Numri i fazave', 'Phases', '', 'number', { f: true }),
-      a('sound_power_db', 'Fuqia akustike', 'Sound power', 'dB(A)', 'number', { b: 'lower' }),
-      warranty,
-    ],
-  },
-  {
     slug_sq: 'kondicionere', slug_en: 'air-conditioners', name_sq: 'Kondicionerë inverter', name_en: 'Inverter air conditioners', group_key: 'efficiency',
     research: 'air-conditioners', unit_basis: 'cooling_capacity_kw', unit_label_sq: 'lekë/kW', unit_label_en: 'ALL/kW',
     intro_sq: 'Kondicionerë split me teknologji inverter. Krahasoni SEER dhe SCOP.',
@@ -140,21 +169,6 @@ export const CATEGORIES = [
       a('energy_class_cooling', 'Klasa energjetike (ftohje)', 'Energy class (cooling)', '', 'text', { f: true }),
       a('refrigerant', 'Gazi ftohës', 'Refrigerant', '', 'text', { f: true }),
       a('indoor_noise_min_db', 'Niveli minimal i zhurmës (njësia e brendshme)', 'Min noise level (indoor unit)', 'dB(A)', 'number', { b: 'lower' }),
-      warranty,
-    ],
-  },
-  {
-    slug_sq: 'ngrohes-uji-diellor', slug_en: 'solar-water-heaters', name_sq: 'Ngrohës uji diellorë', name_en: 'Solar water heaters', group_key: 'efficiency',
-    research: 'solar-water-heaters', unit_basis: 'tank_litres', unit_label_sq: 'lekë/litër', unit_label_en: 'ALL/litre',
-    intro_sq: 'Sisteme termosifoni me kolektor dhe depozitë.',
-    intro_en: 'Thermosiphon systems with collector and tank.',
-    attrs: [
-      a('tank_litres', 'Vëllimi i depozitës', 'Tank volume', 'L', 'number', { f: true, h: true, b: 'higher', r: true }),
-      a('collector_area_m2', 'Sipërfaqja e kolektorit', 'Collector area', 'm²', 'number', { h: true, b: 'higher', d: 2 }),
-      a('collector_count', 'Numri i kolektorëve', 'Collectors', '', 'number'),
-      a('system_type', 'Lloji i sistemit', 'System type', '', 'text', { f: true }),
-      a('tank_material', 'Materiali i depozitës', 'Tank material', '', 'text'),
-      a('electric_backup_w', 'Rezistenca elektrike', 'Electric backup', 'W', 'number'),
       warranty,
     ],
   },
@@ -187,33 +201,6 @@ export const CATEGORIES = [
     ],
   },
   {
-    slug_sq: 'cimento-dhe-murature', slug_en: 'cement-and-masonry', name_sq: 'Çimento dhe muraturë', name_en: 'Cement and masonry', group_key: 'build',
-    research: 'cement-masonry', unit_basis: 'bag_kg', unit_label_sq: 'lekë/kg', unit_label_en: 'ALL/kg',
-    intro_sq: 'Çimento, blloqe, hekur betoni, ngjitës dhe hidroizolim për kantier.',
-    intro_en: 'Cement, blocks, rebar, adhesives and waterproofing for the site.',
-    attrs: [
-      a('strength_class', 'Klasa e rezistencës', 'Strength class', '', 'text', { f: true, h: true }),
-      a('standard', 'Standardi', 'Standard', '', 'text', { f: true }),
-      a('bag_kg', 'Pesha e thesit', 'Bag weight', 'kg', 'number', { h: true }),
-      a('compressive_strength_mpa', 'Rezistenca në shtypje', 'Compressive strength', 'MPa', 'number', { b: 'higher', d: 1 }),
-      a('consumption', 'Konsumi', 'Consumption', '', 'text'),
-      a('coverage', 'Mbulimi', 'Coverage', '', 'text'),
-      a('dimensions', 'Përmasat', 'Dimensions', '', 'text'),
-    ],
-  },
-  {
-    slug_sq: 'mates-energjie', slug_en: 'energy-monitoring', name_sq: 'Matës energjie', name_en: 'Energy meters', group_key: 'energy',
-    research: 'energy-monitoring', unit_basis: null,
-    intro_sq: 'Matës inteligjentë për të parë prodhimin dhe konsumin në kohë reale.',
-    intro_en: 'Smart meters to see production and consumption in real time.',
-    attrs: [
-      a('phases', 'Numri i fazave', 'Phases', '', 'number', { f: true, h: true }),
-      a('max_current_a', 'Rryma maksimale', 'Max current', 'A', 'number', { b: 'higher' }),
-      a('connectivity', 'Komunikimi', 'Connectivity', '', 'text', { h: true }),
-      a('accuracy_class', 'Klasa e saktësisë', 'Accuracy class', '', 'text'),
-    ],
-  },
-  {
     slug_sq: 'ndricim-led', slug_en: 'led-lighting', name_sq: 'Ndriçim LED', name_en: 'LED lighting', group_key: 'efficiency',
     research: 'led-lighting', unit_basis: null,
     intro_sq: 'Ndriçues profesionalë LED me efikasitet të lartë.',
@@ -226,6 +213,21 @@ export const CATEGORIES = [
       a('cri', 'Indeksi i riprodhimit të ngjyrave (CRI)', 'Colour rendering (CRI)', '', 'number', { b: 'higher' }),
       a('lifetime_h', 'Jetëgjatësia', 'Lifetime', 'h', 'number', { b: 'higher' }),
       ip,
+    ],
+  },
+  {
+    slug_sq: 'cimento-dhe-murature', slug_en: 'cement-and-masonry', name_sq: 'Çimento dhe muraturë', name_en: 'Cement and masonry', group_key: 'build',
+    research: 'cement-masonry', unit_basis: 'bag_kg', unit_label_sq: 'lekë/kg', unit_label_en: 'ALL/kg',
+    intro_sq: 'Çimento, blloqe, hekur betoni, ngjitës dhe hidroizolim për kantier.',
+    intro_en: 'Cement, blocks, rebar, adhesives and waterproofing for the site.',
+    attrs: [
+      a('strength_class', 'Klasa e rezistencës', 'Strength class', '', 'text', { f: true, h: true }),
+      a('standard', 'Standardi', 'Standard', '', 'text', { f: true }),
+      a('bag_kg', 'Pesha e thesit', 'Bag weight', 'kg', 'number', { h: true }),
+      a('compressive_strength_mpa', 'Rezistenca në shtypje', 'Compressive strength', 'MPa', 'number', { b: 'higher', d: 1 }),
+      a('consumption', 'Konsumi', 'Consumption', '', 'text'),
+      a('coverage', 'Mbulimi', 'Coverage', '', 'text'),
+      a('dimensions', 'Përmasat', 'Dimensions', '', 'text'),
     ],
   },
 ];
