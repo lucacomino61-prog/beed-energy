@@ -1,6 +1,7 @@
 // Reads the calculator's query string, runs await sizeSystem() and returns one plain object that the
 // server view and /api/solar (and so the browser script) render from. State lives in the URL.
-import { billFor, kwhForBill, sizeSystem, tariffs, type Kit } from './solar';
+import { billFor, kwhForBill, sizeSystem, tariffs, type BatteryIssue, type Kit } from './solar';
+import type { CompatPair } from '../content/battery-compat';
 import { pvCities } from './pages-db';
 
 export type CalcInput = {
@@ -34,6 +35,10 @@ export type CalcOutput = {
   paybackYears: number | null;
   lifetimeSaving: number | null;
   tariff: { threshold: number; low: number; high: number; business: number | null; vatRate: number; gapLo: number; gapHi: number } | null;
+  /** SolarResult.pair: the kit's inverter + battery pair (listed as compatible), null without a battery line. */
+  pair: CompatPair | null;
+  /** SolarResult.batteryIssue: why a wanted battery is not in the kit. */
+  batteryIssue: BatteryIssue;
 };
 
 const num = (s: string) => {
@@ -83,7 +88,7 @@ export async function runCalc(input: CalcInput): Promise<CalcOutput> {
   const base: CalcOutput = {
     ok: false, errors: {}, input, kwhMonth: null, fromBill: input.mode === 'bill', billClamped: false, city: null,
     kwp: 0, panels: 0, panelWp: 500, annualKwh: 0, monthlyKwh: [], selfUse: 0, annualSaving: null, crossesCliff: false,
-    kit: [], kitTotal: null, paybackYears: null, lifetimeSaving: null, tariff,
+    kit: [], kitTotal: null, paybackYears: null, lifetimeSaving: null, tariff, pair: null, batteryIssue: null,
   };
   const city = (await pvCities()).find((c) => c.slug === input.city);
   if (!city) base.errors.city = 'city';
@@ -128,5 +133,7 @@ export async function runCalc(input: CalcInput): Promise<CalcOutput> {
     kitTotal: r.kitTotal,
     paybackYears: r.paybackYears,
     lifetimeSaving: r.lifetimeSaving,
+    pair: r.pair,
+    batteryIssue: r.batteryIssue,
   };
 }

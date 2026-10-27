@@ -1,0 +1,41 @@
+---
+// One checked inverter + battery pair (src/content/battery-compat.ts): who lists it, when the lists were read, two to four
+// key conditions and the makers' documents as external links. Used on the package cards and in the product page's
+// "Punon me / Works with" section. Server-rendered, no script, no motion. Styles: src/styles/compat.css.
+import type { CompatPair } from '../content/battery-compat';
+import type { Lang } from '../lib/i18n';
+import { checkedOn, docDate, keyConditions, listedByText } from '../lib/compat-view';
+import { tc } from '../i18n/compat';
+
+interface Props {
+  lang: Lang;
+  pair: CompatPair;
+  /** Unique per page: the lists are labelled by ids built from it. */
+  idPrefix: string;
+  /** Show each document's own date after its link (the product page has the room). */
+  docDates?: boolean;
+}
+const { lang, pair, idPrefix, docDates = false } = Astro.props;
+const w = tc(lang);
+const when = checkedOn(lang);
+const conds = keyConditions(pair, lang);
+---
+<dl class="cp__meta">
+  <div><dt>{w.listedLabel}</dt><dd>{listedByText(pair, lang)}</dd></div>
+  <div><dt>{w.checkedLabel}</dt><dd><time datetime={when.iso}>{when.text}</time></dd></div>
+</dl>
+{conds.length > 0 && (
+  <>
+    <p class="cp__label" id={`${idPrefix}-cond`}>{w.conditionsLabel}</p>
+    <ul class="cp__cond" aria-labelledby={`${idPrefix}-cond`}>{conds.map((c) => <li>{c}</li>)}</ul>
+  </>
+)}
+<p class="cp__label" id={`${idPrefix}-src`}>{w.sourcesLabel}</p>
+<ul class="cp__src" role="list" aria-labelledby={`${idPrefix}-src`}>
+  {pair.sources.map((s) => (
+    <li>
+      <a class="cp-ext" href={s.url} target="_blank" rel="noopener noreferrer"><span class="cp-ext__t">{s.title}</span><span class="visually-hidden">{w.newTab}</span><span class="cp-ext__arrow" aria-hidden="true">↗</span></a>
+      {docDates && s.date && <span class="cp__date mono">{docDate(s.date, lang)}</span>}
+    </li>
+  ))}
+</ul>

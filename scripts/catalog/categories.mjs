@@ -16,8 +16,8 @@ export const CATEGORIES = [
   {
     slug_sq: 'panele-diellore', slug_en: 'solar-panels', name_sq: 'Panele diellore', name_en: 'Solar panels', group_key: 'energy',
     research: 'solar-panels', unit_basis: 'power_wp', unit_label_sq: 'lekë/Wp', unit_label_en: 'ALL/Wp',
-    intro_sq: 'Module fotovoltaike nga prodhues me fletë teknike publike. Krahasoni fuqinë, efikasitetin dhe çmimin për vat.',
-    intro_en: 'Photovoltaic modules from makers with public datasheets. Compare power, efficiency and the price per watt.',
+    intro_sq: 'Panele fotovoltaike me fletë teknike publike. Krahasoni fuqinë (Wp), efikasitetin, koeficientin e temperaturës dhe çmimin për Wp; garancia e produktit dhe ajo e performancës janë dy gjëra të ndryshme. Në Shqipëri 1 kWp panele prodhon në vit nga 1 358 kWh në Kukës deri në 1 521 kWh në Fier.',
+    intro_en: 'Photovoltaic modules with public datasheets. Compare rated power (Wp), efficiency, the temperature coefficient and the price per Wp; the product warranty and the performance warranty are two different things. In Albania 1 kWp of panels makes from 1,358 kWh a year in Kukës to 1,521 kWh in Fier.',
     attrs: [
       a('power_wp', 'Fuqia nominale', 'Rated power', 'Wp', 'number', { f: true, h: true, b: 'higher', r: true }),
       a('efficiency_pct', 'Efikasiteti i modulit', 'Module efficiency', '%', 'number', { f: true, h: true, b: 'higher', d: 1 }),
@@ -38,8 +38,8 @@ export const CATEGORIES = [
   {
     slug_sq: 'invertere', slug_en: 'inverters', name_sq: 'Inverterë', name_en: 'Inverters', group_key: 'energy',
     research: 'inverters', unit_basis: 'rated_ac_power_kw', unit_label_sq: 'lekë/kW', unit_label_en: 'ALL/kW',
-    intro_sq: 'Inverterë të lidhur me rrjetin (on-grid) dhe hibridë, njëfazorë dhe trefazorë. Shikoni sa MPPT kanë dhe nëse mund të lidhen me bateri.',
-    intro_en: 'Grid-tied and hybrid inverters, single and three phase. Check the MPPT count and whether they can take a battery.',
+    intro_sq: 'Inverteri e kthen rrymën e paneleve në rrymë për shtëpinë dhe rrjetin. Zgjidhni njëfazor ose trefazor sipas lidhjes suaj, shikoni sa MPPT ka dhe sa kWp panele pranon, dhe merrni një hibrid nëse do të shtoni bateri.',
+    intro_en: 'The inverter turns the panels’ current into power for the house and the grid. Choose single or three phase to match your connection, check how many MPPTs it has and how many kWp of panels it accepts, and take a hybrid if you will add a battery.',
     attrs: [
       a('rated_ac_power_kw', 'Fuqia nominale AC', 'Rated AC power', 'kW', 'number', { f: true, h: true, b: 'higher', d: 1, r: true }),
       a('max_pv_power_kwp', 'Fuqia maksimale PV', 'Max PV power', 'kWp', 'number', { b: 'higher', d: 1 }),
@@ -57,8 +57,8 @@ export const CATEGORIES = [
   {
     slug_sq: 'bateri', slug_en: 'batteries', name_sq: 'Bateri për ruajtjen e energjisë', name_en: 'Storage batteries', group_key: 'energy',
     research: 'batteries', unit_basis: 'usable_capacity_kwh', unit_label_sq: 'lekë/kWh', unit_label_en: 'ALL/kWh',
-    intro_sq: 'Bateri litiumi për shtëpi dhe biznese. Krahasoni kapacitetin e përdorshëm dhe çmimin për kWh.',
-    intro_en: 'Lithium batteries for homes and businesses. Compare usable capacity and the price per kWh.',
+    intro_sq: 'Bateri litiumi për të përdorur në mbrëmje energjinë e paneleve. Krahasoni kapacitetin e përdorshëm, jo atë nominal, dhe çmimin për kWh. Bateritë me tension të lartë dhe ato 48 V nuk zëvendësojnë njëra-tjetrën: kontrolloni që inverteri juaj e mbështet modelin.',
+    intro_en: 'Lithium batteries to use the panels’ energy in the evening. Compare usable capacity, not nominal, and the price per kWh. High-voltage and 48 V batteries do not replace each other: check that your inverter supports the model.',
     attrs: [
       a('usable_capacity_kwh', 'Kapaciteti i përdorshëm', 'Usable capacity', 'kWh', 'number', { f: true, h: true, b: 'higher', d: 2, r: true }),
       a('nominal_voltage_v', 'Tensioni nominal', 'Nominal voltage', 'V', 'number', { d: 1 }),
@@ -75,8 +75,8 @@ export const CATEGORIES = [
   {
     slug_sq: 'pompa-nxehtesie', slug_en: 'heat-pumps', name_sq: 'Pompa nxehtësie', name_en: 'Heat pumps', group_key: 'energy',
     research: 'heat-pumps', unit_basis: 'heating_capacity_kw', unit_label_sq: 'lekë/kW', unit_label_en: 'ALL/kW',
-    intro_sq: 'Pompa nxehtësie ajër–ujë për ngrohje, ftohje dhe ujë të ngrohtë.',
-    intro_en: 'Air-to-water heat pumps for heating, cooling and hot water.',
+    intro_sq: 'Pompa nxehtësie ajër–ujë për ngrohje, ujë të ngrohtë dhe, te disa modele, ftohje. COP tregon sa kWh nxehtësi jep pompa për 1 kWh energji elektrike, me ajrin jashtë 7 °C dhe ujin 35 °C; SCOP është mesatarja e sezonit. Fuqinë e duhur e llogarit instaluesi nga humbjet e nxehtësisë së shtëpisë.',
+    intro_en: 'Air-to-water heat pumps for heating, hot water and, on some models, cooling. COP tells you how many kWh of heat the pump gives per 1 kWh of electricity, with outside air at 7 °C and water at 35 °C; SCOP is the season’s average. The installer works out the right capacity from the house’s heat loss.',
     attrs: [
       a('heating_capacity_kw', 'Kapaciteti i ngrohjes', 'Heating capacity', 'kW', 'number', { f: true, h: true, b: 'higher', d: 1, r: true }),
       a('cop_a7w35', 'COP (A7/W35)', 'COP (A7/W35)', '', 'number', { h: true, b: 'higher', d: 2 }),
@@ -91,8 +91,8 @@ export const CATEGORIES = [
   {
     slug_sq: 'ngrohes-uji-diellor', slug_en: 'solar-water-heaters', name_sq: 'Ngrohës uji diellorë', name_en: 'Solar water heaters', group_key: 'energy',
     research: 'solar-water-heaters', unit_basis: 'tank_litres', unit_label_sq: 'lekë/litër', unit_label_en: 'ALL/litre',
-    intro_sq: 'Sisteme termosifoni me kolektor dhe depozitë.',
-    intro_en: 'Thermosiphon systems with collector and tank.',
+    intro_sq: 'Ngrohës uji diellorë me termosifon: kolektori në çati ngroh ujin, që ngjitet vetë në depozitë pa pompë. Krahasoni vëllimin e depozitës, sipërfaqen e kolektorit dhe rezistencën elektrike për ditët pa diell.',
+    intro_en: 'Thermosiphon solar water heaters: the collector on the roof warms the water, which rises into the tank by itself, with no pump. Compare the tank volume, the collector area and the electric element for sunless days.',
     attrs: [
       a('tank_litres', 'Vëllimi i depozitës', 'Tank volume', 'L', 'number', { f: true, h: true, b: 'higher', r: true }),
       a('collector_area_m2', 'Sipërfaqja e kolektorit', 'Collector area', 'm²', 'number', { h: true, b: 'higher', d: 2 }),
@@ -106,8 +106,8 @@ export const CATEGORIES = [
   {
     slug_sq: 'karikues-makinash', slug_en: 'ev-chargers', name_sq: 'Karikues për makina elektrike', name_en: 'EV chargers', group_key: 'energy',
     research: 'ev-chargers', unit_basis: null,
-    intro_sq: 'Karikues muri për makina elektrike, me lidhës Type 2.',
-    intro_en: 'Wall chargers for electric cars with a Type 2 connector.',
+    intro_sq: 'Karikues muri për makina elektrike. Karikuesit 22 kW në katalog janë trefazorë, prandaj kërkojnë lidhje trefazore. ERE ka një tarifë të veçantë, 22 lekë/kWh (25,3 në orët e pikut), për pikat e karikimit mbi 11 kW; karikuesi i shtëpisë deri në 11 kW mbetet me tarifën tuaj të zakonshme.',
+    intro_en: 'Wall chargers for electric cars. The 22 kW chargers in the catalogue are three-phase, so they need a three-phase connection. ERE has a separate tariff, 22 lekë/kWh (25.3 at peak hours), for charging points above 11 kW; a home charger up to 11 kW stays on your normal tariff.',
     attrs: [
       a('max_power_kw', 'Fuqia maksimale', 'Max power', 'kW', 'number', { f: true, h: true, b: 'higher', d: 1, r: true }),
       a('phases', 'Numri i fazave', 'Phases', '', 'number', { f: true }),
@@ -121,8 +121,8 @@ export const CATEGORIES = [
   {
     slug_sq: 'mates-energjie', slug_en: 'energy-monitoring', name_sq: 'Matës energjie', name_en: 'Energy meters', group_key: 'energy',
     research: 'energy-monitoring', unit_basis: null,
-    intro_sq: 'Matës inteligjentë për të parë prodhimin dhe konsumin në kohë reale.',
-    intro_en: 'Smart meters to see production and consumption in real time.',
+    intro_sq: 'Matës inteligjentë për të parë prodhimin e paneleve dhe konsumin në kohë reale. Udhëzimi 3/2019 kërkon nga vetëprodhuesi dy matës me shpenzimet e tij: një matës dypalësh në lidhjen me rrjetin dhe një matës prodhimi pas inverterit. Para se të blini, pyesni OSSH-në nëse rregullat e majit 2026 e kanë ndryshuar këtë dhe cilat modele pranon.',
+    intro_en: 'Smart meters to see the panels’ production and your consumption in real time. Instruction 3/2019 requires self-producers to fit two meters at their own cost: a two-way meter at the grid connection and a production meter after the inverter. Before you buy, ask the grid operator whether the May 2026 rules changed this and which models it accepts.',
     attrs: [
       a('phases', 'Numri i fazave', 'Phases', '', 'number', { f: true, h: true }),
       a('max_current_a', 'Rryma maksimale', 'Max current', 'A', 'number', { b: 'higher' }),
@@ -133,8 +133,8 @@ export const CATEGORIES = [
   {
     slug_sq: 'sisteme-montimi', slug_en: 'mounting-systems', name_sq: 'Sisteme montimi', name_en: 'Mounting systems', group_key: 'energy',
     research: 'mounting', unit_basis: null,
-    intro_sq: 'Struktura për çati me tjegulla, çati të sheshta dhe çati me llamarinë.',
-    intro_en: 'Structures for tiled, flat and metal roofs.',
+    intro_sq: 'Struktura për çati me tjegulla, çati të sheshta dhe çati me llamarinë. Panelet pa ajër nga pas nxehen deri në 15 °C më shumë: në një çati 30° në Tiranë prodhojnë rreth 4% më pak. Ngarkesën e erës dhe të borës prodhuesit e llogaritin për çdo çati me programet e tyre.',
+    intro_en: 'Frames for tiled, flat and metal roofs. Panels with no air behind them run up to 15 °C hotter: on a 30° roof in Tirana they make about 4% less. Makers work out wind and snow loads for each roof with their own planning tools.',
     attrs: [
       a('roof_type', 'Lloji i çatisë', 'Roof type', '', 'text', { f: true, h: true }),
       a('material', 'Materiali', 'Material', '', 'text', { f: true }),
@@ -147,8 +147,8 @@ export const CATEGORIES = [
   {
     slug_sq: 'aksesore-pv', slug_en: 'pv-accessories', name_sq: 'Aksesorë fotovoltaikë', name_en: 'PV accessories', group_key: 'energy',
     research: 'pv-accessories', unit_basis: null,
-    intro_sq: 'Lidhës MC4, kabllo diellore dhe ndërprerës DC për impiante fotovoltaike.',
-    intro_en: 'MC4 connectors, solar cable and DC isolators for PV installations.',
+    intro_sq: 'Kabllo diellore, lidhës dhe ndërprerës DC për impiante fotovoltaike. Lidhësit duhet të jenë të të njëjtit lloj me ata të paneleve: shumica e paneleve në katalog vijnë me lidhës MC4-EVO2, ndërsa Amphenol H4 lidhet vetëm me H4. Seksionin e kabllos e zgjedh instaluesi sipas rrymës dhe gjatësisë së linjës.',
+    intro_en: 'Solar cable, connectors and DC isolators for PV installations. Connectors must match the type on the panels: most panels in the catalogue ship with MC4-EVO2 connectors, while Amphenol H4 mates only with H4. The installer chooses the cable cross-section from the current and the length of the run.',
     attrs: [
       a('rated_voltage_v', 'Tensioni nominal', 'Rated voltage', 'V', 'number', { f: true, h: true }),
       a('rated_current_a', 'Rryma nominale', 'Rated current', 'A', 'number', { h: true, b: 'higher' }),

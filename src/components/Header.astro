@@ -1,20 +1,51 @@
 ---
+// The bar: energy first (docs/renewable-focus-plan.md §2). Four shelf links (category rows from the database), then
+// Paketa · Udhëzuesi · Kalkulatori, then compare, basket, language, energy saving and the menu. "Kërko ofertë" lives
+// in the menu and the product action bar. The bar never wraps: as it narrows, the shelf links leave first, then the
+// three tools (global.css, widths measured in both languages); everything stays reachable from the menu.
+// No entrance animation on any of these links.
 import BrandMark from './BrandMark.astro';
 import { href, type Lang, type RouteKey } from '../lib/i18n';
+import type { Category } from '../lib/catalog';
+import { HEADER_SHELVES, categoryHref } from '../lib/energy-nav';
 import { tc } from '../i18n/common';
-interface Props { lang: Lang; alternate: string; current?: RouteKey; cartCount: number; compareCount: number; tone?: 'paper' | 'ink'; }
-const { lang, alternate, current, cartCount, compareCount, tone = 'paper' } = Astro.props;
+import { tr } from '../i18n/renewables';
+interface Props {
+  lang: Lang;
+  alternate: string;
+  current?: RouteKey;
+  /** categories.slug_en of the shelf this page belongs to (category and product pages). */
+  categorySlug?: string;
+  cats: Category[];
+  cartCount: number;
+  compareCount: number;
+  tone?: 'paper' | 'ink';
+}
+const { lang, alternate, current, categorySlug, cats, cartCount, compareCount, tone = 'paper' } = Astro.props;
 const t = tc(lang);
+const n = tr(lang).nav;
 const other = lang === 'sq' ? 'en' : 'sq';
+const bySlug = new Map(cats.map((c) => [c.slug_en, c]));
+const path = Astro.url.pathname.replace(/\/$/, '');
+// A shelf link is the current page only on the shelf's own category page; on a sibling category or a product page it
+// marks the section the page belongs to (aria-current="true"), with the same underline.
+const shelves = HEADER_SHELVES.flatMap((s) => {
+  const c = bySlug.get(s.shelf);
+  if (!c) return [];
+  const here = !!categorySlug && (s.current as readonly string[]).includes(categorySlug);
+  const shelfHref = categoryHref(lang, c);
+  return [{ label: n[s.label], href: shelfHref, here, page: here && shelfHref === path }];
+});
+const tools = (['packages', 'guide', 'calculator'] as const).map((key) => ({ key, label: n[key], href: href(lang, key), here: current === key }));
 ---
 <header class="site-header" data-tone={tone} data-header>
   <a class="brand" href={href(lang, 'home')} aria-label={lang === 'sq' ? 'BeeD Energy, kreu' : 'BeeD Energy, home'}>
     <BrandMark /><span translate="no">Bee<b>D</b> Energy</span>
   </a>
   <nav class="nav" aria-label={lang === 'sq' ? 'Navigimi kryesor' : 'Main navigation'}>
-    <a class="nav-wide" href={href(lang, 'shop')} aria-current={current === 'shop' || current === 'category' ? 'page' : undefined}>{t.nav.shop}</a>
-    <a class="nav-wide" href={href(lang, 'calculator')} aria-current={current === 'calculator' ? 'page' : undefined}>{t.nav.calculator}</a>
-    <a class="nav-wide" href={href(lang, 'quote')} aria-current={current === 'quote' ? 'page' : undefined}>{t.nav.quote}</a>
+    {shelves.map((s) => <a class="nav-shelf" href={s.href} aria-current={s.here ? (s.page ? 'page' : 'true') : undefined}>{s.label}</a>)}
+    {tools.map((x) => <a class="nav-tool" href={x.href} aria-current={x.here ? 'page' : undefined}>{x.label}</a>)}
+    <span class="nav__rule nav-tool" aria-hidden="true"></span>
     <a class="nav-phone-hide" href={href(lang, 'compare')} aria-current={current === 'compare' ? 'page' : undefined}>
       {t.nav.compare} <span class="count" data-compare-count data-zero={compareCount === 0 ? 'true' : 'false'}><span class="visually-hidden">{t.compareCount(compareCount)}</span><span aria-hidden="true" data-n>{compareCount}</span></span>
     </a>
@@ -23,7 +54,7 @@ const other = lang === 'sq' ? 'en' : 'sq';
     </a>
     <span class="lang"><a href={alternate} hreflang={other} lang={other} title={t.lang.switchTo}><span class="visually-hidden">{t.lang.switchTo}: </span>{other.toUpperCase()}</a></span>
     <button class="saver nav-wide" type="button" aria-pressed="false" data-saver title={t.saver.hint}>
-      <span class="saver__track" aria-hidden="true"></span><span>{t.saver.label}</span>
+      <span class="saver__track" aria-hidden="true"></span><span class="saver__word">{t.saver.label}</span>
     </button>
     <button class="navbtn menu-btn" type="button" aria-expanded="false" aria-controls="site-menu" data-menu-open>
       <span class="bars" aria-hidden="true"><span></span><span></span></span><span class="menu-btn__word">{t.nav.menu}</span>

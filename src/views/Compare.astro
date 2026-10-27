@@ -1,6 +1,6 @@
 ---
 // Compare up to 4 products of one category: columns per product, rows = comparable spec attributes,
-// the best value marked with a copper ◆ and the words "më i miri / best" (never colour alone).
+// the best value marked with an amber ◆ and the words "më i miri / best" (never colour alone).
 // "Show differences only" is a GET parameter that compare.ts applies without a reload.
 import Site from '../layouts/Site.astro';
 import ProductPhoto from '../components/ProductPhoto.astro';
@@ -10,6 +10,7 @@ import { COMPARE_MAX } from '../lib/basket';
 import { href, type Lang } from '../lib/i18n';
 import { offerRows, price, unitPrice } from '../lib/shop-data';
 import { num } from '../lib/money';
+import { energyLines } from '../lib/energy-line';
 import { ts } from '../i18n/shop';
 import '../styles/shop.css';
 
@@ -29,11 +30,17 @@ const catName = cat ? (lang === 'sq' ? cat.name_sq : cat.name_en) : '';
 const unitLabel = cat ? (lang === 'sq' ? cat.unit_label_sq : cat.unit_label_en) : null;
 const attrs = cat ? (await attributes(cat.id)).filter((a) => a.comparable) : [];
 const nameOf = (p: ProductCard) => (lang === 'sq' ? p.name_sq : p.name_en);
+// The energy line under each name (src/lib/energy-line.ts), unless the table already has that spec as a row.
+const energyAll = await energyLines(items, () => cat?.slug_en, { url: Astro.url, cookies: Astro.cookies, locals: Astro.locals }, lang);
+const energyOf = (id: number) => {
+  const e = energyAll.get(id);
+  return e && !(e.key && attrs.some((a) => a.key === e.key)) ? e : null;
+};
 const best = new Map(
   await Promise.all(
     items.map(async (p) => {
       const basis = cat?.unit_basis ? p.specs[cat.unit_basis] : null;
-      const rows = offerRows(await offersFor(p.id), null, typeof basis === 'number' ? basis : null);
+      const rows = await offerRows(await offersFor(p.id), null, typeof basis === 'number' ? basis : null);
       return [p.id, rows.find((r) => r.stock_qty > 0 && r.total !== null) ?? null] as const;
     }),
   ),
@@ -132,6 +139,7 @@ const lowest = mins.length ? Math.min(...mins) : null;
                     <div class="compare__fig"><ProductPhoto src={p.image} brand={p.brand} model={p.model} /></div>
                     <p class="pcard__brand" translate="no">{p.brand}</p>
                     <a class="compare__name" href={href(lang, 'product', { slug: p.slug })}>{nameOf(p)}</a>
+                    {energyOf(p.id) && <p class="pcard__energy compare__energy" title={energyOf(p.id)!.title}><span>{energyOf(p.id)!.text}</span><span class="visually-hidden"> ({energyOf(p.id)!.title})</span></p>}
                     <form method="post" action={removeAction(p.id)} data-cmp-remove>
                       <input type="hidden" name="productId" value={p.id} />
                       <button class="compare__remove" type="submit" aria-label={C.remove(nameOf(p))}><span aria-hidden="true">✕</span> {C.removeShort}</button>

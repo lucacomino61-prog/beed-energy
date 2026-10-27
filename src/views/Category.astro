@@ -10,8 +10,11 @@ import { readCompare } from '../lib/basket';
 import { href, type Lang } from '../lib/i18n';
 import { fitDesc, fitTitle, normaliseParams, price } from '../lib/shop-data';
 import { num } from '../lib/money';
+import { GUIDE_PART, SIBLING_GROUPS, categoryHref, categoryName, displayGroup } from '../lib/energy-nav';
+import { energyLines } from '../lib/energy-line';
 import { ts } from '../i18n/shop';
 import { tc } from '../i18n/common';
+import { CATEGORY_INTRO_SOURCES, tr, type EnergyCategory } from '../i18n/renewables';
 import '../styles/shop.css';
 
 interface Props { lang: Lang; category: Category; }
@@ -46,7 +49,22 @@ const name = lang === 'sq' ? cat.name_sq : cat.name_en;
 const intro = lang === 'sq' ? cat.intro_sq : cat.intro_en;
 const allCats = await categories();
 const index = allCats.findIndex((x) => x.id === cat.id) + 1;
-const groupName = tc(lang).groups[cat.group_key as 'energy'] ?? '';
+// Two display groups (plan §2): efficiency and build both read "Efikasitet dhe ndërtim".
+const R = tr(lang);
+const groupName = displayGroup(cat.group_key) === 'energy' ? tc(lang).groups.energy : R.nav.efficiencyBuild;
+// The shelf family this shelf belongs to (solar: five shelves, heat: two), as plain sibling links; names from the DB.
+const family = SIBLING_GROUPS.find((g) => g.shelves.includes(cat.slug_en));
+const siblings = family
+  ? family.shelves.flatMap((s) => {
+      const row = allCats.find((x) => x.slug_en === s);
+      return row ? [{ name: categoryName(lang, row), href: categoryHref(lang, row), here: row.id === cat.id }] : [];
+    })
+  : [];
+// Under the buying-guide intro: its sources (page language) and the matching part of the guide.
+const introSources = CATEGORY_INTRO_SOURCES[cat.slug_en as EnergyCategory] ?? [];
+const guidePart = GUIDE_PART[cat.slug_en];
+// The energy line on each card shown (src/lib/energy-line.ts): specs came with the cards, the city is one read.
+const energy = await energyLines(shown, () => cat.slug_en, { url: Astro.url, cookies: Astro.cookies, locals: Astro.locals }, lang);
 
 // URL builder: current filters with overrides (null removes a key).
 const base = href(lang, 'category', { slug: lang === 'sq' ? cat.slug_sq : cat.slug_en });
@@ -105,7 +123,7 @@ const jsonld = [
   },
 ];
 ---
-<Site lang={lang} title={title} description={description} alternate={url({}, { l: other })} current="category" jsonld={jsonld} noindex={noindex}>
+<Site lang={lang} title={title} description={description} alternate={url({}, { l: other })} current="category" categorySlug={cat.slug_en} jsonld={jsonld} noindex={noindex}>
   <div class="shop" data-category-page>
     <header class="wrap sheet-head shop-head">
       <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'} class="crumbs">
@@ -124,7 +142,28 @@ const jsonld = [
         { label: t.from, value: priceLo !== null ? price(priceLo, lang) : null },
         unitLabel && { label: lang === 'sq' ? 'Njësia' : 'Unit', value: unitLabel },
       ]} />
+      {siblings.length > 1 && family && (
+        <nav class="shelf-sibs" aria-label={R.nav[family.label]}>
+          <p class="shelf-sibs__h" aria-hidden="true">{R.nav[family.label]}</p>
+          <ul class="shelf-sibs__list" role="list">
+            {siblings.map((s) => <li><a href={s.href} aria-current={s.here ? 'page' : undefined}>{s.name}</a></li>)}
+          </ul>
+        </nav>
+      )}
       {intro && <p class="lede shop-head__lede">{intro}</p>}
+      {(introSources.length > 0 || guidePart) && (
+        <div class="shop-head__notes">
+          {introSources.length > 0 && (
+            <p class="shop-head__src">
+              <span>{introSources.length > 1 ? R.guide.sources : R.guide.source}:</span>
+              {introSources.map((s, i) => <>{i > 0 && <span aria-hidden="true">·</span>}<a href={s.url} rel="noopener external" target="_blank">{s.label[lang]}</a></>)}
+            </p>
+          )}
+          {guidePart && (
+            <a class="link-arrow shop-head__guide" href={`${href(lang, 'guide')}#${guidePart}`}><span>{R.guide.readMore}</span><span class="arrow" aria-hidden="true">→</span></a>
+          )}
+        </div>
+      )}
     </header>
 
     {cards.length === 0 ? (
@@ -187,7 +226,7 @@ const jsonld = [
           ) : (
             <ul class:list={['results', { 'results--list': isList }]} role="list">
               {shown.map((p) => (
-                <li><ProductCard p={p} lang={lang} category={cat.slug_en} unitLabel={unitLabel} attrs={attrs} compared={compared.has(p.id)} /></li>
+                <li><ProductCard p={p} lang={lang} category={cat.slug_en} unitLabel={unitLabel} attrs={attrs} compared={compared.has(p.id)} energy={energy.get(p.id) ?? null} /></li>
               ))}
             </ul>
           )}

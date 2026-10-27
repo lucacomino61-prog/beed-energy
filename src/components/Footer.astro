@@ -1,12 +1,18 @@
 ---
-import { categories } from '../lib/catalog';
+// Footer: about, the shop in its two groups (renewable energy with the packages and the guide; efficiency and
+// building with the whole shop), the company and the legal pages.
+import type { Category } from '../lib/catalog';
 import { href, type Lang } from '../lib/i18n';
+import { categoryHref, categoryName, groupCategories } from '../lib/energy-nav';
 import { tc } from '../i18n/common';
+import { tr } from '../i18n/renewables';
 import { contactSettings } from '../lib/pages-db';
-interface Props { lang: Lang; }
-const { lang } = Astro.props;
+interface Props { lang: Lang; cats: Category[]; }
+const { lang, cats } = Astro.props;
 const t = tc(lang);
-const cats = (await categories()).slice(0, 8);
+const r = tr(lang).nav;
+const groups = groupCategories(cats);
+const heading = { energy: t.groups.energy, 'efficiency-build': r.efficiencyBuild } as const;
 const year = new Date().getFullYear();
 // Contact details only when settings.contact has them (no visible placeholders); NIPT and the operator line always.
 const contact = await contactSettings();
@@ -14,19 +20,30 @@ const tel = contact.phone ? contact.phone.replace(/[^+\d]/g, '') : '';
 ---
 <footer class="site-footer" data-tone="ink">
   <div class="footer__grid">
-    <div class="stack-m footer__about">
+    <div class="footer__about">
       <p class="lede" style="color:inherit">{t.footer.about}</p>
+    </div>
+    <div class="stack-s footer__facts">
       <p class="small mono">{t.footer.operator}{contact.address && <>, {contact.address}</>}{contact.email && <> · <a href={`mailto:${contact.email}`}>{contact.email}</a></>}{contact.phone && <> · <a href={`tel:${tel}`}>{contact.phone}</a></>}</p>
       <p class="small mono">{t.footer.prices}</p>
     </div>
-    <div>
-      <h2>{t.footer.shop}</h2>
-      <ul>
-        {cats.map((c) => <li><a href={href(lang, 'category', { slug: lang === 'sq' ? c.slug_sq : c.slug_en })}>{lang === 'sq' ? c.name_sq : c.name_en}</a></li>)}
-        <li><a href={href(lang, 'shop')}>{tc(lang).menu.allShop} →</a></li>
-      </ul>
-    </div>
-    <div>
+    {groups.map((g) => (
+      <div class="footer__col">
+        <h2>{heading[g.key]}</h2>
+        <ul>
+          {g.cats.map((c) => <li><a href={categoryHref(lang, c)}>{categoryName(lang, c)}</a></li>)}
+          {g.key === 'energy' ? (
+            <>
+              <li class="footer__more"><a href={href(lang, 'packages')}>{r.packages}</a></li>
+              <li><a href={href(lang, 'guide')}>{r.guide}</a></li>
+            </>
+          ) : (
+            <li class="footer__more"><a href={href(lang, 'shop')}>{t.menu.allShop} →</a></li>
+          )}
+        </ul>
+      </div>
+    ))}
+    <div class="footer__col">
       <h2>{t.footer.company}</h2>
       <ul>
         <li><a href={href(lang, 'about')}>{t.nav.about}</a></li>
@@ -37,7 +54,7 @@ const tel = contact.phone ? contact.phone.replace(/[^+\d]/g, '') : '';
         <li><a href={href(lang, 'contact')}>{t.nav.contact}</a></li>
       </ul>
     </div>
-    <div>
+    <div class="footer__col">
       <h2>{t.footer.legal}</h2>
       <ul>
         <li><a href={href(lang, 'terms')}>{t.footer.terms}</a></li>

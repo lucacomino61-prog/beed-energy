@@ -8,7 +8,7 @@ import { paymentMode } from './lib/payments';
 import { rememberQueryCity } from './lib/city-pref';
 
 const PUBLIC_ADMIN = new Set(['/admin/login', '/admin/logout']);
-const CITY_PAGES = /^(?:\/produkt\/[^/]+|\/en\/product\/[^/]+|\/shporta|\/en\/cart|\/kalkulatori-diellor|\/en\/solar-calculator)\/?$/;
+const CITY_PAGES = /^(?:\/produkt\/[^/]+|\/en\/product\/[^/]+|\/shporta|\/en\/cart|\/kalkulatori-diellor|\/en\/solar-calculator|\/paketa-diellore|\/en\/solar-packages)\/?$/;
 
 export const onRequest = defineMiddleware(async (ctx, next) => {
   const { pathname } = ctx.url;
@@ -31,7 +31,7 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
     }
   }
 
-  // A city chosen on a product, basket or calculator page (?qyteti= / ?city=) becomes the default for the
+  // A city chosen on a product, basket, calculator or packages page (?qyteti= / ?city=) becomes the default for the
   // basket and the checkout (src/lib/city-pref.ts).
   if (ctx.request.method === 'GET' && CITY_PAGES.test(pathname)) await rememberQueryCity(ctx.url, ctx.cookies);
 
@@ -51,5 +51,7 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
     h.set('Cache-Control', 'no-store');
     h.set('X-Robots-Tag', 'noindex, nofollow');
   }
+  // the dev pages (OG image, house test bench) are never indexed, even if one is reachable
+  if (pathname === '/dev' || pathname.startsWith('/dev/')) h.set('X-Robots-Tag', 'noindex, nofollow');
   return res;
 });

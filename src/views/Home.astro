@@ -9,6 +9,9 @@ import { BASE, PARTS, partsOf, srcset, type PartId } from '../lib/house-render';
 import { ts } from '../i18n/stage';
 import { categories, featuredProducts } from '../lib/catalog';
 import ProductPhoto from '../components/ProductPhoto.astro';
+import HomeTeasers from '../components/HomeTeasers.astro';
+import { energyLines } from '../lib/energy-line';
+import { keepAcronyms } from '../lib/nobreak';
 import { all, get } from '../lib/db';
 import { href, type Lang } from '../lib/i18n';
 import { lek, num } from '../lib/money';
@@ -89,6 +92,7 @@ const cities = await all<{ slug: string; name_sq: string; name_en: string; pv_yi
 const tirana = cities.find((c) => c.slug === 'tirane') ?? cities[0];
 const featured = await featuredProducts(8);
 const catOf = new Map(cats.map((c) => [c.id, c]));
+const energy = await energyLines(featured, (id) => catOf.get(id)?.slug_en, { url: Astro.url, cookies: Astro.cookies, locals: Astro.locals }, lang);
 const manifestoWords = t.manifesto.split(' ');
 
 const jsonld = [
@@ -161,7 +165,7 @@ const jsonld = [
     <ol class="chapters" aria-label={t.layers}>
       {LAYERS.map((l) => {
         const [fact, ...more] = factsOf(l).map(factFor);
-        const catMeta = (c: Cat) => `${t.products(c.product_count ?? 0)} · ${c.min_price ? `${t.from} ${lek(c.min_price, lang)}` : t.noOffers}`;
+        const catMeta = (c: Cat) => `${t.products(c.product_count ?? 0)} · ${c.min_price ? `${t.from} ${lek(c.min_price, lang)}` : t.noOffers}`; // no-break space: "nga" stays with the price on phones
         // the HUD label: the shelf (or both shelves) of what this chapter lifts out of the house
         const shelves = hudShelves(l);
         const first = shelves[0];
@@ -230,6 +234,8 @@ const jsonld = [
     </ol>
   </section>
 
+  <HomeTeasers lang={lang} />
+
   <section class="manifesto on-ink section" aria-label={lang === 'sq' ? 'Manifesti' : 'Manifesto'}>
     <div class="wrap">
       <p class="manifesto__text" data-manifesto>
@@ -272,12 +278,14 @@ const jsonld = [
       <ul class="featured__grid">
         {featured.map((p) => {
           const c = catOf.get(p.category_id);
+          const e = energy.get(p.id);
           return (
             <li class="pcard" data-reveal>
               <div class="pcard__fig"><ProductPhoto src={p.image} brand={p.brand} model={p.model} /></div>
               <div class="pcard__body">
                 <p class="pcard__brand">{p.brand} · {c ? (lang === 'sq' ? c.name_sq : c.name_en) : ''}</p>
                 <h3 class="pcard__name"><a href={href(lang, 'product', { slug: p.slug })}>{lang === 'sq' ? p.name_sq : p.name_en}</a></h3>
+                {e && <p class="pcard__energy" title={e.title}><span>{e.text}</span><span class="visually-hidden"> ({e.title})</span></p>}
                 <div class="pcard__foot">
                   <span class="price">{p.min_price ? `${t.from} ${lek(p.min_price, lang)}` : t.noOffers}</span>
                   <span class="mono small muted">{p.offer_count} {lang === 'sq' ? (p.offer_count === 1 ? 'ofertë' : 'oferta') : p.offer_count === 1 ? 'offer' : 'offers'}</span>
@@ -320,7 +328,7 @@ const jsonld = [
     <div class="calc-teaser__copy">
       <p class="eyebrow">{t.calc.eyebrow}</p>
       <h2 class="title title--xl" id="calc-title">{t.calc.title}</h2>
-      <p class="lede">{t.calc.text}</p>
+      <p class="lede">{keepAcronyms(t.calc.text)}</p>
       <a class="btn" href={href(lang, 'calculator')}>{t.calc.open} <span class="arrow" aria-hidden="true">→</span></a>
     </div>
     <table class="table calc-teaser__table">

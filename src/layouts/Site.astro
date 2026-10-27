@@ -11,6 +11,7 @@ import Footer from '../components/Footer.astro';
 import Tray from '../components/Tray.astro';
 import Loader from '../components/Loader.astro';
 import { cartCount, readCart, readCompare } from '../lib/basket';
+import { categories } from '../lib/catalog';
 import { LOCALE, type Lang, type RouteKey } from '../lib/i18n';
 import { tc } from '../i18n/common';
 import { jsonForScript } from '../lib/html';
@@ -29,8 +30,11 @@ interface Props {
   hideTray?: boolean;
   bodyClass?: string;
   nativeScroll?: boolean; // form pages (basket, checkout): the browser's own scroll, no smooth-scroll inertia
+  categorySlug?: string; // categories.slug_en of the shelf this page belongs to (category and product pages): the header marks its link
 }
-const { lang, title, description, alternate, current, tone = 'paper', noindex = false, jsonld = [], loader = false, hideTray = false, bodyClass, nativeScroll = false } = Astro.props;
+const { lang, title, description, alternate, current, tone = 'paper', noindex = false, jsonld = [], loader = false, hideTray = false, bodyClass, nativeScroll = false, categorySlug } = Astro.props;
+// One read of the categories for the whole shell: header links, menu and footer.
+const cats = await categories();
 const t = tc(lang);
 const site = Astro.site?.origin ?? Astro.url.origin;
 const path = Astro.url.pathname.replace(/\/$/, '') || '/';
@@ -84,12 +88,12 @@ const org = {
   <body class={bodyClass} data-lang={lang} data-no-tray={hideTray ? '' : undefined}>
     {loader && <Loader lang={lang} />}
     <a class="skip-link" href="#main">{t.skip}</a>
-    <Header lang={lang} alternate={alternate} current={current} cartCount={cartCount(cart)} compareCount={cmp.length} tone={tone} />
-    <Menu lang={lang} />
+    <Header lang={lang} alternate={alternate} current={current} categorySlug={categorySlug} cats={cats} cartCount={cartCount(cart)} compareCount={cmp.length} tone={tone} />
+    <Menu lang={lang} cats={cats} />
     <main id="main" tabindex="-1">
       <slot />
     </main>
-    <Footer lang={lang} />
+    <Footer lang={lang} cats={cats} />
     <Tray lang={lang} ids={cmp} hide={hideTray} />
     <Dock lang={lang} current={current} cartCount={cartCount(cart)} compareCount={cmp.length} />
     <div class="toasts" aria-live="polite" data-toasts data-msg={JSON.stringify({ added: t.toast.added, view: t.toast.view, error: t.toast.error, compared: t.toast.compared, full: t.tray.full, reset: t.tray.reset, saverOn: t.saver.on, saverOff: t.saver.off, cartHref: lang === 'sq' ? '/shporta' : '/en/cart', compareHref: lang === 'sq' ? '/krahaso' : '/en/compare', srCart1: t.cartCount(1), srCartN: t.cartCount(9999).replace('9999', '{n}'), srCompare1: t.compareCount(1), srCompareN: t.compareCount(9999).replace('9999', '{n}') })}></div>

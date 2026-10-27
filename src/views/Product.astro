@@ -8,6 +8,10 @@ import OffersTable from '../components/OffersTable.astro';
 import PriceHistory from '../components/PriceHistory.astro';
 import SpecSheet from '../components/SpecSheet.astro';
 import TitleBlock from '../components/TitleBlock.astro';
+import CompatPairBlock from '../components/CompatPairBlock.astro';
+import { worksWith } from '../lib/compat-products';
+import { COMPAT_METHOD } from '../content/battery-compat';
+import { tc } from '../i18n/compat';
 import { attributes, categoryById, offersFor, priceHistory, productCardsByIds, productImages, productSpecs, related } from '../lib/catalog';
 import { readCompare } from '../lib/basket';
 import { href, type Lang } from '../lib/i18n';
@@ -16,6 +20,7 @@ import { num } from '../lib/money';
 import { chosenCitySlug } from '../lib/city-pref';
 import { ts } from '../i18n/shop';
 import '../styles/shop.css';
+import '../styles/compat.css';
 
 import type { AlertFlash } from '../lib/shop-alerts';
 interface Props { lang: Lang; product: any; flash: AlertFlash; }
@@ -44,7 +49,7 @@ const citySlug = await chosenCitySlug(Astro.url, Astro.cookies);
 const city = cityList.find((c) => c.slug === citySlug) ?? null;
 const cityName = city ? (lang === 'sq' ? city.name_sq : city.name_en) : null;
 
-const rows = offerRows(await offersFor(p.id), city, typeof basis === 'number' ? basis : null);
+const rows = await offerRows(await offersFor(p.id), city, typeof basis === 'number' ? basis : null);
 const live = rows.filter((r) => r.stock_qty > 0 && r.total !== null);
 const bestOffer = live.find((r) => r.best) ?? live[0] ?? null;
 const prices = rows.map((r) => r.price_all);
@@ -109,8 +114,14 @@ const errs = new Set(flash?.errors ?? []);
 const alertOk = !!flash?.ok;
 const firstErr = errs.has('email') ? 'alert-email' : errs.has('target') ? 'alert-target' : null;
 const quoteHref = href(lang, 'quote', {}, { produkt: p.slug });
+
+// "Punon me / Works with": the batteries (or inverters) the makers list for this product, from src/content/battery-compat.ts.
+// null for inverters with no battery input and every other product: no section at all.
+const works = await worksWith(p.slug);
+const cw = tc(lang);
+const key = (n: number) => String(n + (works && n >= 3 ? 1 : 0)).padStart(2, '0');
 ---
-<Site lang={lang} title={title} description={description} alternate={altPath} current="category" jsonld={jsonld} bodyClass="has-actionbar">
+<Site lang={lang} title={title} description={description} alternate={altPath} current="category" categorySlug={cat.slug_en} jsonld={jsonld} bodyClass="has-actionbar">
   <article class="product" data-product data-slug={p.slug}>
     <header class="wrap product__crumbs">
       <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'} class="crumbs">
@@ -251,10 +262,46 @@ const quoteHref = href(lang, 'quote', {}, { produkt: p.slug });
       </div>
     </section>
 
+    {works && (
+      <section class="wrap product__section" aria-labelledby="works-title">
+        <div class="section-head">
+          <p class="key section-head__key" aria-hidden="true">03</p>
+          <h2 id="works-title" class="title section-head__title">{cw.worksH}</h2>
+        </div>
+        {works.entries.length > 0 && <p class="small muted ww__lede">{cw.worksLede[works.role]}</p>}
+        {works.notes.map((n) => (
+          <div class="cp-note">
+            <p class="cp-note__tag">{cw.noteTag}</p>
+            <p class="small">{n.text[lang]}</p>
+            {n.sources.length > 0 && (
+              <ul class="cp__src" role="list" aria-label={cw.sourcesLabel}>
+                {n.sources.map((s) => (
+                  <li><a class="cp-ext" href={s.url} target="_blank" rel="noopener noreferrer"><span class="cp-ext__t">{s.title}</span><span class="visually-hidden">{cw.newTab}</span><span class="cp-ext__arrow" aria-hidden="true">↗</span></a></li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+        {works.entries.length > 0 ? (
+          <ul class="ww" role="list">
+            {works.entries.map(({ pair, product }) => (
+              <li class="ww__item">
+                <h3 class="ww__name"><a href={href(lang, 'product', { slug: product.slug })} translate="no">{product.brand} {product.model}</a></h3>
+                <CompatPairBlock lang={lang} pair={pair} idPrefix={`ww-${product.slug}`} docDates />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          works.notes.length === 0 && <p class="ww__none">{cw.worksNone[works.role]}</p>
+        )}
+        <p class="small muted ww__method">{COMPAT_METHOD[lang]}</p>
+      </section>
+    )}
+
     <section class="wrap product__section product__duo" aria-label={`${P.history} · ${P.alert}`}>
       <div>
         <div class="section-head">
-          <p class="key section-head__key" aria-hidden="true">03</p>
+          <p class="key section-head__key" aria-hidden="true">{key(3)}</p>
           <h2 class="title section-head__title">{P.history}</h2>
         </div>
         <p class="small muted">{P.historyIntro}</p>
@@ -262,7 +309,7 @@ const quoteHref = href(lang, 'quote', {}, { produkt: p.slug });
       </div>
       <div id="njoftim" tabindex="-1">
         <div class="section-head">
-          <p class="key section-head__key" aria-hidden="true">04</p>
+          <p class="key section-head__key" aria-hidden="true">{key(4)}</p>
           <h2 class="title section-head__title">{P.alert}</h2>
         </div>
         <p class="small muted">{P.alertIntro}</p>
@@ -297,7 +344,7 @@ const quoteHref = href(lang, 'quote', {}, { produkt: p.slug });
     {rel.length > 0 && (
       <section class="wrap product__section" aria-labelledby="related-title">
         <div class="section-head">
-          <p class="key section-head__key" aria-hidden="true">05</p>
+          <p class="key section-head__key" aria-hidden="true">{key(5)}</p>
           <h2 id="related-title" class="title section-head__title">{P.related}</h2>
         </div>
         <ul class="results results--wide" role="list">

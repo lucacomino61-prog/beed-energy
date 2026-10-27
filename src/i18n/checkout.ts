@@ -64,6 +64,8 @@ const sq = {
     fix: 'Rregulloni rreshtat e shënuar përpara se të vazhdoni.',
     methods: 'Paguani në dorëzim, me transfertë bankare ose me kartë.',
     added: (name: string) => `U shtua në shportë: ${name}.`,
+    /** A whole solar package at once (/api/cart add-many): the names joined with commas. */
+    addedMany: (names: string) => `U shtuan në shportë: ${names}.`,
     clear: 'Zbraz shportën',
     empty: {
       title: 'Shporta është bosh',
@@ -268,6 +270,7 @@ const en: Words = {
     fix: 'Fix the marked lines before you continue.',
     methods: 'Pay cash on delivery, by bank transfer or by card.',
     added: (name: string) => `Added to your basket: ${name}.`,
+    addedMany: (names: string) => `Added to your basket: ${names}.`,
     clear: 'Empty the basket',
     empty: {
       title: 'Your basket is empty',

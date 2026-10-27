@@ -66,9 +66,12 @@ function fillLabel(el: HTMLElement, n: number) {
   set('[data-hud-name]', (both ? ch?.dataset.hudCat : ch?.querySelector('h2')?.textContent?.trim()) ?? '');
   set('[data-hud-cat]', ch?.dataset.hudCat ?? '');
   // the price and the arrow stay together on one line (Chrome breaks before an inline-block arrow even after a
-  // no-break space): the last word of the meta goes into the no-wrap end with the arrow
+  // no-break space): the price clause after the last " · " ("nga 2 050 L", "from 2,050 ALL", "pa oferta ende") goes
+  // into the no-wrap end with the arrow, so "nga" never ends a line on its own (320 px phones); a meta without the
+  // separator keeps only its last word there
   const meta = ch?.dataset.hudMeta ?? '';
-  const cut = meta.lastIndexOf(' ') + 1;
+  const dot = meta.lastIndexOf(' · ');
+  const cut = dot >= 0 ? dot + 3 : meta.lastIndexOf(' ') + 1;
   set('[data-hud-meta]', meta.slice(0, cut));
   set('[data-hud-end]', meta.slice(cut));
   if (el instanceof HTMLAnchorElement && el === label && ch?.dataset.hudHref) el.href = ch.dataset.hudHref;

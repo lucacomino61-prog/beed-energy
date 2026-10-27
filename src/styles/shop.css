@@ -7,6 +7,29 @@
 .shop-poster { line-height: 0.82; margin-block: 0.25rem 0.5rem; }
 .shop-head__tb { margin-top: 0.75rem; }
 .shop-head__lede { max-width: 60ch; margin-top: 0.25rem; }
+/* sibling shelves of one family (solar: five, heat: two), plain links; the current one underlined, never colour alone */
+.shelf-sibs { display: flex; flex-wrap: wrap; align-items: center; gap: 0 1rem; padding-block: 0.15rem; border-bottom: 1px solid var(--line); }
+.shelf-sibs__h { font: 500 0.6875rem/1.2 var(--font-mono); letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-2); }
+.shelf-sibs__list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; }
+.shelf-sibs__list li { display: flex; align-items: center; }
+.shelf-sibs__list li + li::before { content: ''; width: 1px; height: 1rem; background: var(--line-strong); }
+.shelf-sibs__list a { display: inline-flex; align-items: center; min-height: 44px; padding-inline: 0.75rem; font-weight: 600; font-size: 0.9375rem; text-decoration: none; white-space: nowrap; }
+.shelf-sibs__list li:first-child a { padding-left: 0; }
+.shelf-sibs__list a[aria-current="page"] { text-decoration: underline; text-decoration-color: var(--amber-deep); text-decoration-thickness: 2px; text-underline-offset: 0.4em; }
+/* phones: a wrapped row would start its second line with a separator; two columns of ruled links instead */
+@media (max-width: 640px) {
+  .shelf-sibs { display: grid; gap: 0.2rem; border-bottom: 0; }
+  .shelf-sibs__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1rem; }
+  .shelf-sibs__list li { border-bottom: 1px solid var(--line); }
+  .shelf-sibs__list li + li::before { content: none; }
+  .shelf-sibs__list a, .shelf-sibs__list li:first-child a { padding-inline: 0; white-space: normal; line-height: 1.25; }
+}
+@media (hover: hover) and (pointer: fine) { .shelf-sibs__list a:not([aria-current]):hover { text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 0.4em; } }
+/* the intro's sources (footnote) and the deep link into the guide */
+.shop-head__notes { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 2rem; max-width: 60ch; padding-top: 0.6rem; border-top: 1px dashed var(--line-strong); }
+.shop-head__src { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.5rem; margin: 0; font: 400 0.75rem/1.5 var(--font-mono); color: var(--text-2); }
+.shop-head__src a { color: var(--text); text-decoration-color: var(--line-strong); overflow-wrap: anywhere; }
+.shop-head__guide { font-size: 0.9375rem; }
 .shop-head__row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; margin-top: 0.25rem; }
 @media (min-width: 900px) {
   .shop-head__row { grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); align-items: start; column-gap: var(--gutter); }
@@ -20,6 +43,8 @@
 .catgroup { display: grid; gap: 1rem; padding-top: clamp(2.5rem, 1.5rem + 3vw, 4.5rem); }
 .catgroup__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.5rem 2rem; border-bottom: 3px solid var(--teal); padding-bottom: 0.75rem; }
 .catgroup__title { font-size: var(--step-4); }
+.compare__energy { margin-top: 0.45rem; font-size: 0.75rem; text-transform: none; letter-spacing: 0; white-space: normal; }
+.catgroup__links { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 0 1.75rem; margin-top: -0.35rem; }
 .catlist { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(26rem, 100%), 1fr)); column-gap: var(--gutter); }
 .catrow {
   display: grid; grid-template-columns: 2.25rem 4.5rem minmax(0, 1fr) auto; grid-template-areas: 'key fig name arrow' 'key fig meta arrow';

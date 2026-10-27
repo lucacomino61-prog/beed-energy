@@ -31,8 +31,9 @@ export async function cities(): Promise<City[]> {
   return await all<City>('SELECT id, slug, name_sq, name_en, zone FROM cities ORDER BY sort, name_sq');
 }
 
-export function deliverySettings(): DeliverySettings {
-  return { ...DEFAULT_DELIVERY, ...setting<Partial<DeliverySettings>>('delivery', {}) };
+/** The admin's delivery settings over the defaults: the same object cart.ts quote() prices the basket with. */
+export async function deliverySettings(): Promise<DeliverySettings> {
+  return { ...DEFAULT_DELIVERY, ...(await setting<Partial<DeliverySettings>>('delivery', {})) };
 }
 
 export type OfferRow = Offer & {
@@ -49,8 +50,8 @@ export type OfferRow = Offer & {
 };
 
 /** One parcel from one seller, as the basket prices it: base fee + zone surcharge, free above the seller's threshold. */
-export function offerRows(offers: Offer[], city: City | null, basisValue: number | null): OfferRow[] {
-  const d = deliverySettings();
+export async function offerRows(offers: Offer[], city: City | null, basisValue: number | null): Promise<OfferRow[]> {
+  const d = await deliverySettings();
   const zone = city?.zone ?? 1;
   const rows: OfferRow[] = offers.map((o) => {
     const qty = Math.max(1, o.min_qty);

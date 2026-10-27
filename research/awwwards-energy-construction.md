@@ -585,6 +585,6 @@ Awwwards listings: https://www.awwwards.com/websites/sites_of_the_day/ (pages 1 
 
 Awwwards site pages (score, sub-scores, elements, palette, technologies): https://www.awwwards.com/sites/<slug> for every slug linked above.
 
-Live sites: the URLs in each profile, captured with headless Chrome. Evidence (not in the project): frames, contact sheets and JSON in `C:/Users/User/AppData/Local/Temp/claude/C--Users-User-Documents-LC/fa85b45b-d856-4812-a1c9-44840e102171/scratchpad/research/story/<name>/`, fingerprint JSON and screenshots in `…/scratchpad/research/fingerprints/`, raw Awwwards HTML in `…/scratchpad/research/raw/`. The scratchpad is temporary.
+Live sites: the URLs in each profile, captured with headless Chrome. Evidence (not in the project): frames, contact sheets and JSON in `<session scratchpad>/research/story/<name>/`, fingerprint JSON and screenshots in `…/scratchpad/research/fingerprints/`, raw Awwwards HTML in `…/scratchpad/research/raw/`. The scratchpad is temporary.
 
 Other: Moxion Power shutdown: https://techcrunch.com/2025/09/26/battery-startup-moxion-went-bankrupt-now-its-founder-is-back-to-finish-what-we-started and https://latitudemedia.com/news/portable-battery-startup-moxion-is-bankrupt-what-happened

@@ -1,0 +1,100 @@
+---
+// One part of the renewable-energy guide (src/content/renewables.ts): paragraphs, then lists, facts, notes and the
+// shop shelves for its categories. Used for the six sections and the six equipment parts of Guide.astro.
+// The three kinds of statement keep their word tags (never colour alone): guidance, assumption, unknown, computed.
+import { CITY_YIELDS, type GuidePart, type Source } from '../content/renewables';
+import type { Lang } from '../lib/i18n';
+import { keepAcronyms as nb } from '../lib/nobreak';
+import { tr } from '../i18n/renewables';
+
+export type Shelf = { name: string; href: string; count: number; from: string | null };
+
+interface Props {
+  lang: Lang;
+  part: Omit<GuidePart, 'id'>;
+  shelves: Map<string, Shelf>;
+  /** Heading level for list titles: h3 under a section, h4 under an equipment part. */
+  level?: 3 | 4;
+}
+const { lang, part, shelves, level = 3 } = Astro.props;
+const g = tr(lang).guide;
+const H = level === 3 ? 'h3' : 'h4';
+const tagFor = { guidance: g.tags.guidance, assumption: g.tags.assumption, unknown: g.tags.unknown } as const;
+const pad = (n: number) => String(n).padStart(2, '0');
+// The 14 PVGIS runs share one label; name the city so two footnotes on one fact (Fier, Kukës) can be told apart.
+const pvCity = new Map(CITY_YIELDS.map((c) => [c.source.url, c.name[lang]]));
+const src = (s: Source) => ({ label: nb(pvCity.has(s.url) ? `${s.label[lang]} (${pvCity.get(s.url)})` : s.label[lang]), url: s.url });
+const shelfList = (part.categories ?? []).map((c) => shelves.get(c)).filter((s): s is Shelf => !!s);
+---
+{part.paragraphs.length > 0 && (
+  <div class="gd-prose">
+    {part.paragraphs.map((p) => <p>{nb(p[lang])}</p>)}
+  </div>
+)}
+<slot name="after-paragraphs" />
+
+{part.lists?.map((l) => (
+  <div class:list={['gd-list', { 'gd-list--guidance': l.guidance }]}>
+    {(l.title || l.guidance) && (
+      <div class="gd-list__head">
+        {l.title && <H class="gd-list__title">{nb(l.title[lang])}</H>}
+        {l.guidance && <span class="rn-tag rn-tag--guidance mono">{g.tags.guidance}</span>}
+      </div>
+    )}
+    {l.ordered ? (
+      <ol class="gd-steps">
+        {l.items.map((it, i) => <li><span class="gd-steps__n mono" aria-hidden="true">{pad(i + 1)}</span><p>{nb(it[lang])}</p></li>)}
+      </ol>
+    ) : (
+      <ul class="gd-bullets">{l.items.map((it) => <li>{nb(it[lang])}</li>)}</ul>
+    )}
+    {l.source && (
+      <p class="rn-src mono">
+        {g.source}: <a href={l.source.url} rel="noopener external">{src(l.source).label}</a>
+        {l.also && <>; {g.alsoSource}: <a href={l.also.url} rel="noopener external">{src(l.also).label}</a></>}
+      </p>
+    )}
+  </div>
+))}
+
+{part.facts && part.facts.length > 0 && (
+  <ul class="gd-facts" role="list">
+    {part.facts.map((f) => (
+      <li class="gd-fact">
+        <p class="gd-fact__value mono">{f.value[lang]}</p>
+        <p class="gd-fact__text">{nb(f.text[lang])}</p>
+        <p class="rn-src mono">
+          {f.computed && <span class="rn-tag rn-tag--computed">{g.tags.computed}</span>}
+          <span>{g.source}: <a href={f.source.url} rel="noopener external">{src(f.source).label}</a>{f.also && <>; {g.alsoSource}: <a href={f.also.url} rel="noopener external">{src(f.also).label}</a></>}</span>
+        </p>
+      </li>
+    ))}
+  </ul>
+)}
+
+{part.notes?.map((n) => (
+  <div class:list={['rn-note', `rn-note--${n.kind}`]}>
+    <p class="rn-tag mono">{tagFor[n.kind]}</p>
+    <p>{nb(n.text[lang])}</p>
+    {n.source && (
+      <p class="rn-src mono">
+        {g.source}: <a href={n.source.url} rel="noopener external">{src(n.source).label}</a>
+        {n.also && <>; {g.alsoSource}: <a href={n.also.url} rel="noopener external">{src(n.also).label}</a></>}
+      </p>
+    )}
+  </div>
+))}
+
+{shelfList.length > 0 && (
+  <ul class="gd-shelves" role="list">
+    {shelfList.map((s) => (
+      <li>
+        <a class="gd-shelf" href={s.href}>
+          <span class="gd-shelf__go mono">{g.toShop}</span>
+          <span class="gd-shelf__name">{s.name} <span class="arrow" aria-hidden="true">→</span></span>
+          <span class="gd-shelf__meta mono">{g.shelf(s.count, s.from)}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+)}

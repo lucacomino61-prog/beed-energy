@@ -1,0 +1,288 @@
+---
+// The renewable-energy guide (/energji-e-rinovueshme, /en/renewable-energy): content from src/content/renewables.ts,
+// rendered on the server. Poster first screen with a drawing sheet (the PV module and three PVGIS city yields on
+// leader lines), a title block, then a sheet index (sticky on desktop) beside six sections: tables as drawing
+// schedules, facts stamped in Geist Mono with their sources, notes with word tags, FAQ as <details>.
+import Site from '../layouts/Site.astro';
+import TitleBlock from '../components/TitleBlock.astro';
+import AlbaniaMap from '../components/AlbaniaMap.astro';
+import GuideBlocks, { type Shelf } from '../components/GuideBlocks.astro';
+import '../styles/renewables.css';
+import { CITY_YIELDS, FAQ, GUIDE, GUIDE_RESEARCH_READ, TIRANE_ROOF_SOURCES, TIRANE_ROOF_VARIANTS, guideSources } from '../content/renewables';
+import { categories } from '../lib/catalog';
+import { date, href, other, type Lang } from '../lib/i18n';
+import { lek, num } from '../lib/money';
+import { posterLines } from '../lib/poster';
+import { keepAcronyms as nb } from '../lib/nobreak';
+import { tr } from '../i18n/renewables';
+import { tp } from '../i18n/pages';
+import { ts } from '../i18n/stage';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const t = tr(lang);
+const g = t.guide;
+const pad = (n: number) => String(n).padStart(2, '0');
+const readOn = date(`${GUIDE_RESEARCH_READ}T12:00:00Z`, lang);
+const sources = guideSources();
+
+// Shop shelves: live product count and lowest price per category (the same numbers the home page and the menu show).
+const shelves = new Map<string, Shelf>(
+  (await categories()).map((c: any) => [
+    c.slug_en,
+    {
+      name: lang === 'sq' ? c.name_sq : c.name_en,
+      href: href(lang, 'category', { slug: lang === 'sq' ? c.slug_sq : c.slug_en }),
+      count: Number(c.product_count) || 0,
+      from: c.min_price ? lek(c.min_price, lang) : null,
+    },
+  ]),
+);
+
+// The sheet beside the poster: the highest, Tirana's and the lowest PVGIS yield.
+const byYield = [...CITY_YIELDS].sort((a, b) => b.kwhPerKwp - a.kwhPerKwp);
+const tirane = CITY_YIELDS.find((c) => c.slug === 'tirane')!;
+const callouts = [byYield[0], tirane, byYield[byYield.length - 1]];
+// Leaders in the sheet's 145 × 100 box (aspect-ratio 1.45 in renewables.css; the module image sits at left 3 %, top 19 %,
+// width 60 %): from each label (x 96.4) to a point on the module, measured on public/house/part-pv-800.webp.
+const LEADERS = [
+  { y: 16, at: [56.6, 29], points: '96.4,16 72.5,16 56.6,29' },
+  { y: 45.2, at: [58.3, 45.2], points: '96.4,45.2 58.3,45.2' },
+  { y: 74, at: [40.9, 60.1], points: '96.4,74 65,74 40.9,60.1' },
+];
+const facing = (deg: number) => (deg === 0 ? (lang === 'sq' ? 'jug' : 'south') : `${deg < 0 ? '−' : '+'}${Math.abs(deg)}°`);
+const pct = (v: number) => (v === 0 ? '0%' : `${v < 0 ? '−' : '+'}${num(Math.abs(v), 1, lang)}%`);
+const mapLabels = Object.fromEntries(CITY_YIELDS.map((c) => [c.slug, num(c.kwhPerKwp, 0, lang)]));
+
+// guideSources() keeps one entry per URL; the 14 PVGIS runs share a label, so the list names the city after it.
+const urlCity = new Map(CITY_YIELDS.map((c) => [c.source.url, c.name[lang]]));
+// The same origin as the canonical (Site.astro: PUBLIC_ORIGIN when set), so the structured data never names the internal host.
+const self = `${Astro.site?.origin ?? Astro.url.origin}${href(lang, 'guide')}`;
+const jsonld = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: g.h1,
+    description: g.description,
+    inLanguage: lang,
+    dateModified: GUIDE_RESEARCH_READ,
+    mainEntityOfPage: self,
+    author: { '@type': 'Organization', name: 'BeeD Energy' },
+    publisher: { '@type': 'Organization', name: 'BeeD Energy' },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    inLanguage: lang,
+    mainEntity: FAQ.map((f) => ({
+      '@type': 'Question',
+      name: f.q[lang],
+      acceptedAnswer: { '@type': 'Answer', text: f.a.map((p) => p[lang]).join(' ') },
+    })),
+  },
+];
+---
+<Site lang={lang} title={g.title} description={g.description} alternate={href(other(lang), 'guide')} current="guide" jsonld={jsonld}>
+  <section class="rn-hero wrap" aria-labelledby="gd-h1">
+    <div class="rn-hero__text">
+      <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
+        <ol class="crumbs"><li><a href={href(lang, 'home')}>{tp(lang).crumbsHome}</a></li><li aria-current="page">{g.h1}</li></ol>
+      </nav>
+      <p class="eyebrow">{g.eyebrow}</p>
+      <h1 class="poster rn-poster" id="gd-h1" data-rn-poster style={`--rn-chars:${Math.max(6, ...posterLines(g.h1).map((l) => l.length))}`}>
+        {posterLines(g.h1).map((w) => <span class="rn-poster__line">{w} </span>)}
+      </h1>
+      <p class="lede rn-lede">{nb(g.lede)}</p>
+      <div class="row rn-hero__cta">
+        <a class="btn" href={href(lang, 'packages')}>{g.toPackages} <span class="arrow" aria-hidden="true">→</span></a>
+        <a class="btn btn--ghost" href={href(lang, 'calculator')}>{g.toCalculator}</a>
+      </div>
+    </div>
+
+    <figure class="rn-sheet gd-sheet" aria-labelledby="gd-sheet-cap">
+      <div class="gd-sheet__draw">
+        <img class="gd-sheet__img" src="/house/part-pv-800.webp" srcset="/house/part-pv-400.webp 400w, /house/part-pv-800.webp 800w" sizes="(max-width: 960px) 60vw, 22vw" width="800" height="573" alt="" fetchpriority="high" decoding="async" />
+        <svg class="gd-sheet__leaders" viewBox="0 0 145 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          {LEADERS.map((l) => <polyline points={l.points} pathLength="1" data-rn-leader />)}
+          {LEADERS.map((l) => <circle cx={l.at[0]} cy={l.at[1]} r="1.25" />)}
+        </svg>
+        <ul class="gd-sheet__calls" role="list">
+          {callouts.map((c, i) => (
+            <li class="gd-call" style={`--y:${LEADERS[i].y}%`}>
+              <a class="gd-call__body" href={c.source.url} rel="noopener external" data-rn-callout>
+                <span class="gd-call__city mono">{c.name[lang]}</span>
+                <span class="gd-call__value mono">{num(c.kwhPerKwp, 0, lang)}</span>
+                <span class="gd-call__unit mono">{g.table.yield}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+        <p class="gd-sheet__stamp mono">{ts(lang).stamp}</p>
+      </div>
+      <figcaption class="rn-sheet__cap mono" id="gd-sheet-cap">
+        <span>{g.sheetTitle}</span>
+        <span>{tirane.source.label[lang]}</span>
+      </figcaption>
+    </figure>
+  </section>
+
+  <div class="wrap">
+    <TitleBlock class="rn-tb" items={[
+      { label: g.tb.sections, value: pad(GUIDE.length) },
+      { label: g.tb.questions, value: FAQ.length },
+      { label: g.tb.sources, value: sources.length, href: '#sources' },
+      { label: g.tb.read, value: readOn },
+    ]} />
+  </div>
+
+  <div class="wrap gd">
+    <nav class="gd-index" aria-labelledby="gd-index-h" data-rn-index>
+      <h2 class="gd-index__h mono" id="gd-index-h">{g.index}</h2>
+      <ol class="gd-index__list">
+        {GUIDE.map((s) => (
+          <li>
+            <a href={`#${s.id}`}>
+              <span class="gd-index__n mono">{pad(s.n)}</span>
+              <span class="gd-index__t">{nb(s.title[lang])}</span>
+              <span class="gd-index__s">{nb(s.short[lang])}</span>
+            </a>
+            {s.parts && (
+              <ol class="gd-index__parts">
+                {s.parts.map((pt) => <li><a href={`#${pt.id}`}>{pt.title[lang]}</a></li>)}
+              </ol>
+            )}
+          </li>
+        ))}
+      </ol>
+    </nav>
+
+    <div class="gd-body">
+      {GUIDE.map((s) => (
+        <section class="gd-sec" id={s.id} aria-labelledby={`${s.id}-h`} data-rn-section>
+          <header class="gd-sec__head" data-reveal>
+            <p class="gd-sec__key mono" aria-hidden="true">{pad(s.n)}</p>
+            <h2 class="gd-sec__title" id={`${s.id}-h`}>{nb(s.title[lang])}</h2>
+          </header>
+
+          {s.id !== 'faq' && (
+            <GuideBlocks lang={lang} part={s} shelves={shelves}>
+              {s.id === 'yield' && (
+                <div slot="after-paragraphs" class="gd-yield">
+                  <div class="gd-yield__tables">
+                    {/* The frame holds the title strip and, under it, the scroller: on a phone only the table scrolls
+                        sideways and the title wraps at the frame's width. The strip is the scroller's name (a region,
+                        focusable so the keyboard can scroll it); the table keeps the same words as its caption. */}
+                    <div class="rn-sched-wrap">
+                      <p class="rn-sched__cap mono" id="yield-cap" aria-hidden="true">{g.table.caption}</p>
+                      <div class="table-scroll" role="region" tabindex="0" aria-labelledby="yield-cap">
+                      <table class="rn-sched">
+                        <caption class="visually-hidden">{g.table.caption}</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">{g.table.city}</th>
+                            <th scope="col" class="num">{g.table.yield}</th>
+                            <th scope="col" class="num">{g.table.tilt}</th>
+                            <th scope="col" class="num">{g.table.azimuth}</th>
+                            <th scope="col" class="num">{g.table.dec}</th>
+                            <th scope="col" class="num">{g.table.jul}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {CITY_YIELDS.map((c) => (
+                            <tr>
+                              <th scope="row"><a href={c.source.url} rel="noopener external">{c.name[lang]}</a></th>
+                              <td class="num rn-sched__strong">{num(c.kwhPerKwp, 0, lang)}</td>
+                              <td class="num">{c.tiltDeg}°</td>
+                              <td class="num">{facing(c.azimuthDeg)}</td>
+                              <td class="num">{num(c.decKwhPerKwp, 0, lang)}</td>
+                              <td class="num">{num(c.julKwhPerKwp, 0, lang)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="gd-yield__map">
+                    <AlbaniaMap lang={lang} id="gd-map" title={g.sheetTitle} desc={g.table.caption} labels={mapLabels} only="labelled" />
+                  </div>
+                  <div class="gd-yield__roof rn-sched-wrap">
+                    <p class="rn-sched__cap mono" id="roof-cap" aria-hidden="true">{g.roofTable.caption}</p>
+                    <div class="table-scroll" role="region" tabindex="0" aria-labelledby="roof-cap">
+                    <table class="rn-sched rn-sched--roof">
+                      <caption class="visually-hidden">{g.roofTable.caption}</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">{g.roofTable.roof}</th>
+                          <th scope="col" class="num">{g.roofTable.tilt}</th>
+                          <th scope="col" class="num">{g.roofTable.facing}</th>
+                          <th scope="col" class="num">{g.roofTable.yield}</th>
+                          <th scope="col" class="num">{g.roofTable.vsBest}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {TIRANE_ROOF_VARIANTS.map((r) => (
+                          <>
+                            <tr class:list={{ 'has-note': !!r.note }}>
+                              <th scope="row">{r.label[lang]}</th>
+                              <td class="num">{r.tiltDeg}°</td>
+                              <td class="num">{r.azimuth[lang]}</td>
+                              <td class="num rn-sched__strong">{num(r.kwhPerKwp, 0, lang)}</td>
+                              <td class="num">{pct(r.vsOptimalPct)}</td>
+                            </tr>
+                            {r.note && <tr class="rn-sched__note"><td colspan="5">{r.note[lang]}</td></tr>}
+                          </>
+                        ))}
+                      </tbody>
+                    </table>
+                    </div>
+                    <p class="rn-src mono">{g.sources}: {TIRANE_ROOF_SOURCES.map((s, i) => <>{i > 0 && '; '}<a href={s.url} rel="noopener external">{s.label[lang]}</a></>)}</p>
+                  </div>
+                </div>
+              )}
+            </GuideBlocks>
+          )}
+
+          {s.parts?.map((pt) => (
+            <section class="gd-part" id={pt.id} aria-labelledby={`${pt.id}-h`} data-rn-part>
+              <h3 class="gd-part__title" id={`${pt.id}-h`}>{nb(pt.title[lang])}</h3>
+              <GuideBlocks lang={lang} part={pt} shelves={shelves} level={4} />
+            </section>
+          ))}
+
+          {s.id === 'faq' && (
+            <div class="gd-faq">
+              {FAQ.map((f) => (
+                <details class="gd-faq__item" id={`faq-${f.id}`}>
+                  <summary><h3 class="gd-faq__q">{nb(f.q[lang])}</h3><span class="gd-faq__mark" aria-hidden="true"></span></summary>
+                  <div class="gd-faq__a">
+                    {f.a.map((p) => <p>{nb(p[lang])}</p>)}
+                    <p class="rn-src mono">
+                      {f.computed && <span class="rn-tag rn-tag--computed">{g.tags.computed}</span>}
+                      <span>{g.source}: {f.sources.map((src, i) => <>{i > 0 && '; '}<a href={src.url} rel="noopener external">{src.label[lang]}{urlCity.has(src.url) && ` (${urlCity.get(src.url)})`}</a></>)}</span>
+                    </p>
+                  </div>
+                </details>
+              ))}
+            </div>
+          )}
+        </section>
+      ))}
+
+      <section class="gd-foot" id="sources" aria-labelledby="sources-h">
+        <h2 class="gd-foot__h" id="sources-h">{g.sources}</h2>
+        <p class="small muted">{g.read(readOn)}</p>
+        <ol class="gd-sources">
+          {sources.map((s) => <li><a href={s.url} rel="noopener external">{s.label[lang]}{urlCity.has(s.url) && ` (${urlCity.get(s.url)})`}</a></li>)}
+        </ol>
+        <div class="row gd-foot__cta">
+          <a class="btn" href={href(lang, 'packages')}>{g.toPackages} <span class="arrow" aria-hidden="true">→</span></a>
+          <a class="btn btn--ghost" href={href(lang, 'calculator')}>{g.toCalculator}</a>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script>
+    import '../scripts/renewables';
+  </script>
+</Site>

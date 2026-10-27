@@ -1,0 +1,117 @@
+---
+// Home teasers (docs/renewable-focus-plan.md §7), after the story's finale: the solar packages (with "from X L", the
+// lowest total among the complete packages for the remembered city, else Tirana) and the guide. Static on purpose:
+// no choreography, nothing for home.ts to drive; the same with scripts off and in energy-saving mode.
+// A paper band between the paper stage and the teal manifesto, so no two teal bands touch (DESIGN.md rhythm).
+import { href, type Lang } from '../lib/i18n';
+import { lek, num } from '../lib/money';
+import { energyCity } from '../lib/energy-line';
+import { teaserData } from '../lib/home-packages';
+import TitleBlock from './TitleBlock.astro';
+import { date } from '../lib/i18n';
+import { FAQ, GUIDE, GUIDE_RESEARCH_READ, guideSources } from '../content/renewables';
+import { keepAcronyms as nb } from '../lib/nobreak';
+import { tr } from '../i18n/renewables';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const R = tr(lang);
+const h = R.home;
+
+// The packages are priced for the PVGIS city the visitor chose (energy-line.ts: else Tirana), from live offers only,
+// through pricePackages(); home-packages.ts keeps the summary per isolate and city for five minutes (TTFB).
+const city = await energyCity(Astro.url, Astro.cookies, Astro.locals);
+const citySlug = city?.slug ?? 'tirane';
+const cityLabel = city ? (lang === 'sq' ? city.name_sq : city.name_en) : '';
+const { from, sizes } = await teaserData(citySlug);
+
+// "Pajisjet nga {price}": the words around the price as a small label, the price itself big on the highlighter band
+const fromWords = h.packagesFrom('\u0001').split('\u0001').map((s) => s.trim());
+
+// The key plan: every package's panel array at one scale (portrait modules, 10 × 17 units, 2 apart), keys under it.
+const PW = 10, PH = 17, G = 2, GAP = 14, LABEL = 20;
+const arrays = sizes.map(({ kwp, n }) => {
+  const cols = Math.max(2, Math.ceil(Math.sqrt(n * 1.7)));
+  const rows = Math.ceil(n / cols);
+  return { kwp, n, cols, rows, w: cols * PW + (cols - 1) * G, h: rows * PH + (rows - 1) * G };
+});
+// Two drawings of the same plan: one row of six for a wide card, two rows of three for a narrow one (phones), where
+// a single row would shrink the kWp figures below reading size. CSS shows one of them (container query).
+const ROWGAP = 10;
+function plan(perRow: number) {
+  const rows: (typeof arrays)[] = [];
+  for (let i = 0; i < arrays.length; i += perRow) rows.push(arrays.slice(i, i + perRow));
+  let y = 0;
+  let w = 0;
+  const items = rows.flatMap((row) => {
+    const rowH = Math.max(0, ...row.map((a) => a.h));
+    let x = 0;
+    const out = row.map((a) => {
+      const at = { ...a, x, y: y + rowH - a.h };
+      x += a.w + GAP;
+      return at;
+    });
+    w = Math.max(w, x - GAP);
+    y += rowH + LABEL + ROWGAP;
+    return out;
+  });
+  return { items, w: Math.max(1, w), h: Math.max(1, y - ROWGAP) };
+}
+const wide = plan(6);
+const narrow = plan(3);
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+<section class="teasers wrap section" aria-label={`${h.packagesEyebrow} · ${h.guideEyebrow}`}>
+  <article class="teaser teaser--packages" aria-labelledby="teaser-packages">
+    <p class="eyebrow teaser__eyebrow"><span class="teaser__key" aria-hidden="true">A</span>{h.packagesEyebrow}</p>
+    <h2 class="title teaser__title" id="teaser-packages">{h.packagesTitle}</h2>
+    <p class="teaser__text">{nb(h.packagesText)}</p>
+    {arrays.length > 0 && (
+      <figure class="teaser__plan">
+        {[{ p: wide, cls: 'teaser__svg teaser__svg--wide' }, { p: narrow, cls: 'teaser__svg teaser__svg--narrow' }].map(({ p, cls }) => (
+          <svg class={cls} viewBox={`-1 -1 ${p.w + 2} ${p.h + 2}`} role="img" aria-label={R.packages.planTitle}>
+            {p.items.map((a) => (
+              <g transform={`translate(${a.x} ${a.y})`}>
+                {Array.from({ length: a.n }, (_, k) => (
+                  <rect x={(k % a.cols) * (PW + G)} y={Math.floor(k / a.cols) * (PH + G)} width={PW} height={PH} />
+                ))}
+                <text x={0} y={a.h + LABEL - 4}>{num(a.kwp, 0, lang)} kWp</text>
+              </g>
+            ))}
+          </svg>
+        ))}
+        <figcaption class="teaser__cap mono">{R.packages.planTitle}</figcaption>
+      </figure>
+    )}
+    {from !== null && (
+      <p class="teaser__from">
+        <span class="teaser__from-l">{fromWords[0]}</span>
+        <span class="teaser__amount">{lek(from, lang)}</span>
+        {fromWords[1] && <span class="teaser__from-l">{fromWords[1]}</span>}
+        <span class="teaser__for mono">{h.packagesFor(cityLabel)}</span>
+      </p>
+    )}
+    <a class="btn teaser__cta" href={href(lang, 'packages')}>{h.packagesCta} <span class="arrow" aria-hidden="true">→</span></a>
+  </article>
+
+  <article class="teaser teaser--guide" aria-labelledby="teaser-guide">
+    <p class="eyebrow teaser__eyebrow"><span class="teaser__key" aria-hidden="true">B</span>{h.guideEyebrow}</p>
+    <h2 class="title teaser__title" id="teaser-guide">{h.guideTitle}</h2>
+    <p class="teaser__text">{nb(h.guideText)}</p>
+    <nav class="teaser__index" aria-label={h.guideIndex}>
+      <p class="teaser__index-h mono" aria-hidden="true">{h.guideIndex}</p>
+      <ol class="teaser__sections" role="list">
+        {GUIDE.map((s) => (
+          <li><a href={`${href(lang, 'guide')}#${s.id}`}><span class="teaser__n mono">{pad(s.n)}</span><span>{nb(s.title[lang])}</span></a></li>
+        ))}
+      </ol>
+    </nav>
+    <TitleBlock class="teaser__tb" items={[
+      { label: R.guide.tb.sections, value: pad(GUIDE.length) },
+      { label: R.guide.tb.questions, value: FAQ.length },
+      { label: R.guide.tb.sources, value: guideSources().length },
+      { label: R.guide.tb.read, value: date(`${GUIDE_RESEARCH_READ}T12:00:00Z`, lang) },
+    ]} />
+    <a class="btn btn--ghost teaser__cta" href={href(lang, 'guide')}>{h.guideCta} <span class="arrow" aria-hidden="true">→</span></a>
+  </article>
+</section>

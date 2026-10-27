@@ -1,14 +1,20 @@
 ---
-// Full-screen menu: every category with its live product count and lowest price (Decor Systems' counts, see DESIGN.md).
+// Full-screen menu: every category with its live product count and lowest price (Decor Systems' counts, see DESIGN.md),
+// in two groups: renewable energy, then efficiency and building (docs/renewable-focus-plan.md §2).
 import BrandMark from './BrandMark.astro';
-import { categories } from '../lib/catalog';
+import type { Category } from '../lib/catalog';
 import { href, type Lang } from '../lib/i18n';
 import { lek } from '../lib/money';
+import { categoryHref, categoryName, groupCategories } from '../lib/energy-nav';
 import { tc } from '../i18n/common';
-interface Props { lang: Lang; }
-const { lang } = Astro.props;
+import { tr } from '../i18n/renewables';
+interface Props { lang: Lang; cats: Category[]; }
+const { lang, cats } = Astro.props;
 const t = tc(lang);
-const cats = await categories();
+const r = tr(lang).nav;
+const groups = groupCategories(cats);
+const heading = { energy: t.groups.energy, 'efficiency-build': r.efficiencyBuild } as const;
+let n = 0;
 ---
 <div class="menu on-ink" id="site-menu" hidden data-menu role="dialog" aria-modal="true" aria-label={t.nav.menu}>
   <div class="menu__top">
@@ -17,19 +23,30 @@ const cats = await categories();
   </div>
   <div class="menu__grid">
     <div class="menu__cats">
-      <h2 class="eyebrow" style="grid-column:1/-1;margin-bottom:.5rem">{t.menu.heading} · {cats.length}</h2>
-      {cats.map((c, i) => (
-        <a class="menu__cat" href={href(lang, 'category', { slug: lang === 'sq' ? c.slug_sq : c.slug_en })}>
-          <span class="n">{String(i + 1).padStart(2, '0')}</span>
-          <span class="name">{lang === 'sq' ? c.name_sq : c.name_en}</span>
-          <span class="meta">{t.menu.products(c.product_count ?? 0)}<br />{c.min_price ? `${t.menu.from} ${lek(c.min_price, lang)}` : t.menu.empty}</span>
-        </a>
+      {groups.map((g) => (
+        <section class="menu__group" aria-labelledby={`menu-g-${g.key}`}>
+          <h2 class="eyebrow menu__group-h" id={`menu-g-${g.key}`}>{heading[g.key]} <span class="menu__group-n">· {g.cats.length}</span></h2>
+          <div class="menu__group-list">
+            {g.cats.map((c) => {
+              n++;
+              return (
+                <a class="menu__cat" href={categoryHref(lang, c)}>
+                  <span class="n">{String(n).padStart(2, '0')}</span>
+                  <span class="name">{categoryName(lang, c)}</span>
+                  <span class="meta">{t.menu.products(c.product_count ?? 0)}<br />{c.min_price ? `${t.menu.from} ${lek(c.min_price, lang)}` : t.menu.empty}</span>
+                </a>
+              );
+            })}
+          </div>
+        </section>
       ))}
     </div>
     <div class="menu__side">
       <nav class="menu__big" aria-label={t.nav.menu}>
         <a href={href(lang, 'shop')}>{t.nav.shop}</a>
-        <a href={href(lang, 'calculator')}>{t.nav.calculator}</a>
+        <a href={href(lang, 'packages')}>{r.packages}</a>
+        <a href={href(lang, 'guide')}>{r.guide}</a>
+        <a href={href(lang, 'calculator')}>{r.calculator}</a>
         <a href={href(lang, 'quote')}>{t.nav.quote}</a>
         <a href={href(lang, 'sellers')}>{t.nav.sellers}</a>
         <a href={href(lang, 'sell')}>{t.nav.sell}</a>

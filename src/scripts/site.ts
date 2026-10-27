@@ -97,10 +97,19 @@ document.addEventListener('submit', async (e) => {
   const form = e.target as HTMLFormElement;
   if (!form.matches('[data-cart-form], [data-compare-form]')) return;
   e.preventDefault();
+  // One request per form at a time: a double click on "add the whole package" would otherwise add the kit twice. The
+  // button is not disabled for the request, because disabling the focused button drops keyboard focus to the page.
+  if (form.dataset.busy) return;
+  form.dataset.busy = '1';
   const isCart = form.matches('[data-cart-form]');
   const btn = form.querySelector<HTMLButtonElement>('button[type=submit], button:not([type])');
   const fd = new FormData(form, (e as SubmitEvent).submitter ?? undefined);
-  const body = Object.fromEntries(fd.entries());
+  const body: Record<string, unknown> = Object.fromEntries(fd.entries());
+  // A whole package (action=add-many) repeats offerId and qty, which fromEntries would collapse to the last pair.
+  if (body.action === 'add-many') {
+    const qtys = fd.getAll('qty');
+    body.lines = fd.getAll('offerId').map((id, i) => ({ offerId: Number(id), qty: Number(qtys[i] ?? 1) }));
+  }
   btn?.setAttribute('aria-busy', 'true');
   try {
     // form.action would return an <input name="action"> inside the form, so read the attribute.
@@ -110,7 +119,7 @@ document.addEventListener('submit', async (e) => {
     if (isCart) {
       setCount('cart', data.count);
       document.dispatchEvent(new CustomEvent('beed:cart', { detail: data }));
-      if (body.action === 'add' || !body.action) toast(msg.added, { href: msg.cartHref, label: msg.view });
+      if (body.action === 'add' || body.action === 'add-many' || !body.action) toast(msg.added, { href: msg.cartHref, label: msg.view });
     } else {
       setCount('compare', data.ids.length);
       renderTray(data);
@@ -123,6 +132,7 @@ document.addEventListener('submit', async (e) => {
     toast(msg.error);
   } finally {
     btn?.removeAttribute('aria-busy');
+    delete form.dataset.busy;
   }
 });
 

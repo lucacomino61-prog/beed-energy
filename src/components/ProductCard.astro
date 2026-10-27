@@ -1,27 +1,44 @@
 ---
-// One product in a listing: photo, brand, name, 2–3 key specs, lowest price, unit price, offer count, stock, compare toggle.
+// One product in a listing: photo, brand, name, 2–3 key specs, the energy line, lowest price, unit price, offer count,
+// stock, compare toggle.
 import ProductPhoto from './ProductPhoto.astro';
-import { formatSpec, type Attr, type ProductCard } from '../lib/catalog';
+import { attrLabel, formatSpec, type Attr, type ProductCard, type SpecValue } from '../lib/catalog';
 import { href, type Lang } from '../lib/i18n';
 import { price, unitPrice } from '../lib/shop-data';
+import { energyCity, energyLine, type EnergyLine } from '../lib/energy-line';
 import { ts } from '../i18n/shop';
 interface Props {
   p: ProductCard;
   lang: Lang;
-  category?: string; // slug_en; kept for callers, the photo does not need it
+  category?: string; // slug_en of the product's category
   unitLabel?: string | null;
   attrs: Attr[];
   compared?: boolean;
   level?: 'h2' | 'h3';
+  /** The energy line (src/lib/energy-line.ts), worked out by the caller for the whole list; null = none. When a caller
+   *  leaves it out, the card works it out itself with the same helper (the city is still one read per request). */
+  energy?: EnergyLine | null;
 }
-const { p, lang, unitLabel = null, attrs, compared = false, level = 'h3' } = Astro.props;
+const { p, lang, category, unitLabel = null, attrs, compared = false, level = 'h3' } = Astro.props;
+const energy = Astro.props.energy !== undefined
+  ? Astro.props.energy
+  : energyLine(p.specs, category, category === 'solar-panels' ? await energyCity(Astro.url, Astro.cookies, Astro.locals) : null, lang);
 const t = ts(lang);
 const name = lang === 'sq' ? p.name_sq : p.name_en;
 const H = level;
+// A chip is read without its label, so a figure with no unit gets a word: "8 000 cikle", "Trefazor", "SEER 6,1".
+const chipText = (a: Attr, v: SpecValue) => {
+  const s = formatSpec(a, v, lang);
+  if (a.type !== 'number' || a.unit || typeof v !== 'number') return s;
+  if (a.key === 'cycle_life') return t.chip.cycles(s);
+  if (a.key === 'phases') return t.chip.phases(v, s);
+  return t.chip.labelled(attrLabel(a, lang), s);
+};
+// the spec the energy line already shows (usable kWh, COP) is not repeated as a chip
 const highlights = attrs
-  .filter((a) => a.highlight && p.specs[a.key] !== null && p.specs[a.key] !== undefined && p.specs[a.key] !== '')
+  .filter((a) => a.highlight && a.key !== energy?.key && p.specs[a.key] !== null && p.specs[a.key] !== undefined && p.specs[a.key] !== '')
   .slice(0, 3)
-  .map((a) => formatSpec(a, p.specs[a.key], lang));
+  .map((a) => chipText(a, p.specs[a.key]));
 const link = href(lang, 'product', { slug: p.slug });
 const hasOffers = p.offer_count > 0 && p.min_price !== null;
 ---
@@ -37,6 +54,7 @@ const hasOffers = p.offer_count > 0 && p.min_price !== null;
         {highlights.map((h) => <li class="tag">{h}</li>)}
       </ul>
     )}
+    {energy && <p class="pcard__energy" title={energy.title}><span>{energy.text}</span><span class="visually-hidden"> ({energy.title})</span></p>}
     <div class="pcard__foot">
       <div class="pcard__price">
         {hasOffers ? (

@@ -6,7 +6,7 @@ Research stream: `energy`. Compiled 2026-10-23. Every figure carries its source 
 
 - **Primary sources used first:** ERE annual report 2025, the ERE 2026 tariff table, INSTAT electricity balances, the text of Law 24/2023, Ministry Instruction 3/2019, and the World Bank Global Solar Atlas API.
 - **UNVERIFIED** marks anything I could not confirm in a primary source.
-- **ERE domain blocked:** `ere.gov.al` refused connections (port 443) from this machine and from WebFetch on 2026-10-23. ERE documents were read from Internet Archive copies of the official URLs, and both URLs are given. Local copies and text extracts for the fact-checker are in `C:/Users/User/AppData/Local/Temp/claude/C--Users-User-Documents-LC/fa85b45b-d856-4812-a1c9-44840e102171/scratchpad/research/energy/`:
+- **ERE domain blocked:** `ere.gov.al` refused connections (port 443) from this machine and from WebFetch on 2026-10-23. ERE documents were read from Internet Archive copies of the official URLs, and both URLs are given. Local copies and text extracts for the fact-checker are in `<session scratchpad>/research/energy/`:
   - `ere_annual_2025_en.pdf` and its text, `ere2025en.txt`
   - `tarifat2026.pdf` and `tarifat2026.txt`
   - `law24_2023_en.pdf` and `law24.txt`

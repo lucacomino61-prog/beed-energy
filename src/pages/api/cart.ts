@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { applyCartAction, backTo, cartCount, readCart, wantsJson, writeCart } from '../../lib/basket';
-import { quote } from '../../lib/cart';
+import { quote, type CartLineInput } from '../../lib/cart';
 import { href, langFromPath } from '../../lib/i18n';
 import { secureCookies } from '../../lib/origin';
 
@@ -41,22 +41,55 @@ export const GET: APIRoute = async ({ cookies, url }) => {
   return Response.json(await summary(readCart(cookies), cityId), { headers: { 'cache-control': 'no-store' } });
 };
 
+/** add-many (a whole solar package in one click): at most this many lines per request. */
+const MANY_MAX = 12;
+const isId = (n: number) => Number.isInteger(n) && n > 0;
+const isQty = (n: number) => Number.isInteger(n) && n >= 1 && n <= 9999;
+
+/** add-many lines, or null when the list is empty, too long or any line is not a positive whole offer id with qty 1–9999. */
+function manyLines(ids: unknown[], qtys: unknown[]): CartLineInput[] | null {
+  if (!ids.length || ids.length > MANY_MAX) return null;
+  // The form sends one qty per offerId; with no qty fields at all every line is 1.
+  if (qtys.length && qtys.length !== ids.length) return null;
+  const lines = ids.map((id, i) => ({ offerId: Number(id), qty: qtys.length ? Number(qtys[i]) : 1 }));
+  return lines.every((l) => isId(l.offerId) && isQty(l.qty)) ? lines : null;
+}
+
 export const POST: APIRoute = async ({ request, cookies, url, redirect }) => {
   const ct = request.headers.get('content-type') ?? '';
   let action = 'add';
   let offerId = 0;
   let qty = 1;
+  let many: CartLineInput[] | null = null;
   if (ct.includes('application/json')) {
     const b = await request.json().catch(() => ({}));
-    action = String(b.action ?? 'add');
-    offerId = Number(b.offerId);
-    qty = Math.floor(Number(b.qty ?? 1));
+    action = String(b?.action ?? 'add');
+    if (action === 'add-many') {
+      const raw: unknown[] = Array.isArray(b?.lines) ? b.lines : [];
+      many = manyLines(raw.map((l: any) => l?.offerId), raw.map((l: any) => l?.qty ?? 1));
+    } else {
+      offerId = Number(b?.offerId);
+      qty = Math.floor(Number(b?.qty ?? 1));
+    }
   } else {
     const f = await request.formData();
     action = String(f.get('action') ?? 'add');
-    offerId = Number(f.get('offerId'));
-    qty = Math.floor(Number(f.get('qty') ?? 1));
+    if (action === 'add-many') many = manyLines(f.getAll('offerId'), f.getAll('qty'));
+    else {
+      offerId = Number(f.get('offerId'));
+      qty = Math.floor(Number(f.get('qty') ?? 1));
+    }
   }
+  const lang = langFromPath(new URL(request.headers.get('referer') ?? url.href, url).pathname);
+
+  if (action === 'add-many') {
+    if (!many) return wantsJson(request) ? Response.json({ error: 'lines' }, { status: 400 }) : redirect(backTo(request, url, '/'), 303);
+    const next = many.reduce((acc, l) => applyCartAction(acc, 'add', l.offerId, l.qty), readCart(cookies));
+    writeCart(cookies, next, secureCookies(url));
+    if (wantsJson(request)) return Response.json(await summary(next, null));
+    return redirect(href(lang, 'cart', {}, { shtuar: [...new Set(many.map((l) => l.offerId))].join(',') }), 303);
+  }
+
   if (action !== 'clear' && (!Number.isInteger(offerId) || offerId <= 0)) {
     return wantsJson(request) ? Response.json({ error: 'offer' }, { status: 400 }) : redirect(backTo(request, url, '/'), 303);
   }
@@ -65,6 +98,5 @@ export const POST: APIRoute = async ({ request, cookies, url, redirect }) => {
   writeCart(cookies, next, secureCookies(url));
   if (wantsJson(request)) return Response.json(await summary(next, null));
   // Without scripts: an add goes to the basket, other changes go back where they came from.
-  const lang = langFromPath(new URL(request.headers.get('referer') ?? url.href, url).pathname);
   return redirect(action === 'add' ? href(lang, 'cart', {}, { shtuar: offerId }) : backTo(request, url, href(lang, 'cart')), 303);
 };

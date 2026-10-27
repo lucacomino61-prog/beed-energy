@@ -105,7 +105,7 @@ const clientWords = {
                 <ul class="cosum__lines" role="list">
                   {g.lines.map((l) => (
                     <li data-line={l.offerId} data-problem={l.problem ?? ''}>
-                      <span class="cosum__name">{productName(l, lang)} <span class="mono muted">× {l.qty}</span></span>
+                      <span class="cosum__name">{productName(l, lang)}&nbsp;<span class="cosum__qty mono muted">×&nbsp;{l.qty}</span></span>
                       <span class="price">{lek(l.lineTotal, lang)}</span>
                       <span class="cosum__warn small" data-warn hidden={!(l.problem && !(l.problem === 'zone' && v.delivery === 'pickup'))}>
                         {l.problem === 'zone' ? t.cart.problem.zone(city ? cityName(city, lang) : t.cart.city.none) : l.problem === 'stock' ? t.cart.problem.stock(l.stock) : l.problem === 'min' ? t.cart.problem.min(l.minQty) : l.problem === 'gone' ? t.cart.problem.gone : ''}

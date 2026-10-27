@@ -14,6 +14,8 @@ export const ROUTES = {
   checkout: { sq: '/arka', en: '/en/checkout' },
   order: { sq: '/porosia/:code', en: '/en/order/:code' },
   calculator: { sq: '/kalkulatori-diellor', en: '/en/solar-calculator' },
+  guide: { sq: '/energji-e-rinovueshme', en: '/en/renewable-energy' },
+  packages: { sq: '/paketa-diellore', en: '/en/solar-packages' },
   sellers: { sq: '/shitesit', en: '/en/sellers' },
   seller: { sq: '/shitesit/:slug', en: '/en/sellers/:slug' },
   sell: { sq: '/shit-me-ne', en: '/en/sell-with-us' },

@@ -3,7 +3,9 @@
 import { href, MONTHS, MONTHS_SHORT, type Lang } from './i18n';
 import { lek, lekLong, num } from './money';
 import type { CalcOutput } from './pages-solar';
+import { checkedOn, keyConditions, listedByText, sourceLinkHtml } from './compat-view';
 import { tp } from '../i18n/pages';
+import { tc } from '../i18n/compat';
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
@@ -51,7 +53,8 @@ export function calcResultsHtml(o: CalcOutput, lang: Lang): string {
   const figs = [
     { k: t.kwp, v: `${num(o.kwp, 1, lang)} kWp`, n: t.panels(o.panels, o.panelWp) },
     { k: t.yearly, v: `${num(o.annualKwh, 0, lang)} kWh`, n: t.perKwp(num(o.city.yield, 0, lang)) },
-    { k: t.selfUse, v: `${pct}%`, n: t.selfUseNote(o.input.battery) },
+    // The share follows the kit (src/lib/solar.ts): "with a battery" only when the kit has one.
+    { k: t.selfUse, v: `${pct}%`, n: t.selfUseNote(o.kit.some((k) => k.role === 'battery')) },
     { k: t.saving, v: o.annualSaving === null ? '—' : lekLong(o.annualSaving, lang), n: o.annualSaving === null ? t.noSaving : t.savingNote, hot: true },
     { k: t.payback, v: o.paybackYears === null ? '—' : t.years(num(o.paybackYears, 1, lang)), n: t.paybackNote },
     { k: t.lifetime, v: o.lifetimeSaving === null ? '—' : lekLong(o.lifetimeSaving, lang), n: t.lifetimeNote },
@@ -81,7 +84,13 @@ export function calcResultsHtml(o: CalcOutput, lang: Lang): string {
       })
       .join('');
     const total = o.kitTotal !== null ? `<tr class="calc-kit__total"><th scope="row" colspan="3">${esc(t.kitTotal)}</th><td class="num price">${lekLong(o.kitTotal, lang)}</td><td></td></tr>` : '';
-    kit = `<div class="table-scroll"><table class="table calc-kit__table"><caption class="visually-hidden">${esc(t.kit)}</caption><thead><tr><th scope="col">${esc(t.product)}</th><th scope="col" class="num">${esc(t.qty)}</th><th scope="col" class="num">${esc(t.unit)}</th><th scope="col" class="num">${esc(t.line)}</th><th scope="col"><span class="visually-hidden">${esc(t.addLine)}</span></th></tr></thead><tbody>${lines}${total}</tbody></table></div>${o.kitTotal === null ? `<p class="notice">${esc(t.kitIncomplete)}</p>` : ''}<div class="row calc-kit__all"><button class="btn btn--copper" type="button" data-kit-all hidden>${esc(t.addAll)} <span class="arrow" aria-hidden="true">→</span></button><a class="btn btn--ghost" href="${quoteHref}">${esc(t.quote)}</a></div>`;
+    // No total: say why. A wanted battery that is missing gets its own reason (no offer, or no pair the makers list).
+    // A missing inverter is already explained by the 'no-inverter' reason.
+    const others = !o.kit.some((k) => k.role === 'panel') || (!o.kit.some((k) => k.role === 'inverter') && o.batteryIssue !== 'no-inverter');
+    const why = o.batteryIssue
+      ? `${tc(lang).calcIssue[o.batteryIssue](cityName)} ${others ? t.kitIncomplete : tc(lang).noPayback}`
+      : t.kitIncomplete;
+    kit = `<div class="table-scroll"><table class="table calc-kit__table"><caption class="visually-hidden">${esc(t.kit)}</caption><thead><tr><th scope="col">${esc(t.product)}</th><th scope="col" class="num">${esc(t.qty)}</th><th scope="col" class="num">${esc(t.unit)}</th><th scope="col" class="num">${esc(t.line)}</th><th scope="col"><span class="visually-hidden">${esc(t.addLine)}</span></th></tr></thead><tbody>${lines}${total}</tbody></table></div>${pairLine(o, lang)}${o.kitTotal === null ? `<p class="notice">${esc(why)}</p>` : ''}<div class="row calc-kit__all"><button class="btn btn--copper" type="button" data-kit-all hidden>${esc(t.addAll)} <span class="arrow" aria-hidden="true">→</span></button><a class="btn btn--ghost" href="${quoteHref}">${esc(t.quote)}</a></div>`;
   }
 
   return `
@@ -91,5 +100,33 @@ export function calcResultsHtml(o: CalcOutput, lang: Lang): string {
   <section class="calc-chart" aria-labelledby="chart-h"><h3 class="eyebrow" id="chart-h">${esc(t.chart)}</h3>${chart(o, lang)}
     <details class="calc-chart__table"><summary>${esc(t.table)}</summary><div class="table-scroll"><table class="table"><thead><tr><th scope="col">${esc(t.month)}</th><th scope="col" class="num">${esc(t.produced)}</th><th scope="col" class="num">${esc(t.consumption)}</th></tr></thead><tbody>${rows}</tbody></table></div></details>
   </section>
-  <section class="calc-kit" aria-labelledby="kit-h"><h3 class="title calc-kit__h" id="kit-h">${esc(t.kit)}</h3><p class="muted small">${esc(t.kitLede)}</p>${kit}</section>`;
+  <section class="calc-kit" aria-labelledby="kit-h"><h3 class="title calc-kit__h" id="kit-h">${esc(t.kit)}</h3><p class="muted small">${esc(t.kitLede)}${o.input.battery ? ` ${esc(tc(lang).calcLedeBattery)}` : ''}</p>${kit}</section>
+  ${nextLinks(o, lang)}`;
+}
+
+/** Under the kit table when the kit has a battery: the checked inverter + battery pair (src/content/battery-compat.ts, which
+ *  the kit only ever uses), who lists it, when the lists were read, its key conditions, the installer caveat and the makers'
+ *  documents. o.pair comes from the server (and /api/solar), so the browser never loads the matrix. */
+function pairLine(o: CalcOutput, lang: Lang): string {
+  const inv = o.kit.find((k) => k.role === 'inverter');
+  const bat = o.kit.find((k) => k.role === 'battery');
+  if (!o.pair || !inv || !bat) return '';
+  const c = tc(lang);
+  const when = checkedOn(lang);
+  const sources = o.pair.sources.map((s) => sourceLinkHtml(s, lang)).join(', ');
+  const onGrid = o.pair.onGridOnly ? ` ${esc(c.onGrid)}` : '';
+  const conds = keyConditions(o.pair, lang);
+  const list = conds.length
+    ? `<p class="cp__label" id="calc-pair-cond">${esc(c.conditionsLabel)}</p><ul class="cp__cond" aria-labelledby="calc-pair-cond">${conds.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>`
+    : '';
+  return `<div class="calc-pair"><p>${esc(c.calcPairLabel)} <strong translate="no">${esc(inv.name)} + ${esc(bat.name)}</strong>. ${esc(listedByText(o.pair, lang))}. ${esc(c.calcChecked)} <time datetime="${when.iso}">${esc(when.text)}</time>.${onGrid}</p>${list}<p class="calc-pair__inst">${esc(c.calcInstall)}</p><p class="calc-pair__src">${esc(c.calcSources)} ${sources}.</p></div>`;
+}
+
+/** Under the result (plan §8): the solar packages priced for the same city, and the guide's self-producer steps. */
+function nextLinks(o: CalcOutput, lang: Lang): string {
+  const t = tp(lang).calc;
+  const arrow = '<span class="arrow" aria-hidden="true">→</span>';
+  const packages = href(lang, 'packages', {}, o.city ? { qyteti: o.city.slug } : undefined);
+  const guide = `${href(lang, 'guide')}#self-producer`;
+  return `<nav class="calc-next" aria-labelledby="calc-next-h"><h3 class="eyebrow" id="calc-next-h">${esc(t.next)}</h3><ul class="calc-next__list" role="list"><li><a class="link-arrow" href="${packages}"><span>${esc(t.toPackages)}</span>${arrow}</a></li><li><a class="link-arrow" href="${guide}"><span>${esc(t.toGuide)}</span>${arrow}</a></li></ul></nav>`;
 }

@@ -6,6 +6,7 @@ import { attributes, categories, fold, searchProducts } from '../lib/catalog';
 import { readCompare } from '../lib/basket';
 import { href, type Lang } from '../lib/i18n';
 import { fitTitle, price } from '../lib/shop-data';
+import { energyLines } from '../lib/energy-line';
 import { ts } from '../i18n/shop';
 import '../styles/shop.css';
 
@@ -23,6 +24,7 @@ const catById = new Map(cats.map((c) => [c.id, c]));
 const attrsByCat = new Map<number, Awaited<ReturnType<typeof attributes>>>();
 for (const p of results) if (!attrsByCat.has(p.category_id)) attrsByCat.set(p.category_id, await attributes(p.category_id));
 const compared = new Set(readCompare(Astro.cookies));
+const energy = await energyLines(results, (id) => catById.get(id)?.slug_en, { url: Astro.url, cookies: Astro.cookies, locals: Astro.locals }, lang);
 const title = q ? fitTitle([S.metaTitleQ(q), S.metaTitle]) : S.metaTitle;
 const catLink = (c: (typeof cats)[number]) => href(lang, 'category', { slug: lang === 'sq' ? c.slug_sq : c.slug_en });
 ---
@@ -56,7 +58,7 @@ const catLink = (c: (typeof cats)[number]) => href(lang, 'category', { slug: lan
         <ul class="results results--wide" role="list">
           {results.map((p) => {
             const c = catById.get(p.category_id)!;
-            return <li><ProductCard p={p} lang={lang} category={c.slug_en} unitLabel={lang === 'sq' ? c.unit_label_sq : c.unit_label_en} attrs={attrsByCat.get(p.category_id) ?? []} compared={compared.has(p.id)} /></li>;
+            return <li><ProductCard p={p} lang={lang} category={c.slug_en} unitLabel={lang === 'sq' ? c.unit_label_sq : c.unit_label_en} attrs={attrsByCat.get(p.category_id) ?? []} compared={compared.has(p.id)} energy={energy.get(p.id) ?? null} /></li>;
           })}
         </ul>
       )}

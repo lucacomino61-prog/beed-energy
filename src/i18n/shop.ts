@@ -26,6 +26,12 @@ export const shop = {
     sample: 'shembull',
     sampleNote: 'Shitësit, çmimet dhe stoku me shenjën “shembull” janë të sajuar për prototipin, jo oferta të vërteta.',
     compare: { add: 'Krahaso', on: 'Në krahasim', label: (name: string) => `Krahaso ${name}` },
+    // a card chip is read without its label, so a figure with no unit gets a word (ProductCard.astro)
+    chip: {
+      cycles: (n: string) => `${n} cikle`,
+      phases: (n: number, s: string) => (n === 1 ? 'Njëfazor' : n === 3 ? 'Trefazor' : `${s} faza`),
+      labelled: (label: string, v: string) => `${label} ${v}`,
+    },
 
     landing: {
       metaTitle: 'Dyqani: energji e rinovueshme dhe ndërtim',
@@ -37,6 +43,8 @@ export const shop = {
         energy: { title: 'Energji e rinovueshme', text: 'Prodhoni energjinë nga dielli, ruajeni dhe përdoreni për ngrohjen, ujin e ngrohtë dhe makinën.' },
         efficiency: { title: 'Efikasitet energjetik', text: 'Energjia që nuk humbet: kondicionerë inverter, izolim, dritare dhe ndriçim LED.' },
         build: { title: 'Ndërtim', text: 'Çimento, blloqe, hekur betoni, ngjitës dhe hidroizolim për kantierin.' },
+        // the two display groups (docs/renewable-focus-plan.md §2): efficiency + build under one heading
+        'efficiency-build': { title: 'Efikasitet dhe ndërtim', text: 'Energjia që nuk humbet dhe materialet e kantierit: kondicionerë inverter, izolim, dritare, ndriçim LED, çimento dhe muraturë.' },
       } as Record<string, { title: string; text: string }>,
       emptyCat: 'pa oferta ende',
       featured: 'Produktet me më shumë oferta',
@@ -244,6 +252,11 @@ export const shop = {
     sample: 'sample',
     sampleNote: 'Sellers, prices and stock tagged “sample” are invented for the prototype, not real offers.',
     compare: { add: 'Compare', on: 'Comparing', label: (name: string) => `Compare ${name}` },
+    chip: {
+      cycles: (n: string) => `${n} cycles`,
+      phases: (n: number, s: string) => (n === 1 ? 'Single-phase' : n === 3 ? 'Three-phase' : `${s}-phase`),
+      labelled: (label: string, v: string) => `${label} ${v}`,
+    },
 
     landing: {
       metaTitle: 'Shop: renewable energy and building products',
@@ -255,6 +268,7 @@ export const shop = {
         energy: { title: 'Renewable energy', text: 'Make energy from the sun, store it, and use it for heating, hot water and your car.' },
         efficiency: { title: 'Energy efficiency', text: 'The energy you don’t lose: inverter air conditioners, insulation, windows and LED lighting.' },
         build: { title: 'Building', text: 'Cement, blocks, rebar, adhesives and waterproofing for the site.' },
+        'efficiency-build': { title: 'Efficiency & building', text: 'The energy you don’t lose and what the building site needs: inverter air conditioners, insulation, windows, LED lighting, cement and masonry.' },
       } as Record<string, { title: string; text: string }>,
       emptyCat: 'no offers yet',
       featured: 'Products with the most offers',

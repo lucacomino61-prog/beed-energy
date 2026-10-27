@@ -73,6 +73,10 @@ fieldset.field > legend { padding: 0; margin-bottom: 0.4rem; }
 .calc-kit__total th, .calc-kit__total td { border-top: 2px solid var(--sun); font-weight: 600; }
 .calc-kit__total th { text-align: right; }
 .calc-kit__all { margin-top: 0.5rem; }
+/* under the result: on to the packages (same city) and the guide's self-producer steps */
+.calc-next { display: grid; gap: 0.35rem; padding-top: 1rem; border-top: 3px solid var(--teal); position: relative; }
+.calc-next::before { content: ''; position: absolute; left: 0; right: 0; top: 3px; border-top: 1px solid var(--teal); }
+.calc-next__list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0 2rem; }
 .calc-how { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 2.5rem var(--gutter); border-top: 1px solid var(--line-strong); }
 .calc-how__list { margin: 1.25rem 0 0; padding: 0; list-style: none; counter-reset: how; display: grid; gap: 0.75rem; max-width: 68ch; }
 .calc-how__list li { counter-increment: how; display: grid; grid-template-columns: 2.25rem 1fr; gap: 0.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--line); }

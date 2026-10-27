@@ -1,6 +1,7 @@
 ---
-// Shop landing: the categories in three groups, renewable energy first, with live product counts and lowest prices,
-// then the products with most offers. Within a group the order is categories.sort, so the keys match the menu.
+// Shop landing: the categories in two groups (renewable energy, then efficiency and building; plan §2), with live
+// product counts and lowest prices, then the products with most offers. Within a group the order is categories.sort,
+// so the keys match the menu.
 import Site from '../layouts/Site.astro';
 import TitleBlock from '../components/TitleBlock.astro';
 import ProductCard from '../components/ProductCard.astro';
@@ -8,19 +9,26 @@ import { attributes, categories, featuredProducts } from '../lib/catalog';
 import { readCompare } from '../lib/basket';
 import { href, type Lang } from '../lib/i18n';
 import { price } from '../lib/shop-data';
+import { groupCategories } from '../lib/energy-nav';
+import { energyLines } from '../lib/energy-line';
 import { ts } from '../i18n/shop';
+import { tc } from '../i18n/common';
+import { tr } from '../i18n/renewables';
 import '../styles/shop.css';
 
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
 const t = ts(lang);
 const L = t.landing;
+const R = tr(lang);
 const cats = await categories();
-const groups = ['energy', 'efficiency', 'build'].map((g) => ({ key: g, ...L.groups[g], cats: cats.filter((c) => c.group_key === g) })).filter((g) => g.cats.length);
+const groupTitle = { energy: tc(lang).groups.energy, 'efficiency-build': R.nav.efficiencyBuild } as const;
+const groups = groupCategories(cats).map((g) => ({ ...g, title: groupTitle[g.key], text: L.groups[g.key].text }));
 const featured = await featuredProducts(8);
 const catById = new Map(cats.map((c) => [c.id, c]));
 const attrsByCat = new Map<number, Awaited<ReturnType<typeof attributes>>>();
 for (const p of featured) if (!attrsByCat.has(p.category_id)) attrsByCat.set(p.category_id, await attributes(p.category_id));
+const energy = await energyLines(featured, (id) => catById.get(id)?.slug_en, { url: Astro.url, cookies: Astro.cookies, locals: Astro.locals }, lang);
 const compared = new Set(readCompare(Astro.cookies));
 const totalProducts = cats.reduce((s, c) => s + (c.product_count ?? 0), 0);
 let n = 0;
@@ -61,7 +69,13 @@ const jsonld = [
         <section class="catgroup" aria-labelledby={`g-${g.key}`}>
           <div class="catgroup__head">
             <h2 id={`g-${g.key}`} class="title catgroup__title">{g.title}</h2>
-            <p class="muted">{g.text}</p>
+            <p class="muted catgroup__text">{g.text}</p>
+            {g.key === 'energy' && (
+              <p class="catgroup__links">
+                <a class="link-arrow" href={href(lang, 'packages')}><span>{R.guide.toPackages}</span><span class="arrow" aria-hidden="true">→</span></a>
+                <a class="link-arrow" href={href(lang, 'guide')}><span>{R.home.guideCta}</span><span class="arrow" aria-hidden="true">→</span></a>
+              </p>
+            )}
           </div>
           <ul class="catlist" role="list">
             {g.cats.map((c) => {
@@ -91,7 +105,7 @@ const jsonld = [
             {featured.map((p) => {
               const c = catById.get(p.category_id)!;
               return (
-                <li><ProductCard p={p} lang={lang} category={c.slug_en} unitLabel={lang === 'sq' ? c.unit_label_sq : c.unit_label_en} attrs={attrsByCat.get(p.category_id) ?? []} compared={compared.has(p.id)} /></li>
+                <li><ProductCard p={p} lang={lang} category={c.slug_en} unitLabel={lang === 'sq' ? c.unit_label_sq : c.unit_label_en} attrs={attrsByCat.get(p.category_id) ?? []} compared={compared.has(p.id)} energy={energy.get(p.id) ?? null} /></li>
               );
             })}
           </ul>

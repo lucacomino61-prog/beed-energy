@@ -26,8 +26,10 @@ const sellers = await sellerInfo(groups.map((g) => g.sellerId));
 const thresholds = await freeOver(q.lines.map((l) => l.offerId));
 const demo = await demoOffers(q.lines.map((l) => l.offerId));
 const anyDemo = demo.size > 0;
-const addedId = Number(Astro.url.searchParams.get('shtuar'));
-const added = addedId ? q.lines.find((l) => l.offerId === addedId) : undefined;
+// ?shtuar=12 after one product, ?shtuar=12,34,56 after a whole solar package (/api/cart add-many).
+const addedIds = (Astro.url.searchParams.get('shtuar') ?? '').split(',').slice(0, 12).map(Number).filter((n) => Number.isInteger(n) && n > 0);
+const addedLines = q.lines.filter((l) => addedIds.includes(l.offerId));
+const added = addedLines.length === 1 ? addedLines[0] : undefined;
 const cityLabel = city ? cityName(city, lang) : t.cart.city.none;
 const itemCount = q.lines.reduce((s, l) => s + l.qty, 0);
 const parcelCount = q.parcels.length;
@@ -78,6 +80,9 @@ const cityName_ = city ? cityName(city, lang) : allCities.find((c) => c.zone ===
   <div class="wrap co-body" data-basket-root>
     {added && (
       <p class="notice notice--ok co-added" role="status">{t.cart.added(productName(added, lang))}</p>
+    )}
+    {addedLines.length > 1 && (
+      <p class="notice notice--ok co-added" role="status">{t.cart.addedMany(addedLines.map((l) => productName(l, lang)).join('; ') /* the names have commas of their own */)}</p>
     )}
 
     {q.lines.length === 0 ? (

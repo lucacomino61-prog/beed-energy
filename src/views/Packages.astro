@@ -1,0 +1,305 @@
+---
+// Six solar packages (/paketa-diellore, /en/solar-packages), priced for one city on the server from live offers
+// (src/lib/packages.ts). Poster first screen with a key plan of the six panel arrays at one scale, a GET city form
+// (no motion on it), then six cards drawn as sheets of the drawing set. No price comes from anywhere but offers.
+import Site from '../layouts/Site.astro';
+import TitleBlock from '../components/TitleBlock.astro';
+import CompatPairBlock from '../components/CompatPairBlock.astro';
+import '../styles/renewables.css';
+import '../styles/compat.css';
+import { href, other, type Lang } from '../lib/i18n';
+import { lek, num } from '../lib/money';
+import { allCities, cityName, pvCities } from '../lib/pages-db';
+import { chosenCitySlug } from '../lib/city-pref';
+import { arrayLayout, packageCity, packageLines, panelSizes, pricePackages, type PricedPackage } from '../lib/packages';
+import { notIncluded } from '../content/packages';
+import { posterLines } from '../lib/poster';
+import { tr } from '../i18n/renewables';
+import { tp } from '../i18n/pages';
+import { tc } from '../i18n/compat';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const t = tr(lang);
+const p = t.packages;
+const g = t.guide;
+const c = tc(lang);
+
+// City: ?qyteti= / ?city=, else the remembered one; only the 14 PVGIS cities price, any other falls back to Tirana.
+const asked = await chosenCitySlug(Astro.url, Astro.cookies);
+const citySlug = await packageCity(asked);
+const cities = await pvCities();
+const city = cities.find((c) => c.slug === citySlug)!;
+const shownName = cityName(city, lang);
+const askedCity = asked && asked !== citySlug ? (await allCities()).find((c) => c.slug === asked) : undefined;
+
+const priced = await pricePackages(citySlug);
+const sizes = await panelSizes(priced);
+const pad = (n: number) => String(n).padStart(2, '0');
+const GENERIC = { w: 1134, h: 2382 }; // drawing only, when a module has no datasheet size in the catalogue
+
+type Drawn = PricedPackage & { mm: { w: number; h: number } | null; layout: ReturnType<typeof arrayLayout> | null };
+const drawn: Drawn[] = priced.map((pp) => {
+  const panel = pp.result?.kit.find((k) => k.role === 'panel');
+  const mm = panel ? (sizes.get(panel.productSlug) ?? null) : null;
+  const layout = pp.result ? arrayLayout(pp.result.panels, (mm ?? GENERIC).w, (mm ?? GENERIC).h) : null;
+  return { ...pp, mm, layout };
+});
+// The key plan draws every array in the same viewBox, so they share one scale.
+const planW = Math.max(1, ...drawn.map((d) => d.layout?.width ?? 0));
+const planH = Math.max(1, ...drawn.map((d) => d.layout?.height ?? 0));
+
+const roleLabel = { panel: p.lines.panel, inverter: p.lines.inverter, battery: p.lines.battery, mounting: p.lines.panel } as const;
+const missingLabel = { panel: p.lines.panel, inverter: p.lines.inverter, battery: p.lines.battery, extra: p.lines.extra } as const;
+const q = Astro.url.searchParams.has('qyteti') || Astro.url.searchParams.has('city') ? { qyteti: citySlug } : undefined;
+const alternate = href(other(lang), 'packages', {}, q);
+// The same origin as the canonical (Site.astro: PUBLIC_ORIGIN when set), so the structured data never names the internal host.
+const self = `${Astro.site?.origin ?? Astro.url.origin}${href(lang, 'packages')}`;
+
+const calcHref = (pp: PricedPackage) =>
+  href(lang, 'calculator', {}, {
+    qyteti: citySlug,
+    mode: 'kwh',
+    kwh: pp.pkg.input.kwhMonth,
+    lidhja: pp.pkg.input.kind,
+    bateri: pp.pkg.input.battery ? '1' : '0',
+    faza: pp.pkg.input.phases,
+  });
+const quoteHref = (pp: PricedPackage) => href(lang, 'quote', {}, { projekt: pp.pkg.id === 'heat-pump-solar' ? 'heat-pump' : 'solar', paketa: pp.pkg.id, qyteti: citySlug });
+
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: p.h1,
+  inLanguage: lang,
+  itemListOrder: 'https://schema.org/ItemListOrderAscending',
+  numberOfItems: drawn.length,
+  // A Product (with its Offer) only when every line has a live, in-stock offer for this city; a Product with no offers,
+  // review or rating is an invalid item, so an incomplete package is a plain list entry with its name and link.
+  itemListElement: drawn.map((d, i) =>
+    d.complete && d.total !== null
+      ? {
+          '@type': 'ListItem',
+          position: i + 1,
+          url: `${self}#${d.pkg.id}`,
+          item: {
+            '@type': 'Product',
+            name: d.pkg.name[lang],
+            description: d.pkg.summary[lang],
+            url: `${self}#${d.pkg.id}`,
+            offers: { '@type': 'Offer', price: d.total, priceCurrency: 'ALL', availability: 'https://schema.org/InStock', areaServed: shownName },
+          },
+        }
+      : { '@type': 'ListItem', position: i + 1, name: d.pkg.name[lang], url: `${self}#${d.pkg.id}` },
+  ),
+};
+---
+<Site lang={lang} title={p.title} description={p.description} alternate={alternate} current="packages" jsonld={[jsonld]}>
+  <section class="rn-hero wrap" aria-labelledby="pk-h1">
+    <div class="rn-hero__text">
+      <nav aria-label={lang === 'sq' ? 'Gjurma' : 'Breadcrumb'}>
+        <ol class="crumbs"><li><a href={href(lang, 'home')}>{tp(lang).crumbsHome}</a></li><li aria-current="page">{p.h1}</li></ol>
+      </nav>
+      <p class="eyebrow">{p.eyebrow}</p>
+      <h1 class="poster rn-poster" id="pk-h1" data-rn-poster style={`--rn-chars:${Math.max(6, ...posterLines(p.h1).map((l) => l.length))}`}>
+        {posterLines(p.h1).map((w) => <span class="rn-poster__line">{w} </span>)}
+      </h1>
+      <p class="lede rn-lede">{p.lede}</p>
+      <form class="pk-city" method="get" action={href(lang, 'packages')}>
+        <label class="pk-city__label" for="pk-city">{p.city}</label>
+        <div class="pk-city__row">
+          <select class="select" id="pk-city" name="qyteti">
+            {cities.map((c) => <option value={c.slug} selected={c.slug === citySlug}>{cityName(c, lang)} · {num(c.pv_yield, 0, lang)} kWh/kWp</option>)}
+          </select>
+          <button class="btn" type="submit">{p.cityApply} <span class="arrow" aria-hidden="true">→</span></button>
+        </div>
+        {askedCity && <p class="pk-city__note small" role="status">{p.cityFallback(cityName(askedCity, lang), shownName)}</p>}
+      </form>
+    </div>
+
+    <figure class="rn-sheet pk-plan" aria-labelledby="pk-plan-cap">
+      <ol class="pk-plan__grid">
+        {drawn.map((d) => (
+          <li class="pk-plan__cell">
+            <a class="pk-plan__link" href={`#${d.pkg.id}`}>
+              <span class="pk-plan__key mono">{pad(d.pkg.n)}</span>
+              {d.layout ? (
+                <svg class="pk-plan__svg" viewBox={`0 0 ${planW} ${planH}`} style={`aspect-ratio:${planW} / ${planH}`} preserveAspectRatio="xMinYMax meet" aria-hidden="true" focusable="false">
+                  <g transform={`translate(0 ${planH - d.layout.height})`}>
+                    {d.layout.panels.map((r) => <rect x={r.x} y={r.y} width={d.layout!.w} height={d.layout!.h} />)}
+                  </g>
+                </svg>
+              ) : <span class="pk-plan__svg" aria-hidden="true"></span>}
+              <span class="pk-plan__name">{d.pkg.name[lang]}</span>
+              <span class="pk-plan__kwp mono">{d.result ? `${num(d.result.kwp, 2, lang)} kWp` : '—'}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+      <figcaption class="rn-sheet__cap mono" id="pk-plan-cap">
+        <span>{p.planTitle}</span>
+        <span>{shownName}</span>
+      </figcaption>
+    </figure>
+  </section>
+
+  <div class="wrap">
+    <TitleBlock class="rn-tb" items={[
+      { label: p.city, value: shownName },
+      { label: p.tb.yield, value: `${num(city.pv_yield, 0, lang)} kWh/kWp` },
+      { label: p.tb.tariff, value: 'ERE 2026' },
+      { label: p.tb.prices, value: p.tb.pricesValue },
+    ]} />
+  </div>
+
+  <section class="wrap pk-grid" aria-label={p.h1}>
+    {drawn.map((d) => {
+      const r = d.result;
+      const kitLines = r ? [...r.kit.map((k) => ({ k, label: roleLabel[k.role] })), ...d.extras.map((k) => ({ k, label: p.lines.extra }))] : [];
+      const lines = packageLines(d);
+      const battery = d.pkg.input.battery;
+      // The checked inverter + battery pair in the kit (only ever a pair the makers list: src/content/battery-compat.ts).
+      const invLine = r?.kit.find((k) => k.role === 'inverter');
+      const batLine = r?.kit.find((k) => k.role === 'battery');
+      const pair = battery && d.pair && invLine && batLine ? d.pair : null;
+      // A missing inverter is already explained by the 'no-inverter' reason.
+      const otherMissing = d.missing.some((m) => m !== 'battery' && !(m === 'inverter' && d.batteryIssue === 'no-inverter'));
+      return (
+        <article class="pk" id={d.pkg.id} aria-labelledby={`${d.pkg.id}-h`}>
+          <header class="pk__head">
+            <p class="pk__key mono"><span>{pad(d.pkg.n)}</span><span>{shownName}</span></p>
+            <h2 class="pk__name" id={`${d.pkg.id}-h`}>{d.pkg.name[lang]}</h2>
+            <p class="pk__summary">{d.pkg.summary[lang]}</p>
+          </header>
+
+          <figure class="pk__fig">
+            {d.layout && (
+              <svg class="pk__svg" data-rn-array viewBox={`-120 -120 ${d.layout.width + 240} ${d.layout.height + 240}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
+                {d.layout.panels.map((pt) => (
+                  <g class="pk__panel" transform={`translate(${pt.x} ${pt.y})`}>
+                    <rect width={d.layout!.w} height={d.layout!.h} />
+                    <line x1="0" x2={d.layout!.w} y1={d.layout!.h / 2} y2={d.layout!.h / 2} />
+                  </g>
+                ))}
+              </svg>
+            )}
+            {r && <p class="pk__stamp mono">{num(r.kwp, 2, lang)}<span> kWp</span></p>}
+            {r && (
+              <figcaption class="pk__dim mono">
+                <span>{r.panels} × {num(r.assumptions.panelWp, 0, lang)} Wp</span>
+                {d.mm && <span>{num(d.mm.w, 0, lang)} × {num(d.mm.h, 0, lang)} mm</span>}
+              </figcaption>
+            )}
+          </figure>
+
+          {/* the size itself is on the drawing (stamp and caption); this row carries the year's energy */}
+          <div class="pk__size">
+            {r ? <p class="mono">{p.year(num(r.annualKwh, 0, lang), shownName)}</p> : <p class="small muted">{p.incomplete}</p>}
+          </div>
+
+          <div class="pk__price">
+            {d.complete && d.total !== null ? (
+              <>
+                <p class="pk__price-label mono">{p.priceLabel}</p>
+                <p class="pk__total price">{lek(d.total, lang)}</p>
+                <p class="pk__price-note small">{p.priceNote}{pair && ` ${c.priceNoteBattery}`}</p>
+                <form class="pk__add" method="post" action="/api/cart" data-cart-form>
+                  <input type="hidden" name="action" value="add-many" />
+                  {lines.map((l) => <><input type="hidden" name="offerId" value={l.offerId} /><input type="hidden" name="qty" value={l.qty} /></>)}
+                  <button class="btn btn--block" type="submit">{p.addAll}<span class="visually-hidden">: {d.pkg.name[lang]}</span></button>
+                </form>
+              </>
+            ) : (
+              <div class="rn-note rn-note--unknown">
+                <p class="rn-tag mono">{p.missing}: {d.missing.map((m) => missingLabel[m]).join(', ')}</p>
+                {(otherMissing || !d.batteryIssue) && <p class="small">{p.incomplete}</p>}
+                {d.batteryIssue && <p class="small">{c.packageIssue[d.batteryIssue]}</p>}
+              </div>
+            )}
+          </div>
+
+          {/* Only the rows above line up across a row of cards (subgrid); the rest flows, so a card without a battery
+              does not copy the height of a battery card's notes and pair block. */}
+          <div class="pk__rest">
+          {d.complete && d.total !== null && pair && (
+            <div class="pk__checks">
+              <div class="rn-note rn-note--check">
+                <p class="rn-tag mono">{c.installTag}</p>
+                <p class="small">{p.batteryCheck}</p>
+              </div>
+              {pair.onGridOnly && (
+                <div class="rn-note rn-note--caution">
+                  <p class="rn-tag mono">{c.onGridTag}</p>
+                  <p class="small">{c.onGrid}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div class="pk__lines">
+            <h3 class="pk__h mono">{p.includes}</h3>
+            {kitLines.length > 0 && (
+              <ul class="pk__list">
+                {kitLines.map(({ k, label }) => (
+                  <li>
+                    <span class="pk__role mono">{label}</span>
+                    <a href={href(lang, 'product', { slug: k.productSlug })} translate="no">{k.qty} × {k.name}</a>
+                    <span class="price mono">{lek(k.lineTotal, lang)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {pair && invLine && batLine && (
+              <div class="cp cp--card" role="group" aria-labelledby={`${d.pkg.id}-pair`}>
+                <h4 class="pk__h mono cp__h" id={`${d.pkg.id}-pair`}>{c.pairH}</h4>
+                <p class="cp__names" translate="no">{invLine.name} + {batLine.name}</p>
+                <CompatPairBlock lang={lang} pair={pair} idPrefix={`${d.pkg.id}-pair`} />
+              </div>
+            )}
+          </div>
+
+          <div class="pk__suits">
+            <h3 class="pk__h mono">{p.suits}</h3>
+            <ul class="pk__bullets">{d.pkg.suits.map((s) => <li>{s[lang]}</li>)}</ul>
+            <p class="pk__roof small"><span class="rn-tag rn-tag--guidance mono">{g.tags.guidance}</span> {p.roof(d.pkg.roofM2)}</p>
+          </div>
+
+          <div class="pk__out">
+            <h3 class="pk__h mono">{p.notIncluded}</h3>
+            <ul class="pk__bullets pk__bullets--out small">{notIncluded(d.pkg).map((s) => <li>{s[lang]}</li>)}</ul>
+          </div>
+
+          <footer class="pk__foot">
+            {d.overRegulatorySize && (
+              <div class="rn-note rn-note--caution">
+                <p class="rn-tag mono">{p.caution}</p>
+                <p class="small">{p.overSize}</p>
+              </div>
+            )}
+            {(d.pkg.notes ?? []).map((n) => <p class="pk__fine small">{n[lang]}</p>)}
+            <div class="pk__actions">
+              <a class="btn btn--ghost btn--block" href={quoteHref(d)}>{p.quote}<span class="visually-hidden">: {d.pkg.name[lang]}</span></a>
+              <a class="link-arrow" href={calcHref(d)}><span>{p.toCalculator}<span class="visually-hidden">: {d.pkg.name[lang]}</span></span><span class="arrow" aria-hidden="true">→</span></a>
+            </div>
+          </footer>
+          </div>
+        </article>
+      );
+    })}
+  </section>
+
+  <section class="wrap rn-after" aria-label={lang === 'sq' ? 'Supozimet' : 'Assumptions'}>
+    <div class="rn-note rn-note--assumption rn-after__note">
+      <p class="rn-tag mono">{g.tags.assumption}</p>
+      <p>{p.assumptions}</p>
+    </div>
+    <ul class="rn-after__links">
+      <li><a class="link-arrow" href={href(lang, 'calculator', {}, { qyteti: citySlug })}><span>{p.toCalculator}</span><span class="arrow" aria-hidden="true">→</span></a></li>
+      <li><a class="link-arrow" href={href(lang, 'quote', {}, { projekt: 'solar', qyteti: citySlug })}><span>{p.quote}</span><span class="arrow" aria-hidden="true">→</span></a></li>
+      <li><a class="link-arrow" href={`${href(lang, 'guide')}#self-producer`}><span>{p.toGuide}</span><span class="arrow" aria-hidden="true">→</span></a></li>
+    </ul>
+  </section>
+  <script>
+    import '../scripts/renewables';
+  </script>
+</Site>

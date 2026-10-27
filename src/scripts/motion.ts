@@ -24,7 +24,9 @@ const nativeScroll = () => document.documentElement.hasAttribute('data-native-sc
 
 function startLenis() {
   if (lenis || nativeScroll()) return;
-  lenis = new Lenis({ lerp: 0.12, wheelMultiplier: 1, anchors: { offset: -72 }, autoRaf: false });
+  // anchors: no offset of our own. Lenis already subtracts html's scroll-padding-top (the header, base.css) and the
+  // target's scroll-margin-top; an extra -72 put sections a whole header lower again (232 px down on the guide).
+  lenis = new Lenis({ lerp: 0.12, wheelMultiplier: 1, anchors: true, autoRaf: false });
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add(lenisStep);
 }
