@@ -192,24 +192,25 @@
       "files": [
         {
           "file": "part-heatpump-800.webp",
-          "width": 800,
-          "height": 671,
-          "bytes": 49176
+          "width": 690,
+          "height": 800,
+          "bytes": 47616
         },
         {
           "file": "part-heatpump-400.webp",
-          "width": 400,
-          "height": 336,
-          "bytes": 22202
+          "width": 345,
+          "height": 400,
+          "bytes": 21450
         }
       ],
       "object800": {
-        "x": 44,
-        "y": 14,
-        "w": 708,
-        "h": 624
+        "x": 78,
+        "y": 17,
+        "w": 554,
+        "h": 744
       },
-      "note": "sizes are the long side"
+      "note": "sizes are the long side",
+      "recut": "2026-10-27: re-cut with a traced outline (unit + legs) so the bluish floor/shadow patch left of the unit is no longer kept as object; object800 is the unit alone."
     },
     "swh": {
       "source": "part-swh-3.jpg",

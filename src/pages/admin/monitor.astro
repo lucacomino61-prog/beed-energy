@@ -31,7 +31,7 @@ const maxPct = Math.max(1, ...m.spread.map((r: any) => r.spread_pct ?? 0));
                 <td class="num price">{lek(r.high, lang)}</td>
                 <td class="num">
                   <span class="row" style="justify-content: flex-end; flex-wrap: nowrap; gap: 0.6rem">
-                    <svg width="80" height="8" aria-hidden="true" style="display: inline-block"><rect x="0" y="3" width="80" height="2" fill="var(--line)" /><rect x="0" y="0" height="8" width={Math.max(2, (80 * r.spread_pct) / maxPct).toFixed(1)} fill="var(--copper)" /></svg>
+                    <svg width="80" height="8" aria-hidden="true" style="display: inline-block"><rect x="0" y="3" width="80" height="2" fill="var(--line)" /><rect x="0" y="0" height="8" width={Math.max(2, (80 * r.spread_pct) / maxPct).toFixed(1)} fill="var(--amber-deep)" /></svg>
                     <span class="mono">{num(r.spread_pct, 1, lang)}%</span>
                   </span>
                 </td>

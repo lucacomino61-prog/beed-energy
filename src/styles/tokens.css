@@ -1,4 +1,5 @@
-/* BeeD Energy tokens — two colours (ink, copper) + neutrals tinted toward them. See DESIGN.md. */
+/* BeeD Energy tokens — Water + Sun: deep Adriatic teal (hydropower) and sun amber (solar) on pale sky paper,
+   text in ink-teal. See DESIGN.md. The old ink + copper names stay as aliases. */
 @font-face {
   font-family: 'Archivo';
   font-style: normal;
@@ -41,32 +42,54 @@
 }
 
 :root {
-  --brand-hue: 60;
-  --ink: oklch(18% 0.012 60);
-  --ink-2: oklch(42% 0.015 60);
-  --ink-3: oklch(58% 0.012 60);
-  --copper: oklch(66% 0.135 52);
-  --copper-2: oklch(74% 0.11 58);
-  --copper-deep: oklch(49% 0.12 45);
-  --paper: oklch(96.6% 0.008 75);
-  --paper-2: oklch(92.5% 0.012 72);
-  --paper-3: oklch(88% 0.014 70);
-  --line: oklch(18% 0.012 60 / 0.16);
-  --line-strong: oklch(18% 0.012 60 / 0.42);
-  --line-on-ink: oklch(96.6% 0.008 75 / 0.18);
-  --ok: oklch(52% 0.11 150);
-  --warn: oklch(58% 0.14 70);
-  --bad: oklch(52% 0.17 28);
+  --brand-hue: 190;
+
+  /* Water + Sun (2026-10-27). Contrast pairs: DESIGN.md "Colour". */
+  --paper: #f4f8f7;        /* pale sky paper: the page ground */
+  --sheet: #e8f1f0;        /* the house stage's drafting sheet: paper with a light teal tint */
+  --teal-tint: #dcebea;    /* panels, rows, chosen options */
+  --teal-tint-2: #c8dedc;  /* a step deeper: drawing faces, chart tracks */
+  --teal: #0e4b55;         /* deep Adriatic teal: colour bands, primary buttons, menu, dock, links */
+  --teal-deep: #0a3a42;    /* hover on teal, footer, the finale's night */
+  --teal-2: #165e69;       /* lifted teal: hover rows on teal grounds */
+  --sun: #f5a524;          /* sun amber: energy, prices on teal, live parts, active, focus on teal */
+  --glow: #ffd166;         /* energy glow: lit windows, amber hover on teal, subtle highlights */
+  --amber-deep: #925700;   /* amber text, keys and errors on light grounds (5.5:1 on paper, 4.8:1 on tint) */
+  --text: #10262b;         /* ink-teal text */
+  --text-2: #3f5b61;       /* secondary text (6.8:1 on paper, 5.9:1 on tint) */
+  --text-3: #587378;       /* tertiary labels (4.7:1 on paper) */
+  --on-teal: var(--paper);
+  --on-teal-2: #bcd6d5;    /* secondary text on teal (6.4:1) and teal-deep (8.1:1) */
+  --line: rgb(16 38 43 / 0.16);         /* hairlines: text colour at low alpha */
+  --line-strong: rgb(16 38 43 / 0.42);
+  --line-ui: rgb(16 38 43 / 0.56);      /* form control boundaries (≥ 3:1 on paper and tint) */
+  --line-on-teal: rgb(244 248 247 / 0.2);
+  --line-on-teal-strong: rgb(244 248 247 / 0.36);
+  --line-on-teal-ui: rgb(244 248 247 / 0.5); /* control boundaries on teal (≥ 3:1) */
+  --ok: var(--teal);
+  --warn: var(--amber-deep);
+  --bad: var(--amber-deep);
+
+  /* old names (ink + copper), kept as aliases so nothing breaks */
+  --ink: var(--text);
+  --ink-2: var(--text-2);
+  --ink-3: var(--text-3);
+  --copper: var(--sun);
+  --copper-2: var(--glow);
+  --copper-deep: var(--amber-deep);
+  --paper-2: var(--teal-tint);
+  --paper-3: var(--teal-tint-2);
+  --line-on-ink: var(--line-on-teal);
 
   /* base.css names, mapped */
-  --c-ink: var(--ink);
-  --c-ink-2: var(--ink-2);
+  --c-ink: var(--text);
+  --c-ink-2: var(--text-2);
   --c-paper: var(--paper);
   --c-surface: var(--paper);
   --c-line: var(--line);
-  --c-brand: var(--copper-deep);
-  --c-brand-2: var(--copper);
-  --c-focus: var(--copper-deep);
+  --c-brand: var(--teal);
+  --c-brand-2: var(--sun);
+  --c-focus: var(--teal);
 
   --font-text: 'Archivo', 'Archivo Fallback', system-ui, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
@@ -86,7 +109,7 @@
   --pill: 999px;
 
   --shadow-1: 0 1px 0 var(--line);
-  --shadow-2: 0 2px 6px oklch(18% 0.012 60 / 0.06), 0 14px 40px oklch(18% 0.012 60 / 0.14);
+  --shadow-2: 0 2px 6px rgb(16 38 43 / 0.06), 0 14px 40px rgb(16 38 43 / 0.14);
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);

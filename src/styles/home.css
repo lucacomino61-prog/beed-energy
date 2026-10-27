@@ -17,9 +17,18 @@
   padding-bottom: 3rem;
   position: relative; z-index: 2;
 }
-.stage__poster { display: grid; font-size: min(clamp(4.5rem, 0.6rem + 11.2vw, 15.5rem), 19svh); padding-top: 0.08em; }
+/* every poster line stays on one line ("SWITCH ON." is the widest, in half the stage), and on a desktop the hero
+   buttons and the quote link stay above the fold: capped by the viewport's height and width */
+.stage__poster { display: grid; font-size: min(clamp(4.5rem, 0.6rem + 11.2vw, 15.5rem), 19svh, 20vw); padding-top: 0.08em; }
+@media (min-width: 901px) {
+  .stage__poster { font-size: min(clamp(4.5rem, 0.6rem + 11.2vw, 15.5rem), 17.5svh, 10vw, 10.5rem); }
+}
+/* short desktop screens (1280 × 720, 1366 × 768): tighter rhythm, so the buttons and the quote link stay in view */
+@media (min-width: 901px) and (max-height: 820px) {
+  .stage__intro { gap: 0.9rem; padding-top: calc(var(--header-h) + 0.875rem); }
+}
 .stage__line { display: block; }
-.stage__line:last-child { color: var(--copper-deep); }
+.stage__line:last-child { color: var(--teal); }
 .stage__cta { margin-top: 0.4rem; }
 .stage__quote { align-self: flex-start; }
 .stage__stats { color: var(--ink-2); }
@@ -36,11 +45,11 @@
 /* The sheet: the realistic house (AI illustration, public/house/, ASSETS.md) on the drafting grid. */
 .stage__sheet { --pad: clamp(0.5rem, 2vw, 2rem); --gap: clamp(0.5rem, 1.2vw, 1rem); position: relative; min-height: 0; border: 1px solid var(--line); background:
   linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 32px 32px,
-  linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 32px 32px; background-color: var(--paper); overflow: hidden; }
+  linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 32px 32px; background-color: var(--sheet); overflow: hidden; }
 .stage__stamp { position: absolute; right: 8px; bottom: 6px; z-index: 2; margin: 0; font-size: 10px; line-height: 1.2; letter-spacing: 0.02em; color: var(--ink-2); transition: color 400ms var(--ease-out); }
 
 /* Static exploded diagram — the default (no scripts, reduced motion, energy saving): the house in the middle of
-   the sheet, every part laid out around it with its chapter key and a short copper leader toward the house. */
+   the sheet, every part laid out around it with its chapter key and a short amber leader toward the house. */
 .stage__sheet {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -59,9 +68,9 @@
 .rh__dusk, .stage__night, .hud { display: none; }
 .rp { position: relative; min-width: 0; min-height: 0; list-style: none; }
 .rp img { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: contain; }
-.rp__key { position: absolute; left: 0; top: 0; z-index: 1; font: 600 11px/1 var(--font-mono); font-variant-numeric: tabular-nums; padding: 3px 4px; background: var(--ink); color: var(--copper); }
+.rp__key { position: absolute; left: 0; top: 0; z-index: 1; font: 600 11px/1 var(--font-mono); font-variant-numeric: tabular-nums; padding: 3px 4px; background: var(--sun); color: var(--text); }
 /* leader stubs: down from the top row, left from the right column, up from the bottom row, diagonal from the corners */
-.rp::after { content: ''; position: absolute; left: 50%; top: 100%; width: 1px; height: calc(var(--gap) + 4px); background: var(--copper-deep); transform-origin: 50% 0; }
+.rp::after { content: ''; position: absolute; left: 50%; top: 100%; width: 1px; height: calc(var(--gap) + 4px); background: var(--amber-deep); transform-origin: 50% 0; }
 .rp:is([data-part="inverter"], [data-part="battery"])::after { left: auto; right: 100%; top: 50%; width: calc(var(--gap) + 4px); height: 1px; }
 .rp:is([data-part="envelope"], [data-part="ev"])::after { top: auto; bottom: 100%; }
 .rp[data-part="meter"]::after { left: 0; transform: rotate(45deg); }
@@ -71,6 +80,10 @@
 .rp[data-part="meter"] img { object-position: 0% 100%; }
 .rp:is([data-part="inverter"], [data-part="battery"]) img { object-position: 0% 50%; }
 .rp:is([data-part="envelope"], [data-part="ev"]) img { object-position: 50% 0%; }
+/* the charger sits centred in its double cell: its key goes to the picture's top-left corner, not the cell's
+   (which is next to the window). 40.2cqh = half the picture's width when the cell's height sets its size (643 × 800). */
+.rp[data-part="ev"] { container-type: size; }
+.rp[data-part="ev"] .rp__key { left: max(0px, 50cqw - 40.2cqh - 1.5rem); }
 .rp[data-part="heatpump"] img { object-position: 0% 0%; }
 
 /* Motion on: the house sits centred on the sheet and home.ts moves it, the parts and the HUD (transform + opacity). */
@@ -83,34 +96,37 @@ html.js[data-motion="on"] .rh {
   transform-origin: 0 0;
 }
 html.js[data-motion="on"] .rh__dusk { display: block; opacity: 0; }
-/* the finale's night: ink ground with a paper grid, faded in under the dusk render */
+/* the finale's night: deep teal ground with a paper grid and a lifted-teal halo behind the house (no amber wash: amber
+   over teal turns olive); the warm light is the dusk render's lit windows. Faded in under the dusk render. */
 html.js[data-motion="on"] .stage__night { display: block; position: absolute; inset: 0; opacity: 0; background:
-  linear-gradient(var(--line-on-ink) 1px, transparent 1px) 0 0 / 32px 32px,
-  linear-gradient(90deg, var(--line-on-ink) 1px, transparent 1px) 0 0 / 32px 32px; background-color: var(--ink); }
-html.js[data-motion="on"] .stage__sheet[data-dusk] .stage__stamp { color: oklch(84% 0.01 70); }
-html.js[data-motion="on"] .rp { position: absolute; left: 0; top: 0; z-index: 3; opacity: 0; pointer-events: none; }
+  radial-gradient(ellipse 60% 52% at 52% 56%, rgb(22 94 105 / 0.85), rgb(22 94 105 / 0.3) 55%, transparent 85%),
+  linear-gradient(rgb(244 248 247 / 0.11) 1px, transparent 1px) 0 0 / 32px 32px,
+  linear-gradient(90deg, rgb(244 248 247 / 0.11) 1px, transparent 1px) 0 0 / 32px 32px; background-color: var(--teal-deep); }
+html.js[data-motion="on"] .stage__sheet[data-dusk] .stage__stamp { color: var(--on-teal-2); }
+html.js[data-motion="on"] .rp { position: absolute; left: 0; top: 0; z-index: 3; opacity: 0; pointer-events: none; container-type: normal; }
 html.js[data-motion="on"] .rp img { position: static; display: block; width: 100%; height: auto; }
 html.js[data-motion="on"] .rp::after, html.js[data-motion="on"] .rp__key { display: none; }
 
-/* HUD (Igloo): a copper ring on the equipment, a leader to the part, and the label beside it. home.ts places them. */
+/* HUD (Igloo): a sun-amber ring on the equipment, a leader to the part, and the label beside it. home.ts places them. */
 html.js[data-motion="on"] .hud { display: block; position: absolute; inset: 0; pointer-events: none; }
-.hud__ring { --ring: 30px; position: absolute; left: 0; top: 0; z-index: 2; width: var(--ring); height: var(--ring); margin: calc(var(--ring) / -2) 0 0 calc(var(--ring) / -2); border: 2px solid var(--copper); border-radius: 50%; background: oklch(66% 0.135 52 / 0.16); box-shadow: 0 0 0 2px oklch(96.6% 0.008 75 / 0.7); opacity: 0; visibility: hidden; }
-.hud__ring::after { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--copper-deep); }
-.hud__leader { position: absolute; left: 0; top: 0; z-index: 2; height: 1.5px; margin-top: -0.75px; background: var(--copper-deep); transform-origin: 0 50%; opacity: 0; visibility: hidden; }
-.hud__label { position: absolute; left: 0; top: 0; z-index: 4; display: grid; gap: 0.2rem; width: max-content; max-width: min(17rem, 48cqw); padding: 0.55rem 0.7rem 0.6rem; background: var(--paper); border: 1px solid var(--ink); color: var(--ink); text-decoration: none; opacity: 0; visibility: hidden; pointer-events: auto; }
+.hud__ring { --ring: 30px; position: absolute; left: 0; top: 0; z-index: 2; width: var(--ring); height: var(--ring); margin: calc(var(--ring) / -2) 0 0 calc(var(--ring) / -2); border: 2.5px solid var(--sun); border-radius: 50%; background: rgb(245 165 36 / 0.22); box-shadow: 0 0 0 2px rgb(244 248 247 / 0.8), 0 0 0 3px rgb(146 87 0 / 0.35); opacity: 0; visibility: hidden; }
+.hud__ring::after { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--amber-deep); }
+.hud__leader { position: absolute; left: 0; top: 0; z-index: 2; height: 2px; margin-top: -1px; background: var(--sun); box-shadow: 0 0 0 0.5px rgb(146 87 0 / 0.45); transform-origin: 0 50%; opacity: 0; visibility: hidden; }
+.hud__label { position: absolute; left: 0; top: 0; z-index: 4; display: grid; gap: 0.2rem; width: max-content; max-width: min(17rem, 48cqw); padding: 0.55rem 0.7rem 0.6rem; background: var(--paper); border: 1px solid var(--teal); box-shadow: inset 0 3px 0 var(--sun); color: var(--text); text-decoration: none; opacity: 0; visibility: hidden; pointer-events: auto; }
 .hud__label--measure { visibility: hidden; pointer-events: none; }
 .hud__head { display: flex; gap: 0.5rem; align-items: baseline; }
-.hud__n { flex: none; font: 600 11px/1 var(--font-mono); font-variant-numeric: tabular-nums; padding: 3px 4px; background: var(--ink); color: var(--copper); }
+.hud__n { flex: none; font: 600 11px/1 var(--font-mono); font-variant-numeric: tabular-nums; padding: 3px 4px; background: var(--sun); color: var(--text); }
 .hud__name { font-stretch: 75%; font-weight: 750; font-size: 1.0625rem; line-height: 1.05; text-transform: uppercase; letter-spacing: 0.01em; }
 .hud__cat { font-weight: 600; font-size: 0.8125rem; line-height: 1.25; }
-.hud__meta { font: 500 11px/1.35 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--copper-deep); }
+.hud__meta { font: 500 11px/1.35 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--amber-deep); }
 .hud__meta .arrow { display: inline-block; transition: transform 200ms var(--ease-out); }
+.hud__end { white-space: nowrap; }
 @media (hover: hover) and (pointer: fine) { .hud__label:hover .arrow { transform: translateX(3px); } .hud__label:hover .hud__cat { text-decoration: underline; } }
-.stage__caption { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.75rem; color: var(--ink-2); border-top: 3px solid var(--ink); padding-top: 0.5rem; }
+.stage__caption { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.75rem; color: var(--ink-2); border-top: 3px solid var(--teal); padding-top: 0.5rem; }
 .stage__keys { display: flex; gap: 0.35rem; flex-wrap: wrap; }
 .stage__key { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; border: 1px solid var(--line-strong); text-decoration: none; font: 500 0.75rem var(--font-mono); transition: background-color 200ms var(--ease-out), color 200ms var(--ease-out), border-color 200ms var(--ease-out); }
-.stage__key[aria-current="step"] { background: var(--ink); color: var(--copper); border-color: var(--ink); }
-@media (hover: hover) and (pointer: fine) { .stage__key:hover { border-color: var(--ink); } }
+.stage__key[aria-current="step"] { background: var(--sun); color: var(--text); border-color: var(--amber-deep); font-weight: 600; }
+@media (hover: hover) and (pointer: fine) { .stage__key:hover { border-color: var(--teal); } }
 
 .chapters { grid-column: 1 / span 6; grid-row: 2; list-style: none; padding: 0; margin: 0; }
 .chapter {
@@ -123,7 +139,7 @@ html.js[data-motion="on"] .hud { display: block; position: absolute; inset: 0; p
 .chapter__key { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; font-size: 0.75rem; color: var(--ink-2); }
 .chapter__title { font-size: clamp(2.5rem, 1.3rem + 3.6vw, 5.25rem); }
 .chapter__fact { font-size: var(--step-1); line-height: 1.35; max-width: 34ch; }
-.chapter__value { display: block; font-size: clamp(2.5rem, 1.3rem + 3.6vw, 5.25rem); line-height: 0.95; color: var(--copper-deep); margin-bottom: 0.4rem; }
+.chapter__value { display: block; font-size: clamp(2.5rem, 1.3rem + 3.6vw, 5.25rem); line-height: 0.95; color: var(--teal); margin-bottom: 0.4rem; }
 .chapter__src a, .chapter__extra a { color: inherit; }
 .chapter__extra { max-width: 40ch; color: var(--ink-2); }
 .chapter__extra-value { font-size: 1.5em; line-height: 1; color: var(--ink); margin-right: 0.1em; }
@@ -131,15 +147,15 @@ html.js[data-motion="on"] .hud { display: block; position: absolute; inset: 0; p
 .chapter__cats a { display: grid; grid-template-columns: 1fr auto 1.25rem; gap: 0.25rem 1rem; align-items: baseline; padding: 0.85rem 0; border-bottom: 1px solid var(--line); text-decoration: none; min-height: 44px; }
 .chapter__cat { font-weight: 650; font-size: 1.0625rem; }
 @media (hover: hover) and (pointer: fine) {
-  .chapter__cats a:hover .chapter__cat { color: var(--copper-deep); }
+  .chapter__cats a:hover .chapter__cat { color: var(--teal); }
   .chapter__cats a:hover .arrow { transform: translateX(4px); }
 }
 .chapter__cats .arrow { transition: transform 200ms var(--ease-out); }
 .chapter--final .title { color: var(--ink); }
-.final { display: grid; gap: 0.5rem; max-width: 28rem; padding: 1.25rem; border: 1px solid var(--ink); background: var(--paper-2); }
+.final { display: grid; gap: 0.5rem; max-width: 28rem; padding: 1.25rem; border: 1px solid var(--teal); background: var(--teal-tint); box-shadow: inset 0 4px 0 var(--sun); }
 .final__select { max-width: 18rem; }
 .final__out { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
-.final__num { font-size: clamp(3.25rem, 1.8rem + 4.4vw, 6.5rem); line-height: 0.95; color: var(--copper-deep); }
+.final__num { font-size: clamp(3.25rem, 1.8rem + 4.4vw, 6.5rem); line-height: 0.95; color: var(--teal); }
 
 /* Scripted states: inactive chapters recede (only when motion is on; static pages show everything) */
 html.js[data-motion="on"] .chapter :is(.chapter__title, .chapter__fact, .chapter__value, .chapter__extra, .chapter__extra-value, .chapter__cats a) { transition: color 300ms var(--ease-out); }
@@ -150,6 +166,8 @@ html.js[data-motion="on"] .stage[data-active] .chapter:not(.is-active) :is(.chap
   .stage__intro { min-height: auto; padding-top: calc(var(--header-h) + 2rem); padding-bottom: 1.5rem; }
   .stage__hint { display: none; }
   .stage__drawing { position: sticky; top: 0; z-index: 3; height: auto; background: var(--paper); padding-block: 0.5rem; margin-inline: calc(var(--gutter) * -1); padding-inline: var(--gutter); border-bottom: 1px solid var(--line); }
+  /* the header comes back on the way up: the stuck sheet moves down under it, so the HUD's top line stays in view */
+  html.js:not([data-motion="off"]):not([data-header="hidden"]) .stage__drawing { top: var(--header-h); }
   .stage__sheet { height: max(32svh, 15rem); --pad: 0.4rem; --gap: 0.4rem; }
   /* static diagram on a phone: a plain figure above the chapter list, not a sticky band */
   html:not(.js) .stage__drawing, html[data-motion="off"] .stage__drawing { position: relative; }
@@ -158,6 +176,8 @@ html.js[data-motion="on"] .stage[data-active] .chapter:not(.is-active) :is(.chap
   /* a compact tag on the small sheet: key, layer, count and price (the chapter below carries the rest) */
   .hud__ring { --ring: 22px; }
   .hud__label { max-width: min(13rem, 58cqw); padding: 0.3rem 0.45rem 0.35rem; gap: 0.1rem; }
+  /* two parts (heat pump + solar water heater): both shelves named, on a wider tag that runs along the top */
+  .hud__label[data-multi] { max-width: min(19rem, 92cqw); }
   .hud__head { gap: 0.35rem; }
   .hud__name { font-size: 0.8125rem; }
   .hud__cat { display: none; }
@@ -167,8 +187,8 @@ html.js[data-motion="on"] .stage[data-active] .chapter:not(.is-active) :is(.chap
   .stage__key { min-width: 44px; flex: none; }
   .chapter { min-height: 70svh; padding-block: 2.5rem; }
 }
-/* the 280 px sheet: a wider tag stays two lines (key + layer, count + price) */
-@media (max-width: 359.98px) {
+/* the 280–335 px sheets (phones up to 379 px): a wider tag stays two lines (key + layer, count + price) */
+@media (max-width: 379.98px) {
   .hud__label { max-width: min(13rem, 66cqw); }
 }
 
@@ -182,8 +202,8 @@ html.js[data-motion="on"] .manifesto__text .w { opacity: var(--o, 1); }
 .how__steps { list-style: none; padding: 0; margin: 0 0 1.5rem; border-top: 1px solid var(--line); }
 .how__steps li { display: grid; grid-template-columns: 3rem 1fr; column-gap: 1rem; padding: 1.25rem 0; border-bottom: 1px solid var(--line); }
 .how__steps h4 { font-size: var(--step-2); font-stretch: 80%; font-weight: 700; }
-.how__steps p { grid-column: 2; color: oklch(84% 0.01 70); max-width: 46ch; }
-.how__n { color: var(--copper); padding-top: 0.45rem; grid-row: span 2; }
+.how__steps p { grid-column: 2; color: var(--ink-2); max-width: 46ch; }
+.how__n { color: var(--amber-deep); padding-top: 0.45rem; grid-row: span 2; }
 
 /* ---------- featured ---------- */
 .featured__head { align-items: end; margin-bottom: 2rem; }
@@ -195,11 +215,12 @@ html.js[data-motion="on"] .manifesto__text .w { opacity: var(--o, 1); }
 .numbers__list { --dim-in: clamp(1.25rem, 0.8rem + 2vw, 2.5rem); grid-column: 5 / -1; list-style: none; padding: 0; margin: 0; display: grid; gap: clamp(3rem, 2rem + 3vw, 5.5rem); }
 .numbers__item { display: grid; gap: 0.75rem; }
 .dim { position: relative; padding: 0 var(--dim-in) 0.7rem; }
-.dim__rule { position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--ink); transform-origin: left center; }
-.dim__tick { position: absolute; left: 0; bottom: -0.9rem; width: 1px; height: 1.8rem; background: var(--ink); }
-.dim__tick::after { content: ''; position: absolute; left: -6px; top: 50%; width: 13px; height: 1.5px; margin-top: -0.75px; background: var(--ink); transform: rotate(-45deg); }
+/* on the teal band the dimension lines are sun amber and the values are written in it (4.8:1, large text) */
+.dim__rule { position: absolute; left: 0; right: 0; bottom: 0; height: 1.5px; background: var(--sun); transform-origin: left center; }
+.dim__tick { position: absolute; left: 0; bottom: -0.9rem; width: 1.5px; height: 1.8rem; background: var(--sun); }
+.dim__tick::after { content: ''; position: absolute; left: -6px; top: 50%; width: 13px; height: 1.5px; margin-top: -0.75px; background: var(--sun); transform: rotate(-45deg); }
 .dim__tick--end { left: auto; right: 0; }
-.numbers__value { display: block; font-size: clamp(2.75rem, 1.5rem + 4.4vw, 6rem); line-height: 0.95; color: var(--copper-deep); }
+.numbers__value { display: block; font-size: clamp(2.75rem, 1.5rem + 4.4vw, 6rem); line-height: 0.95; color: var(--sun); }
 .numbers__text { padding-inline: var(--dim-in); padding-top: 0.6rem; font-size: var(--step-1); line-height: 1.35; max-width: calc(40ch + var(--dim-in)); }
 .numbers__src { padding-inline: var(--dim-in); display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; color: var(--ink-2); }
 .numbers__src a { color: inherit; display: inline-flex; align-items: center; min-height: 24px; }
@@ -214,7 +235,7 @@ html.js[data-motion="on"] .manifesto__text .w { opacity: var(--o, 1); }
 @media (max-width: 900px) { .calc-teaser__copy { position: static; } }
 .calc-teaser__table th a { text-decoration: none; font-weight: 600; }
 .calc-teaser__bar { width: 40%; }
-.calc-teaser__bar i { display: block; height: 6px; background: var(--copper); transform-origin: left; transform: scaleX(var(--w)); }
+.calc-teaser__bar i { display: block; height: 6px; background: var(--sun); transform-origin: left; transform: scaleX(var(--w)); }
 
 /* ---------- seller band ---------- */
 .sell-band { padding-block: var(--section-gap); }

@@ -76,6 +76,15 @@ for (const l of LAYERS) for (const p of chapterParts.get(l.n) ?? []) if (!partKe
 const shownParts = (Object.keys(PARTS) as PartId[]).filter((p) => partKey.has(p));
 const total = pad(LAYERS.length);
 const finaleN = Math.max(0, ...LAYERS.map((l) => l.n)) + 1;
+// The HUD label names the shelf of the part that lifts out; a chapter with two parts (heat pump + solar water
+// heater) names both shelves, with their products counted together and the lowest price of the two.
+const PART_SHELF: Partial<Record<PartId, string>> = { pv: 'solar-panels', inverter: 'inverters', battery: 'batteries', heatpump: 'heat-pumps', swh: 'solar-water-heaters', ev: 'ev-chargers' };
+type Cat = (typeof cats)[number];
+const hudShelves = (l: (typeof LAYERS)[number]): Cat[] => {
+  const own = (chapterParts.get(l.n) ?? []).map((p) => PART_SHELF[p]).filter((s): s is string => !!s && l.categories.includes(s));
+  const list = (own.length > 1 ? own : l.categories.slice(0, 1)).map((s) => bySlug.get(s)).filter((c): c is Cat => !!c);
+  return list;
+};
 const cities = await all<{ slug: string; name_sq: string; name_en: string; pv_yield: number }>('SELECT slug, name_sq, name_en, pv_yield FROM cities WHERE pv_yield IS NOT NULL ORDER BY pv_yield DESC');
 const tirana = cities.find((c) => c.slug === 'tirane') ?? cities[0];
 const featured = await featuredProducts(8);
@@ -135,7 +144,7 @@ const jsonld = [
           <a class="hud__label" data-hud-label tabindex="-1" href={href(lang, 'shop')}>
             <span class="hud__head"><span class="hud__n" data-hud-n></span><span class="hud__name" data-hud-name></span></span>
             <span class="hud__cat" data-hud-cat></span>
-            <span class="hud__meta"><span data-hud-meta></span> <span class="arrow">→</span></span>
+            <span class="hud__meta"><span data-hud-meta></span><span class="hud__end"><span data-hud-end></span>&nbsp;<span class="arrow">→</span></span></span>
           </a>
         </div>
         <p class="stage__stamp mono" data-stamp>{s.stamp}</p>
@@ -152,16 +161,23 @@ const jsonld = [
     <ol class="chapters" aria-label={t.layers}>
       {LAYERS.map((l) => {
         const [fact, ...more] = factsOf(l).map(factFor);
-        const first = bySlug.get(l.categories[0]);
-        const catMeta = (c: (typeof cats)[number]) => `${t.products(c.product_count ?? 0)} · ${c.min_price ? `${t.from} ${lek(c.min_price, lang)}` : t.noOffers}`;
+        const catMeta = (c: Cat) => `${t.products(c.product_count ?? 0)} · ${c.min_price ? `${t.from} ${lek(c.min_price, lang)}` : t.noOffers}`;
+        // the HUD label: the shelf (or both shelves) of what this chapter lifts out of the house
+        const shelves = hudShelves(l);
+        const first = shelves[0];
+        const lows = shelves.map((c) => c.min_price).filter((v): v is number => !!v);
+        const hudMeta = shelves.length > 1
+          ? `${t.products(shelves.reduce((n, c) => n + (c.product_count ?? 0), 0))} · ${lows.length ? `${t.from} ${lek(Math.min(...lows), lang)}` : t.noOffers}`
+          : first && catMeta(first);
         return (
           <li
             class="chapter"
             id={`shtresa-${l.n}`}
             data-chapter={l.n}
             data-parts={(chapterParts.get(l.n) ?? []).join(' ')}
-            data-hud-cat={first ? (lang === 'sq' ? first.name_sq : first.name_en) : undefined}
-            data-hud-meta={first ? catMeta(first) : undefined}
+            data-hud-cat={first ? shelves.map((c) => (lang === 'sq' ? c.name_sq : c.name_en)).join(' + ') : undefined}
+            data-hud-meta={hudMeta || undefined}
+            data-hud-multi={shelves.length > 1 ? '' : undefined}
             data-hud-href={first ? href(lang, 'category', { slug: lang === 'sq' ? first.slug_sq : first.slug_en }) : undefined}
           >
             <p class="chapter__key mono"><span class="tag tag--copper">{pad(l.n)} / {total}</span> {l.short[lang]}</p>
@@ -196,7 +212,7 @@ const jsonld = [
         );
       })}
       <li class="chapter chapter--final" id="ndize" data-chapter={finaleN}>
-        <p class="chapter__key mono"><span class="tag tag--ink">{t.final.key}</span></p>
+        <p class="chapter__key mono"><span class="tag tag--sun">{t.final.key}</span></p>
         <h2 class="title title--xl chapter__title">{t.final.title}</h2>
         <p>{t.final.text}</p>
         {tirana && (
@@ -214,13 +230,15 @@ const jsonld = [
     </ol>
   </section>
 
-  <section class="manifesto wrap section" aria-label={lang === 'sq' ? 'Manifesti' : 'Manifesto'}>
-    <p class="manifesto__text" data-manifesto>
-      {manifestoWords.map((w) => <span class="w">{w} </span>)}
-    </p>
+  <section class="manifesto on-ink section" aria-label={lang === 'sq' ? 'Manifesti' : 'Manifesto'}>
+    <div class="wrap">
+      <p class="manifesto__text" data-manifesto>
+        {manifestoWords.map((w) => <span class="w">{w} </span>)}
+      </p>
+    </div>
   </section>
 
-  <section class="how on-ink section" aria-labelledby="how-title">
+  <section class="how section" aria-labelledby="how-title">
     <div class="wrap">
       <p class="eyebrow">{t.how.eyebrow}</p>
       <h2 class="title title--xl" id="how-title">{t.how.title}</h2>
@@ -272,7 +290,7 @@ const jsonld = [
     </section>
   )}
 
-  <section class="numbers section" aria-labelledby="numbers-title">
+  <section class="numbers on-ink section" aria-labelledby="numbers-title">
     <div class="wrap numbers__wrap">
       <div class="numbers__head">
         <p class="eyebrow">{t.numbers.eyebrow}</p>

@@ -12,7 +12,7 @@ interface Props {
   title: string;
   desc: string;
   labels?: Record<string, string>; // city slug → label text
-  highlight?: string[]; // city slugs drawn in copper
+  highlight?: string[]; // city slugs drawn in sun amber
   only?: 'labelled' | 'all'; // which dots to draw
   id?: string;
   class?: string;
@@ -89,15 +89,15 @@ const tick = (v: number) => (Number.isInteger(v) ? `${v}°` : lang === 'sq' ? `$
   .amap svg { display: block; width: 100%; height: auto; max-height: min(80vh, 46rem); overflow: visible; }
   .amap__grid line { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-dasharray: 2 6; }
   .amap__grid text { font: 400 13px var(--font-mono); fill: var(--ink-3); }
-  .amap__land { fill: var(--paper-2); stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-  .amap__city circle { fill: var(--ink); }
-  .amap__city .amap__ring { fill: none; stroke: var(--copper); stroke-width: 1.5; vector-effect: non-scaling-stroke; display: none; }
+  .amap__land { fill: var(--teal-tint); stroke: var(--teal); stroke-width: 1.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  .amap__city circle { fill: var(--text); }
+  .amap__city .amap__ring { fill: none; stroke: var(--amber-deep); stroke-width: 1.5; vector-effect: non-scaling-stroke; display: none; }
   .amap__city.is-hot .amap__ring { display: inline; }
-  .amap__city.is-hot .amap__dot { fill: var(--copper); stroke: var(--ink); stroke-width: 1.5; vector-effect: non-scaling-stroke; transform: scale(1.6); transform-box: fill-box; transform-origin: center; }
+  .amap__city.is-hot .amap__dot { fill: var(--sun); stroke: var(--text); stroke-width: 1.5; vector-effect: non-scaling-stroke; transform: scale(1.6); transform-box: fill-box; transform-origin: center; }
   .amap__leader { stroke: var(--ink-2); stroke-width: 1; vector-effect: non-scaling-stroke; }
   .amap__city text { font: 500 17px var(--font-mono); fill: var(--ink); font-variant-numeric: tabular-nums; paint-order: stroke; stroke: var(--paper); stroke-width: 5px; stroke-linejoin: round; }
   .amap__val { fill: var(--ink-2); font-weight: 400; }
-  .amap__city.is-hot .amap__val { fill: var(--copper-deep); font-weight: 600; }
+  .amap__city.is-hot .amap__val { fill: var(--amber-deep); font-weight: 600; }
   .amap__city.is-hot .amap__name { font-weight: 700; }
   @media (max-width: 640px) {
     .amap__city text { font-size: 25px; stroke-width: 6px; }

@@ -45,7 +45,7 @@ const show = (v: TitleBlockItem['value']) => (v === null || v === undefined || v
     width: 100%;
     grid-template-columns: repeat(auto-fit, minmax(min(10rem, 50%), 1fr));
     border: 0;
-    border-top: 3px solid var(--ink);
+    border-top: 3px solid var(--teal);
     border-bottom: 1px solid var(--line-strong);
     padding: 4px 0 0; /* 3 px gap, then the 1 px second rule drawn by .rule-double::before */
     overflow: hidden; /* clips the hairlines of the cells on the outer edges */
@@ -59,7 +59,7 @@ const show = (v: TitleBlockItem['value']) => (v === null || v === undefined || v
     border-top: 1px solid var(--line);
   }
   .titleblock.tb dd { overflow-wrap: anywhere; }
-  .titleblock.tb a { color: var(--copper-deep); display: inline-block; padding-block: 0.4rem; margin-block: -0.4rem; }
+  .titleblock.tb a { color: var(--teal); display: inline-block; padding-block: 0.4rem; margin-block: -0.4rem; }
 
   /* No orphan: when N cells wrap onto c columns, the last one spans what is left of its row. */
   @container tb (width < 30rem) {

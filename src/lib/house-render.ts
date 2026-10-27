@@ -40,7 +40,7 @@ export const PARTS: Record<PartId, { files: [File, File]; object800: Box; hotspo
   pv: { files: [{ file: 'part-pv-400.webp', w: 400, h: 286 }, { file: 'part-pv-800.webp', w: 800, h: 573 }], object800: { x: 14, y: 14, w: 737, h: 541 }, hotspot: 'pv' },
   inverter: { files: [{ file: 'part-inverter-400.webp', w: 274, h: 400 }, { file: 'part-inverter-800.webp', w: 547, h: 800 }], object800: { x: 19, y: 19, w: 448, h: 682 }, hotspot: 'inverter' },
   battery: { files: [{ file: 'part-battery-400.webp', w: 241, h: 400 }, { file: 'part-battery-800.webp', w: 481, h: 800 }], object800: { x: 63, y: 13, w: 362, h: 758 }, hotspot: 'battery' },
-  heatpump: { files: [{ file: 'part-heatpump-400.webp', w: 400, h: 336 }, { file: 'part-heatpump-800.webp', w: 800, h: 671 }], object800: { x: 44, y: 14, w: 708, h: 624 }, hotspot: 'heatpump' },
+  heatpump: { files: [{ file: 'part-heatpump-400.webp', w: 345, h: 400 }, { file: 'part-heatpump-800.webp', w: 690, h: 800 }], object800: { x: 78, y: 17, w: 554, h: 744 }, hotspot: 'heatpump' },
   swh: { files: [{ file: 'part-swh-400.webp', w: 361, h: 400 }, { file: 'part-swh-800.webp', w: 723, h: 800 }], object800: { x: 26, y: 13, w: 663, h: 746 }, hotspot: 'swh' },
   ev: { files: [{ file: 'part-ev-400.webp', w: 321, h: 400 }, { file: 'part-ev-800.webp', w: 643, h: 800 }], object800: { x: 23, y: 23, w: 547, h: 703 }, hotspot: 'ev' },
   meter: { files: [{ file: 'part-meter-400.webp', w: 328, h: 400 }, { file: 'part-meter-800.webp', w: 656, h: 800 }], object800: { x: 94, y: 66, w: 543, h: 639 }, hotspot: 'meter' },

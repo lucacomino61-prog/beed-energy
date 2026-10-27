@@ -5,30 +5,36 @@ import '../../styles/tokens.css';
 import '../../styles/global.css';
 import '../../styles/house.css';
 import { houseSvg } from '../../lib/house';
+import BrandMark from '../../components/BrandMark.astro';
 if (!import.meta.env.DEV) return new Response(null, { status: 404 });
 const h = houseSvg();
 ---
 <html lang="sq"><head><meta charset="utf-8" /><title>og</title>
-<style>
+<style is:global>
   html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: var(--paper); }
   .og { display: grid; grid-template-columns: 560px 1fr; height: 630px; }
   .copy { padding: 52px 0 56px 64px; box-sizing: border-box; height: 630px; display: flex; flex-direction: column; justify-content: space-between; }
   .poster { font-size: 118px; line-height: 0.86; }
   .poster span { display: block; }
-  .poster span:last-child { color: var(--copper-deep); }
+  .poster span:last-child { color: var(--teal); }
   .brand { font-weight: 800; font-stretch: 75%; font-size: 34px; }
-  .brand b { color: var(--copper-deep); }
-  .sheet { margin: 40px 48px 40px 0; border: 1px solid var(--line); display: grid; place-items: center; padding: 12px; background:
-    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 28px 28px, linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 28px 28px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand b { color: var(--amber-deep); }
+  .tagline { display: grid; justify-items: start; gap: 16px; }
+  .tagline::before { content: ''; width: 56px; height: 6px; background: var(--sun); }
+  .sheet { margin: 40px 48px 40px 0; border: 1px solid var(--line); border-top: 6px solid var(--teal); display: grid; place-items: center; padding: 12px; background:
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 28px 28px, linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 28px 28px, var(--sheet); }
   .sheet .house { max-height: 540px; }
-  .sheet .house .part[data-layer="4"] { color: var(--copper-deep); }
-  .sheet .house .part[data-layer="4"] .panel { fill: var(--copper-deep); }
+  .sheet .house .part[data-layer="4"] { color: var(--amber-deep); }
+  .sheet .house .part[data-layer="4"] .panel { fill: var(--sun); }
+  .sheet .house .part[data-layer="4"] .key circle { fill: var(--sun); stroke: var(--text); }
+  .sheet .house .part[data-layer="4"] .key text { fill: var(--text); }
 </style></head>
 <body><div class="og">
   <div class="copy">
-    <div class="brand"><span>Bee<b>D</b> Energy</span></div>
+    <div class="brand"><BrandMark size={40} /><span>Bee<b>D</b> Energy</span></div>
     <h1 class="poster"><span>Ndërto.</span><span>Izolo.</span><span>Ndize.</span></h1>
-    <p class="mono" style="font-size:18px">Treg për ndërtimin dhe energjinë · Shqipëri</p>
+    <p class="mono tagline" style="font-size:18px">Treg për ndërtimin dhe energjinë · Shqipëri</p>
   </div>
   <div class="sheet"><Fragment set:html={h.svg} /></div>
 </div></body></html>

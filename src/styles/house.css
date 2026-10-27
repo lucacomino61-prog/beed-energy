@@ -1,4 +1,4 @@
-/* The house drawing (src/lib/house.ts). Ink lines on paper; the live layer turns copper. */
+/* The house drawing (src/lib/house.ts). Ink-teal lines on paper; the live layer turns sun amber. */
 .house { width: 100%; height: auto; overflow: visible; color: var(--ink); }
 .house path, .house circle { vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
 .house .face { fill: var(--paper); stroke: currentColor; stroke-width: 1.15; }
@@ -11,18 +11,18 @@
 .house .unit--x { fill: var(--paper-3); }
 .house .unit--top { fill: var(--paper-2); }
 .house .glass { fill: var(--paper-2); stroke: currentColor; stroke-width: 0.7; transition: fill 400ms var(--ease-out); }
-.house .panel { fill: var(--ink); stroke: currentColor; stroke-width: 0.9; }
+.house .panel { fill: var(--teal-deep); stroke: currentColor; stroke-width: 0.9; }
 .house .panel + .hair, .house .panel ~ .hair { stroke: var(--paper); }
 .house .hair { fill: none; stroke: currentColor; stroke-width: 0.5; opacity: 0.45; }
 .house .thin { fill: none; stroke: currentColor; stroke-width: 0.85; }
 .house .dash { fill: none; stroke: currentColor; stroke-width: 0.7; stroke-dasharray: 3 3; opacity: 0.6; }
-.house .wire { fill: none; stroke: var(--copper-deep); stroke-width: 1.2; }
+.house .wire { fill: none; stroke: var(--amber-deep); stroke-width: 1.2; }
 .house .site { fill: none; stroke: currentColor; stroke-width: 0.6; stroke-dasharray: 2 5; opacity: 0.5; }
 .house .dimline { fill: none; stroke: currentColor; stroke-width: 0.6; opacity: 0.7; }
 .house .dimtext { font: 500 13px var(--font-mono); fill: currentColor; opacity: 0.75; }
 /* keys: 20-unit circles; home.ts sets --ks so they read 21 px across with 11 px numbers at any drawing scale */
 .house .key { transform: scale(var(--ks, 1)); transform-box: fill-box; transform-origin: center; }
-.house .key circle { fill: var(--ink); stroke: var(--paper); stroke-width: 1.5; }
+.house .key circle { fill: var(--teal); stroke: var(--paper); stroke-width: 1.5; }
 .house .key text { font: 600 21px var(--font-mono); fill: var(--paper); }
 
 /* parts move with their transform; the exploded offset lives in --dx/--dy */
@@ -31,12 +31,12 @@
 /* keys stay solid while their layer is dimmed (a see-through key reads as a hole): paper disc, ink-2 rim and number */
 .house[data-dim] .part--keys:not(.is-live) .key circle { fill: var(--paper); stroke: var(--ink-2); }
 .house[data-dim] .part--keys:not(.is-live) .key text { fill: var(--ink-2); }
-.house .part.is-live { color: var(--copper-deep); }
-.house .part.is-live .key circle { fill: var(--copper); stroke: var(--ink); }
-.house .part.is-live .key text { fill: var(--ink); }
-.house .part.is-live .panel { fill: var(--copper-deep); }
-.house[data-lit] .glass { fill: var(--copper); }
-.house[data-lit] .wire { stroke: var(--copper); stroke-width: 1.8; }
+.house .part.is-live { color: var(--amber-deep); }
+.house .part.is-live .key circle { fill: var(--sun); stroke: var(--text); }
+.house .part.is-live .key text { fill: var(--text); }
+.house .part.is-live .panel { fill: var(--sun); }
+.house[data-lit] .glass { fill: var(--glow); }
+.house[data-lit] .wire { stroke: var(--sun); stroke-width: 1.8; }
 
 /* Static exploded drawing: no scripts, reduced motion or energy saving */
 .house--exploded .part,

@@ -1,7 +1,7 @@
 // Home choreography. The stage is the realistic house (AI illustration, public/house/) on a drafting sheet.
-// Each chapter that reaches the middle of the screen becomes live: the house steps back and dims, a copper ring
+// Each chapter that reaches the middle of the screen becomes live: the house steps back and dims, a sun-amber ring
 // marks the chapter's equipment on it, and the matching part image flies out of that point to a free area of the
-// sheet (exploded-parts style), with a copper leader line and the HUD label beside it. The previous part flies
+// sheet (exploded-parts style), with an amber leader line and the HUD label beside it. The previous part flies
 // back in. The finale brings every part home and crossfades the house to dusk on a night sheet.
 // Transform and opacity only, all through motion.ts (one GSAP ticker); every tween can be interrupted.
 import { gsap, ScrollTrigger, motionOn, onMotionChange } from './motion';
@@ -59,9 +59,18 @@ function fillLabel(el: HTMLElement, n: number) {
     if (t) t.textContent = text;
   };
   set('[data-hud-n]', String(n).padStart(2, '0'));
-  set('[data-hud-name]', ch?.querySelector('h2')?.textContent?.trim() ?? '');
+  // the phone tag has no shelf line: a chapter with two parts names both shelves in place of its title there
+  const multi = !!ch?.hasAttribute('data-hud-multi');
+  el.toggleAttribute('data-multi', multi);
+  const both = multi && matchMedia('(max-width: 900px)').matches;
+  set('[data-hud-name]', (both ? ch?.dataset.hudCat : ch?.querySelector('h2')?.textContent?.trim()) ?? '');
   set('[data-hud-cat]', ch?.dataset.hudCat ?? '');
-  set('[data-hud-meta]', ch?.dataset.hudMeta ?? '');
+  // the price and the arrow stay together on one line (Chrome breaks before an inline-block arrow even after a
+  // no-break space): the last word of the meta goes into the no-wrap end with the arrow
+  const meta = ch?.dataset.hudMeta ?? '';
+  const cut = meta.lastIndexOf(' ') + 1;
+  set('[data-hud-meta]', meta.slice(0, cut));
+  set('[data-hud-end]', meta.slice(cut));
   if (el instanceof HTMLAnchorElement && el === label && ch?.dataset.hudHref) el.href = ch.dataset.hudHref;
 }
 
@@ -160,8 +169,30 @@ function objectBox(id: PartId, b: Box): Box {
   return { x: b.x + o.x * s, y: b.y + o.y * s, w: o.w * s, h: o.h * s };
 }
 
-/** Where a chapter's parts go: for each part, the free spot of the sheet (off the house, off the other rings,
- *  parts and label, off the stamp) nearest its hotspot; the label goes beside the first part. Cached per sheet size. */
+type Seg = [number, number, number, number];
+/** The leader of a part placed at b, as showHud draws it: from the hotspot to the nearest point of the object. */
+function leaderOf(id: PartId, b: Box, [hx, hy]: [number, number]): Seg {
+  const ob = objectBox(id, b);
+  return [hx, hy, Math.min(Math.max(hx, ob.x + 4), ob.x + ob.w - 4), Math.min(Math.max(hy, ob.y + 4), ob.y + ob.h - 4)];
+}
+/** How many of a segment's inner sample points fall inside a box (its two ends left out). */
+function segHits(s: Seg, b: Box, n = 12): number {
+  let k = 0;
+  for (let i = 1; i < n; i++) {
+    const px = s[0] + ((s[2] - s[0]) * i) / n;
+    const py = s[1] + ((s[3] - s[1]) * i) / n;
+    if (px > b.x && px < b.x + b.w && py > b.y && py < b.y + b.h) k++;
+  }
+  return k;
+}
+const grow = (b: Box, d: number): Box => ({ x: b.x - d, y: b.y - d, w: b.w + 2 * d, h: b.h + 2 * d });
+const gap = (a: Box, b: Box) => Math.hypot(Math.max(0, b.x - (a.x + a.w), a.x - (b.x + b.w)), Math.max(0, b.y - (a.y + a.h), a.y - (b.y + b.h)));
+
+/** Where a chapter's parts go: for each part, the free spot of the sheet (off the house, off the rings, the other
+ *  parts, the label and the stamp, with its leader clear of them too) nearest its hotspot. A part whose best spot is
+ *  still more than 8 % taken (house, other parts, label) is shrunk to 0.8 and placed again, twice at most. A lone
+ *  part is placed together with its label; with two parts the label comes after both, and a part it lands on is
+ *  placed again around it. Cached per sheet size. */
 function plan(l: Layout, n: number): Plan {
   const cached = l.plans.get(n);
   if (cached) return cached;
@@ -169,7 +200,6 @@ function plan(l: Layout, n: number): Plan {
   const hots = ids.map((id) => hotIn(l.back, id));
   const R = l.narrow ? 16 : 22;
   const rings: Box[] = hots.map(([x, y]) => ({ x: x - R, y: y - R, w: 2 * R, h: 2 * R }));
-  const taken: Box[] = [...l.keep];
   let lw = 0;
   let lh = 0;
   if (measure) {
@@ -177,73 +207,119 @@ function plan(l: Layout, n: number): Plan {
     lw = measure.offsetWidth;
     lh = measure.offsetHeight;
   }
-  const parts: Placed[] = [];
-  let labelBox: Box | null = null;
   const STEP = 8;
   const G = 10; // gap between a part and its label
-  ids.forEach((id, i) => {
-    const { w, h } = partSize(l, id, ids.length);
+  const AIR = l.narrow ? 4 : 10; // the label keeps this clear of the house
+  const boxes: (Box | null)[] = ids.map(() => null);
+  let labelBox: Box | null = null;
+  /** what is already on the sheet besides part `skip`: the stamp, the other parts, the label */
+  const takenBut = (skip: number): Box[] => [...l.keep, ...boxes.filter((b, j): b is Box => !!b && j !== skip), ...(labelBox ? [labelBox] : [])];
+  const leadsBut = (skip: number): Seg[] => boxes.flatMap((b, j) => (b && j !== skip ? [leaderOf(ids[j], b, hots[j])] : []));
+  const ringCost = (b: Box) => rings.reduce((s, r) => s + overlap(b, r), 0) * 60;
+  const takenArea = (b: Box, taken: Box[]) => taken.reduce((s, t) => s + overlap(b, t), 0);
+  /** a leader crossing another part's ring, a placed part or the label points at the wrong thing */
+  const crossCost = (seg: Seg, own: number, taken: Box[]) => {
+    let k = 0;
+    rings.forEach((r, j) => (k += j === own ? 0 : segHits(seg, r)));
+    for (const t of taken) k += segHits(seg, t);
+    return k * 1500;
+  };
+  /** the leaders already drawn must not run under a new box */
+  const under = (b: Box, leads: Seg[]) => leads.reduce((s, seg) => s + segHits(seg, b), 0);
+  /** the label is opaque: a part's object under it is hidden, and so is the house (which costs more there than under a
+   *  part: the parts move out of the label's way, not the other way round) */
+  const onLabel = (i: number, b: Box) => (labelBox ? overlap(objectBox(ids[i], b), labelBox) : 0);
+  const labelCost = (o: Box, taken: Box[], leads: Seg[]) => houseCover(l, grow(o, AIR)) * 6 + ringCost(o) + takenArea(o, taken) * 12 + under(o, leads) * 4000;
+  const beside = (b: Box): Box[] => [
+    { x: b.x + b.w + G, y: b.y, w: lw, h: lh },
+    { x: b.x + b.w + G, y: b.y + (b.h - lh) / 2, w: lw, h: lh },
+    { x: b.x + b.w + G, y: b.y + b.h - lh, w: lw, h: lh },
+    { x: b.x - G - lw, y: b.y, w: lw, h: lh },
+    { x: b.x - G - lw, y: b.y + (b.h - lh) / 2, w: lw, h: lh },
+    { x: b.x - G - lw, y: b.y + b.h - lh, w: lw, h: lh },
+    { x: b.x, y: b.y + b.h + G, w: lw, h: lh },
+    { x: b.x + b.w - lw, y: b.y + b.h + G, w: lw, h: lh },
+    { x: b.x, y: b.y - G - lh, w: lw, h: lh },
+    { x: b.x + b.w - lw, y: b.y - G - lh, w: lw, h: lh },
+  ];
+  const search = (i: number, w: number, h: number, taken: Box[], leads: Seg[]) => {
     const [hx, hy] = hots[i];
-    const ringCost = (b: Box) => rings.reduce((s, r) => s + overlap(b, r), 0) * 60;
-    const takenCost = (b: Box) => taken.reduce((s, t) => s + overlap(b, t), 0) * 12;
     const cands: { b: Box; score: number }[] = [];
     for (let y = l.m; y + h <= l.sh - l.m; y += STEP) {
       for (let x = l.m; x + w <= l.sw - l.m; x += STEP) {
         const b = { x, y, w, h };
-        const cover = houseCover(l, b);
         const dist = Math.hypot(x + w / 2 - hx, y + h / 2 - hy);
-        cands.push({ b, score: cover * 1.2 + ringCost(b) + takenCost(b) + dist * 1.5 });
+        cands.push({ b, score: houseCover(l, b) * 1.2 + ringCost(b) + takenArea(b, taken) * 12 + onLabel(i, b) * 60 + dist * 1.5 + crossCost(leaderOf(ids[i], b, hots[i]), i, taken) + under(b, leads) * 1500 });
       }
     }
     if (!cands.length) cands.push({ b: { x: l.sw - l.m - w, y: l.m, w, h }, score: 0 });
-    cands.sort((a, b) => a.score - b.score);
-    let best = cands[0];
-    let bestLabel: Box | null = null;
-    if (i === 0 && lw && lh) {
-      // the first part carries the label: choose the pair (part, label beside it) that covers least
-      let bestTotal = Infinity;
-      for (const c of cands.slice(0, 80)) {
-        const b = c.b;
-        const opts: Box[] = [
-          { x: b.x + b.w + G, y: b.y, w: lw, h: lh },
-          { x: b.x + b.w + G, y: b.y + (b.h - lh) / 2, w: lw, h: lh },
-          { x: b.x + b.w + G, y: b.y + b.h - lh, w: lw, h: lh },
-          { x: b.x - G - lw, y: b.y, w: lw, h: lh },
-          { x: b.x - G - lw, y: b.y + (b.h - lh) / 2, w: lw, h: lh },
-          { x: b.x - G - lw, y: b.y + b.h - lh, w: lw, h: lh },
-          { x: b.x, y: b.y + b.h + G, w: lw, h: lh },
-          { x: b.x + b.w - lw, y: b.y + b.h + G, w: lw, h: lh },
-          { x: b.x, y: b.y - G - lh, w: lw, h: lh },
-          { x: b.x + b.w - lw, y: b.y - G - lh, w: lw, h: lh },
-        ];
-        for (const o of opts) {
-          if (!inside(l, o)) continue;
-          // the leader (hotspot → part) must not run under the label
-          const ob = objectBox(id, b);
-          const ex = Math.min(Math.max(hx, ob.x), ob.x + ob.w);
-          const ey = Math.min(Math.max(hy, ob.y), ob.y + ob.h);
-          let cross = 0;
-          for (let k = 1; k < 10; k++) {
-            const px = hx + ((ex - hx) * k) / 10;
-            const py = hy + ((ey - hy) * k) / 10;
-            if (px > o.x && px < o.x + o.w && py > o.y && py < o.y + o.h) cross++;
-          }
-          const total = c.score + houseCover(l, o) * 1.2 + ringCost(o) + takenCost(o) + cross * 4000;
-          if (total < bestTotal) {
-            bestTotal = total;
-            best = c;
-            bestLabel = o;
+    return cands.sort((a, b) => a.score - b.score);
+  };
+  const lone = ids.length === 1 && lw > 0 && lh > 0;
+  const placePart = (i: number) => {
+    const id = ids[i];
+    const taken = takenBut(i);
+    const leads = leadsBut(i);
+    let { w, h } = partSize(l, id, ids.length);
+    for (let tries = 0; ; tries++) {
+      const cands = search(i, w, h, taken, leads);
+      let best = cands[0];
+      let bestLabel: Box | null = null;
+      if (lone) {
+        // the lone part carries the label: choose the pair (part, label beside it) that costs least
+        let bestTotal = Infinity;
+        for (const c of cands.slice(0, 80)) {
+          const seg = leaderOf(id, c.b, hots[i]);
+          for (const o of beside(c.b)) {
+            if (!inside(l, o)) continue;
+            const total = c.score + labelCost(o, taken, leads) + segHits(seg, o) * 4000;
+            if (total < bestTotal) {
+              bestTotal = total;
+              best = c;
+              bestLabel = o;
+            }
           }
         }
       }
+      const blocked = houseCover(l, best.b) + takenArea(best.b, taken);
+      if (tries >= 2 || (blocked <= 0.08 * w * h && !onLabel(i, best.b))) {
+        boxes[i] = best.b;
+        if (bestLabel) labelBox = bestLabel;
+        return;
+      }
+      w = Math.round(w * 0.8);
+      h = Math.round(h * 0.8);
     }
-    taken.push(best.b);
-    if (bestLabel) {
-      taken.push(bestLabel);
-      labelBox = bestLabel;
+  };
+  ids.forEach((_, i) => placePart(i));
+  if (!lone && ids.length && lw && lh) {
+    // two parts: the label goes in after both, beside one of them, or else on the free spot nearest them
+    const taken = takenBut(-1);
+    const leads = leadsBut(-1);
+    const placed = boxes.filter((b): b is Box => !!b);
+    let bestTotal = Infinity;
+    let best: Box | null = null;
+    const consider = (o: Box, extra: number) => {
+      if (!inside(l, o)) return;
+      const total = labelCost(o, taken, leads) + extra;
+      if (total < bestTotal) {
+        bestTotal = total;
+        best = o;
+      }
+    };
+    placed.forEach((b, i) => beside(b).forEach((o) => consider(o, i * 150)));
+    for (let y = l.m; y + lh <= l.sh - l.m; y += STEP) {
+      for (let x = l.m; x + lw <= l.sw - l.m; x += STEP) {
+        const o = { x, y, w: lw, h: lh };
+        consider(o, 400 + Math.min(...placed.map((b) => gap(o, b))) * 3);
+      }
     }
-    parts.push({ id, box: best.b, hot: [hx, hy], from: [hx, hy] });
-  });
+    labelBox = best;
+    // a part the label landed on is placed again around it (and shrunk if the room is short)
+    const lb: Box | null = best;
+    if (lb) boxes.forEach((b, i) => b && overlap(objectBox(ids[i], b), lb) > 0 && placePart(i));
+  }
+  const parts: Placed[] = ids.flatMap((id, i) => (boxes[i] ? [{ id, box: boxes[i]!, hot: hots[i], from: hots[i] }] : []));
   const p: Plan = { parts, label: labelBox };
   l.plans.set(n, p);
   return p;
@@ -302,10 +378,7 @@ function showHud(pl: Plan | null, n: number, houseMoves: boolean, instant: boole
   }
   // geometry of the marks for this chapter
   const geo = pl.parts.map((p) => {
-    const ob = objectBox(p.id, p.box);
-    const [hx, hy] = p.hot;
-    const ex = Math.min(Math.max(hx, ob.x + 4), ob.x + ob.w - 4);
-    const ey = Math.min(Math.max(hy, ob.y + 4), ob.y + ob.h - 4);
+    const [hx, hy, ex, ey] = leaderOf(p.id, p.box, p.hot);
     const len = Math.hypot(ex - hx, ey - hy);
     const r = (rings.get(p.id)?.offsetWidth ?? 24) / 2 + 2;
     const a = Math.atan2(ey - hy, ex - hx);
